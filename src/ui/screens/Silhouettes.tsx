@@ -3,13 +3,12 @@ import {useMotion} from '../motion'
 import {AIMING, PAIR, type Figure} from './figures'
 
 /**
- * One figure centred in each half of the screen, so they read as two columns
- * either side of the menu rather than as two things pushed off it.
+ * Two equal columns, each centring its own figure. No offsets to compute and
+ * nothing that has to stay in sync with the width of the menu.
  */
 const FLANK: Array<{
   figure: Figure
   side: 'left' | 'right'
-  left: string
   height: number
   opacity: number
   sway: number
@@ -17,62 +16,47 @@ const FLANK: Array<{
   /**
    * The lone figure is traced with the suit highlights left as gaps in the fill,
    * which reads as holes next to the solid pair. A hairline stroke along every
-   * subpath closes them; 0.6 units on a 36-unit figure is enough to seal the
-   * thickest gap and too little to thicken the profile.
+   * subpath closes them; 0.6 units on a 36-unit figure seals the widest gap and
+   * is too little to thicken the profile.
    */
   seal?: number
 }> = [
-  {
-    figure: PAIR,
-    side: 'left',
-    left: '25%',
-    height: 44,
-    opacity: 0.72,
-    sway: 54,
-    flip: false
-  },
-  {
-    figure: AIMING,
-    side: 'right',
-    left: '75%',
-    height: 44,
-    opacity: 0.68,
-    sway: 67,
-    flip: false,
-    seal: 0.6
-  }
+  {figure: PAIR, side: 'left', height: 44, opacity: 0.72, sway: 54, flip: false},
+  {figure: AIMING, side: 'right', height: 44, opacity: 0.68, sway: 67, flip: false, seal: 0.6}
 ]
 
 export const Crowd = () => {
   const {reduced} = useMotion()
   return (
     <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[72vh]">
-      {FLANK.map(({figure, side, left, height, opacity, sway, flip, seal}, i) => (
-        <svg
-          key={side}
-          viewBox={figure.viewBox}
-          preserveAspectRatio="xMidYMax meet"
-          fill="currentColor"
-          stroke={seal ? 'currentColor' : undefined}
-          strokeWidth={seal}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-          className={cx('fade-feet absolute bottom-[11vh] -translate-x-1/2', !reduced && 'anim-sway')}
-          style={{
-            left,
-            height: `${height}vh`,
-            color: '#05060B',
-            opacity,
-            transform: flip ? 'scaleX(-1)' : undefined,
-            animationDuration: `${sway}s`,
-            animationDelay: `${-i * 13}s`
-          }}
-        >
-          {figure.paths.map((d, j) => (
-            <path key={j} d={d} />
-          ))}
-        </svg>
-      ))}
+      <div className="grid h-full grid-cols-2 items-end">
+        {FLANK.map(({figure, side, height, opacity, sway, flip, seal}, i) => (
+          <div key={side} className="flex justify-center pb-[11vh]">
+            <svg
+              viewBox={figure.viewBox}
+              preserveAspectRatio="xMidYMax meet"
+              fill="currentColor"
+              stroke={seal ? 'currentColor' : undefined}
+              strokeWidth={seal}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              className={cx('fade-feet', !reduced && 'anim-sway')}
+              style={{
+                height: `${height}vh`,
+                color: '#05060B',
+                opacity,
+                transform: flip ? 'scaleX(-1)' : undefined,
+                animationDuration: `${sway}s`,
+                animationDelay: `${-i * 13}s`
+              }}
+            >
+              {figure.paths.map((d, j) => (
+                <path key={j} d={d} />
+              ))}
+            </svg>
+          </div>
+        ))}
+      </div>
 
       {/* Fog bank in front of them. The per-figure mask does the dissolving; this
           sits them further back into it. */}
