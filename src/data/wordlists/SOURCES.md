@@ -10,13 +10,9 @@ keeping the first occurrence, sort.
 | Pack | File | Words | Source file | Notes |
 |---|---|---|---|---|
 | Original | `original.json` | 400 | vanilla.txt | The base game deck |
-| Duet | `duet.json` | 400 | duet.txt | Overlaps Original substantially |
-| Everything | `everything.json` | 1382 | codenames.txt | Union of the licensed decks, deduped |
-| Deep Undercover | `undercover.json` | 390 | undercover.txt | Adult; off by default |
 | Disney | `disney.json` | 201 | disney.txt | Themed |
 | Harry Potter | `potter.json` | 200 | potter.txt | Themed |
-| Simpsons | `simpsons.json` | 202 | simpsons.txt | Themed |
-| Magic: The Gathering | `mtg.json` | 356 | mtg.txt | Themed |
+| Valorant | `valorant.json` | 264 | written in this script.txt | Agents, maps, guns and comms |
 
 Fetched from [jacksun007/codenames](https://github.com/jacksun007/codenames),
 which carries the widest spread of expansions and themed decks in one place.

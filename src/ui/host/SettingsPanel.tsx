@@ -1,7 +1,7 @@
 import * as Slider from '@radix-ui/react-slider'
 import * as ToggleGroup from '@radix-ui/react-toggle-group'
 import {useState} from 'react'
-import {PACKS, type PackId} from '../../data/wordlists'
+import {PACKS, knownPack, type PackId} from '../../data/wordlists'
 import {
   CLUE_TIMERS,
   GUESS_TIMERS,
@@ -108,7 +108,8 @@ export const SettingsPanel = ({
   words.useWords()
 
   const remembered = words.lastSource()
-  const selected: PackId[] = remembered?.source.kind === 'packs' ? remembered.source.packs : ['original']
+  const selected: PackId[] =
+    remembered?.source.kind === 'packs' ? remembered.source.packs.filter(knownPack) : ['original']
   const total = cardCount(settings.size)
   const problems = validate(settings, wordCount)
   const maxTeam = Math.floor((total - settings.assassins) / 2)
@@ -132,7 +133,7 @@ export const SettingsPanel = ({
         <Heading>On the card</Heading>
         <Rule className="mt-3 mb-1" />
         <Readout label="Board" value={`${settings.size} × ${settings.size} · ${total} cards`} />
-        <Readout label="Agents" value={`${c.perTeam} each`} />
+        <Readout label="Team cards" value={`${c.perTeam} each`} />
         <Readout label="Assassins" value={String(c.assassins)} />
         <Readout label="Neutral cards" value={String(Math.max(0, c.neutral))} />
         <Rule className="my-1" />
@@ -165,7 +166,7 @@ export const SettingsPanel = ({
 
         <CompositionRow settings={settings} />
 
-        <Row label={`Agents each — ${settings.teamCards}`}>
+        <Row label={`Team cards — ${settings.teamCards}`}>
           <Dial
             min={1}
             max={Math.max(1, maxTeam)}
@@ -228,7 +229,6 @@ export const SettingsPanel = ({
               onClick={() => togglePack(pack.id)}
             >
               {pack.name}
-              {pack.adult ? ' 18+' : ''}
               <span className="ml-1.5 opacity-50">{pack.count}</span>
             </Chip>
           ))}

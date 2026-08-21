@@ -142,7 +142,7 @@ export const Waiting = () => {
                   }}
                 >
                   <div className="flex items-center justify-between">
-                    <span className={cx('type-marquee text-[11px] tracking-[0.18em]', col.tint)}>
+                    <span className={cx('type-marquee text-base tracking-[0.1em]', col.tint)}>
                       {col.label}
                     </span>
                     <Label>{on(col.team).length}</Label>

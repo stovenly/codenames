@@ -28,8 +28,8 @@ playable board without further fiddling.
 
 Two segmented controls, both defaulting to off:
 
-- **Clue** — off, 30s, 60s, 90s, 120s
-- **Guessing** — off, 60s, 90s, 120s, 180s
+One scale for both, off by default: **off, 60s, 120s, 240s**. Two different
+ladders meant the two controls looked like they measured different things.
 
 Semantics and enforcement are in [04](04-game-core.md#timers); this is the
 picker.
@@ -41,14 +41,19 @@ dependency on any external repo staying up.
 
 | Pack | Words | Notes |
 |---|---|---|
-| Original | 401 | The base game deck. Default |
-| Duet | 401 | The Duet deck; overlaps Original substantially |
-| Everything | ~1380 | Union of the licensed decks, deduped |
-| Deep Undercover | 391 | Adult/NSFW. Off by default, behind an explicit toggle |
-| Disney | 202 | Themed |
-| Harry Potter | 201 | Themed |
-| Simpsons | 203 | Themed |
-| Magic: The Gathering | 357 | Themed |
+| Original | 400 | The base game deck. Default |
+| Disney | 201 | Themed |
+| Harry Potter | 200 | Themed |
+| Valorant | 264 | Themed. Written in the build script, not fetched |
+
+Duet and Everything came out because they overlap Original so heavily that
+picking them changes almost nothing. Deep Undercover, Simpsons and Magic came
+out because nobody was going to pick them.
+
+**Valorant is written in `scripts/build-wordlists.ts`, not fetched** — nobody
+publishes a list for it. Agents, maps, guns, ability names and the words people
+shout in comms. The roster moves, so anything added to the game after it was
+written is missing; adding it is one line in the script and a regenerate.
 
 Sources, all plain text, one word per line:
 

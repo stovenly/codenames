@@ -11,8 +11,7 @@ import {spring, useMotion} from './motion'
 const advice = (report: ReturnType<typeof useNet>['report']) => {
   if (!report.transports.some(t => t.relaysOpen > 0))
     return 'Nothing is reachable. A VPN, a school or office network, or strict DNS filtering will do this — try turning the VPN off first.'
-  if (report.peers.length === 0)
-    return 'Connected, but nobody else has turned up. Check everyone opened the same link.'
+  if (report.peers.length === 0) return 'Check everyone opened the same link.'
   if (report.peers.every(p => p.relayed))
     return 'Everyone is coming through a relay, which is slower. Usually a strict firewall on one end.'
   return 'Everything looks healthy.'

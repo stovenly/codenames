@@ -6,24 +6,6 @@
     "note": "The base game deck"
   },
   {
-    "id": "duet",
-    "name": "Duet",
-    "count": 400,
-    "note": "Overlaps Original substantially"
-  },
-  {
-    "id": "everything",
-    "name": "Everything",
-    "count": 1382,
-    "note": "Union of the licensed decks, deduped"
-  },
-  {
-    "id": "undercover",
-    "name": "Deep Undercover",
-    "count": 390,
-    "note": "Adult; off by default"
-  },
-  {
     "id": "disney",
     "name": "Disney",
     "count": 201,
@@ -36,15 +18,9 @@
     "note": "Themed"
   },
   {
-    "id": "simpsons",
-    "name": "Simpsons",
-    "count": 202,
-    "note": "Themed"
-  },
-  {
-    "id": "mtg",
-    "name": "Magic: The Gathering",
-    "count": 356,
-    "note": "Themed"
+    "id": "valorant",
+    "name": "Valorant",
+    "count": 264,
+    "note": "Agents, maps, guns and comms"
   }
 ]

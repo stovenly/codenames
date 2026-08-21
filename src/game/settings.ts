@@ -13,8 +13,8 @@ export type Settings = {
 
 export const SIZES: BoardSize[] = [3, 4, 5, 6, 7]
 
-export const CLUE_TIMERS = [null, 30, 60, 90, 120] as const
-export const GUESS_TIMERS = [null, 60, 90, 120, 180] as const
+export const CLUE_TIMERS = [null, 60, 120, 240] as const
+export const GUESS_TIMERS = [null, 60, 120, 240] as const
 
 const PRESETS: Record<BoardSize, {teamCards: number; assassins: number}> = {
   3: {teamCards: 3, assassins: 1},
