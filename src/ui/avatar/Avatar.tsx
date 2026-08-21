@@ -18,7 +18,12 @@ const render = (spec: AvatarSpec): string | null => {
     backgroundColor: [spec.bg.replace('#', '')],
     radius: 12,
     scale: 88
-  } as never).toString()
+  } as never)
+    .toString()
+    // Attribution rides along in every generated file and ends up in the
+    // accessibility tree and in textContent. The licence is credited in the
+    // repo instead.
+    .replace(/<metadata[\s\S]*?<\/metadata>/, '')
 
   cache.set(key, svg)
   return svg
@@ -73,7 +78,10 @@ export const AvatarView = ({
   return (
     <span
       aria-hidden
-      className={`block overflow-hidden rounded-md ${className}`}
+      // Each style declares its own intrinsic size — Lorelei 980, Notionists
+      // 1744, Pixel 16 — so the generated svg has to be told to fill the box or
+      // it renders at its own scale and gets cropped to a speck.
+      className={`block overflow-hidden rounded-md [&>svg]:size-full ${className}`}
       style={{width: size, height: size}}
       dangerouslySetInnerHTML={{__html: svg}}
     />

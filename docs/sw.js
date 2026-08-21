@@ -1,10 +1,10 @@
-const VERSION = 'cn-637k34'
+const VERSION = 'cn-1siibvd'
 const SHELL = [
   "./",
   "./index.html",
-  "./assets/index-BqbVACdh.js",
+  "./assets/index-RHp12iUj.js",
   "./assets/rolldown-runtime-hePW80VL.js",
-  "./assets/index-Bg3N2CXv.css"
+  "./assets/index-CQ_eQmn0.css"
 ]
 
 self.addEventListener('install', event => {

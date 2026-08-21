@@ -12,8 +12,11 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@dicebear/adventurer": "^9.4.2",
     "@dicebear/core": "^9.4.3",
+    "@dicebear/dylan": "^9.4.2",
     "@dicebear/lorelei": "^9.4.2",
+    "@dicebear/micah": "^9.4.2",
     "@dicebear/notionists": "^9.4.2",
     "@dicebear/open-peeps": "^9.4.2",
     "@dicebear/pixel-art": "^9.4.2",

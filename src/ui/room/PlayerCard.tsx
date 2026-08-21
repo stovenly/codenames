@@ -44,7 +44,9 @@ export const PlayerCard = ({
 
   return (
     <motion.div
-      layout={!reduced}
+      // Position only: a size animation on a card that grows a spymaster badge
+      // reads as the card vanishing and coming back.
+      layout={reduced ? false : 'position'}
       layoutId={reduced ? undefined : `player-${player.id}`}
       initial={reduced ? {opacity: 0} : {opacity: 0, y: 14, scale: 0.97}}
       animate={{opacity: player.connected ? 1 : 0.45, y: 0, scale: 1}}

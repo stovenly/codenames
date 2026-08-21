@@ -69,6 +69,13 @@ const CustomColour = ({value, onPick}: {value: string; onPick: (hex: string) => 
   )
 }
 
+/** So two categories do not both open on variant 0. */
+const openingVariant = (id: string) => {
+  let h = 0
+  for (const ch of id) h = (Math.imul(h, 31) + ch.charCodeAt(0)) | 0
+  return String(Math.abs(h) % VARIANTS)
+}
+
 export const AvatarPicker = ({
   value,
   onChange
@@ -79,11 +86,24 @@ export const AvatarPicker = ({
   const style = STYLES[styleIndex(value.style)]!
   const variant = variantIndex(value.seed)
 
-  /** Never lands on the one already showing, which reads as a broken button. */
-  const roll = () => {
-    const next = (variant + 1 + Math.floor(Math.random() * (VARIANTS - 1))) % VARIANTS
-    onChange({...value, seed: String(next)})
+  /**
+   * One seed goes on the wire, but the slider belongs to the category it is
+   * under — scrubbing Lorelei should not drag Micah along with it. Remembered
+   * per category for this session, so switching back lands where you left it.
+   */
+  const [seeds, setSeeds] = useState<Record<string, string>>({[style.id]: value.seed})
+
+  const setVariant = (seed: string) => {
+    setSeeds(prev => ({...prev, [style.id]: seed}))
+    onChange({...value, seed})
   }
+
+  const setStyle = (id: string) =>
+    onChange({...value, style: id, seed: seeds[id] ?? openingVariant(id)})
+
+  /** Never lands on the one already showing, which reads as a broken button. */
+  const roll = () =>
+    setVariant(String((variant + 1 + Math.floor(Math.random() * (VARIANTS - 1))) % VARIANTS))
 
   return (
     <Panel className="flex flex-col gap-5 p-4">
@@ -108,7 +128,7 @@ export const AvatarPicker = ({
             max={VARIANTS - 1}
             step={1}
             value={[variant]}
-            onValueChange={([i]) => onChange({...value, seed: String(i ?? 0)})}
+            onValueChange={([i]) => setVariant(String(i ?? 0))}
             aria-label={`${style.name} variant`}
             className="relative flex h-5 w-full touch-none items-center select-none"
           >
@@ -120,14 +140,14 @@ export const AvatarPicker = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-5 gap-2">
+      <div className="grid grid-cols-4 gap-2">
         {STYLES.map(s => (
           <button
             key={s.id}
             type="button"
             title={s.note}
             aria-pressed={value.style === s.id}
-            onClick={() => onChange({...value, style: s.id})}
+            onClick={() => setStyle(s.id)}
             className={cx(
               'flex cursor-pointer flex-col items-center gap-1 rounded-sm border p-1.5 transition-colors duration-[120ms]',
               value.style === s.id
@@ -135,7 +155,7 @@ export const AvatarPicker = ({
                 : 'border-stage-600 hover:border-gold-500/50'
             )}
           >
-            <AvatarView spec={{...value, style: s.id}} size={38} />
+            <AvatarView spec={{...value, style: s.id}} size={46} />
             <Label>{s.name}</Label>
           </button>
         ))}

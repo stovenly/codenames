@@ -1,5 +1,5 @@
 import {AnimatePresence, motion} from 'motion/react'
-import {Check, Link2} from 'lucide-react'
+import {Check, Link2, VenetianMask} from 'lucide-react'
 import {useEffect, useState} from 'react'
 import {shareLink} from '../../net/identity'
 import {roomId, useNet} from '../../state/net'
@@ -121,7 +121,7 @@ export const Waiting = () => {
           </Item>
         )}
 
-        <Item className="grid gap-7 lg:grid-cols-[1fr_19rem]">
+        <Item className="grid gap-7 lg:grid-cols-[1fr_23rem]">
           <div className="flex flex-col gap-7">
             <section className="grid gap-4 sm:grid-cols-3">
               {COLUMNS.map(col => (
@@ -181,6 +181,8 @@ export const Waiting = () => {
                     {col.label}
                   </Button>
                 ))}
+                <span aria-hidden className="mx-1 h-8 w-px self-center bg-stage-600" />
+
                 <Button
                   size="sm"
                   variant={mine?.spymaster ? 'primary' : 'ghost'}
@@ -188,7 +190,9 @@ export const Waiting = () => {
                   onClick={() =>
                     intend({kind: 'setSpymaster', target: me, spymaster: !mine?.spymaster})
                   }
+                  className="flex items-center gap-1.5"
                 >
+                  <VenetianMask className="size-3.5" />
                   Spymaster
                 </Button>
               </div>

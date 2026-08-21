@@ -74,40 +74,53 @@ works offline.
 
 ### Styles
 
-All CC0 1.0 for the artwork and MIT for the code, so there is no attribution
-obligation, and all lazy-loaded.
+Faces first — people pick a face. All lazy-loaded.
 
-| Style | Package | Character |
+| Style | Package | Licence |
 |---|---|---|
-| Shapes | `@dicebear/shapes` | Abstract, highest contrast, most colourblind-safe |
-| Glass | `@dicebear/glass` | Soft gradients, quiet |
-| Pixel | `@dicebear/pixel-art` | Retro, reads well at small sizes |
-| Thumbs | `@dicebear/thumbs` | Simple figures, the comic option |
-| Lorelei | `@dicebear/lorelei` | Illustrated portraits, fits the dossier framing |
-| Peeps | `@dicebear/open-peeps` | Hand-drawn people, the widest variety |
-| Notionists | `@dicebear/notionists` | Line-drawn characters, the heaviest |
+| Lorelei | `@dicebear/lorelei` | CC0 1.0 |
+| Peeps | `@dicebear/open-peeps` | CC0 1.0 |
+| Adventurer | `@dicebear/adventurer` | CC BY 4.0 |
+| Micah | `@dicebear/micah` | CC BY 4.0 |
+| Dylan | `@dicebear/dylan` | CC BY 4.0 |
+| Notionists | `@dicebear/notionists` | CC0 1.0 |
+| Thumbs | `@dicebear/thumbs` | CC0 1.0 |
+| Pixel | `@dicebear/pixel-art` | CC0 1.0 |
 
-An earlier draft of this table named Clay, Critters and Pixelbot. **No DiceBear
-styles by those names exist** — the seven above are the CC0 styles that do.
+**The CC0 pool is not deep enough.** It holds five usable styles and only three
+of them are people, so the three added for variety are CC BY 4.0 and attribution
+is required. It is in `CREDITS.md`. This is a change of position from the
+original "CC0 keeps the licence story to one line" — the licence story is now
+two lines, and a roster of eight faces is worth the second one.
 
-**Excluded: Bottts.** Licensed "free for personal and commercial use" rather than
-CC0. Usable, but CC0 across the board keeps the licence story to one line, and
-that is worth more than one robot style.
+An earlier draft of this table named Clay, Critters and Pixelbot, none of which
+exist as DiceBear styles. Shapes and Glass were dropped as abstractions.
+Personas and Miniavs were rejected on sight: both draw a hard diagonal across
+the corner that reads as a rendering fault.
 
-**RESOLVED — Notionists is in.** It is CC0, it is a genuinely distinct style, and
-it is lazy-loaded, so its weight lands only on players who pick it.
+**Every style declares its own intrinsic size** — Lorelei 980, Notionists 1744,
+Pixel 16 — so the generated SVG has to be told to fill its box. Left alone it
+renders at its own scale and crops to a speck, which looks like a bug in the
+avatar rather than in the markup around it.
 
 ### Customization
 
 Kept deliberately narrow — DiceBear's full option surface differs per style and
 would be a maintenance drag.
 
-- **Style** — the seven above, as a row of live previews
-- **Reroll** — a new random seed, with a slot-machine spin across three or four
-  intermediate avatars before landing. This is the fun part; give it weight
-- **Background** — a fixed swatch row drawn from the palette in
-  [01](01-foundations.md#design-system), deliberately excluding the two team
-  colours so an avatar never contradicts a team column
+- **Style** — the eight above, as a grid of live previews
+- **Variant** — a slider across the 60 variants inside the chosen style. The
+  seed *is* the index, so the slider can always find its way back to what is
+  selected. Each style remembers its own position for the session: scrubbing one
+  category must not drag the others along with it
+- **Reroll** — a dice that picks a variant and sets it, skipping whatever is
+  showing so the button never appears to do nothing. No wind-up: the
+  slot-machine spin earns its keep on the card reveal, where the wait is the
+  point, not on a settings control
+- **Backdrop** — a spread of darks and hues far enough apart to tell apart at
+  40px, plus a pipette that opens a wheel with saturation and brightness and a
+  hex field. The two team colours are excluded, so an avatar can never
+  contradict the column it is standing in
 
 Stored as `{style, seed, bg}` in `localStorage`, so a returning player keeps their
 look, and broadcast as `presence`. Every client generates the SVG locally; the
@@ -124,8 +137,9 @@ The picker is the one place that renders all seven at once, so each load is
 deferred to `requestIdleCallback`. Seven style definitions must never contend
 with the transport chunk for the same bandwidth.
 
-While a definition loads, render the Shapes fallback at 12 KB, which is bundled
-eagerly. Nothing in the room ever waits on an avatar.
+While a definition loads, render a neutral placeholder on the chosen backdrop.
+An earlier version fell back to another style's avatar, which is worse than
+showing no face: it looks like the app picked for you.
 
 ## Host tab notice
 

@@ -148,10 +148,10 @@ export const SettingsPanel = ({
 
   return (
     <Panel className="flex h-fit flex-col gap-6 p-5">
-      <Heading>Set the board</Heading>
+      <Heading>Board settings</Heading>
 
       <div className="flex flex-col gap-3">
-        <Row label={`${settings.size} × ${settings.size} · ${total} cards`}>
+        <Row label={`Board size — ${settings.size} × ${settings.size}, ${total} cards`}>
           <Picker
             value={String(settings.size)}
             options={([3, 4, 5, 6, 7] as BoardSize[]).map(s => ({

@@ -1,6 +1,14 @@
 import type {Style} from '@dicebear/core'
 
-export type StyleId = 'lorelei' | 'open-peeps' | 'notionists' | 'thumbs' | 'pixel-art'
+export type StyleId =
+  | 'lorelei'
+  | 'open-peeps'
+  | 'adventurer'
+  | 'micah'
+  | 'dylan'
+  | 'notionists'
+  | 'thumbs'
+  | 'pixel-art'
 
 type Entry = {
   id: StyleId
@@ -10,9 +18,12 @@ type Entry = {
 }
 
 /**
- * Faces first — people pick a face. Every style is CC0 1.0, which keeps the
- * licence story to one line; Bottts and the CC-BY styles are excluded on that
- * basis rather than on quality.
+ * Faces first — people pick a face.
+ *
+ * The CC0 pool is five styles deep and only three of them are people, so the
+ * three added here are CC BY 4.0: attribution is required, and it is in
+ * CREDITS.md. Personas and Miniavs were rejected on sight — both draw a hard
+ * diagonal across the corner that reads as a rendering fault.
  *
  * Nothing is bundled eagerly. A style that has not arrived yet renders as a
  * neutral placeholder rather than as some other style's avatar — showing a face
@@ -30,6 +41,24 @@ export const STYLES: Entry[] = [
     name: 'Peeps',
     note: 'Hand-drawn people',
     load: async () => (await import('@dicebear/open-peeps')) as unknown as Style<never>
+  },
+  {
+    id: 'adventurer',
+    name: 'Adventurer',
+    note: 'Colourful, widest variety',
+    load: async () => (await import('@dicebear/adventurer')) as unknown as Style<never>
+  },
+  {
+    id: 'micah',
+    name: 'Micah',
+    note: 'Clean vector portraits',
+    load: async () => (await import('@dicebear/micah')) as unknown as Style<never>
+  },
+  {
+    id: 'dylan',
+    name: 'Dylan',
+    note: 'Bold and flat, reads small',
+    load: async () => (await import('@dicebear/dylan')) as unknown as Style<never>
   },
   {
     id: 'notionists',
