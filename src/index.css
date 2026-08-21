@@ -198,18 +198,19 @@ button {
   transform-origin: 50% 20%;
   background: linear-gradient(to bottom, var(--beam) 0%, transparent 68%);
   mask-image: radial-gradient(64% 92% at 50% 6%, #000 0%, #000 22%, transparent 82%);
-  filter: blur(34px);
   mix-blend-mode: screen;
-  will-change: transform;
 }
 
-/** A pool of coloured light. Big, very blurred, additive. */
+/**
+ * A pool of coloured light. No blur filter: a radial gradient is already
+ * perfectly soft, and blurring one only costs a compositing layer whose bounds
+ * the browser then clips the filter to — which is where the visible square
+ * edges came from. Softness comes from the gradient stops instead.
+ */
 @utility glow {
   position: absolute;
   border-radius: 9999px;
-  filter: blur(72px);
   mix-blend-mode: screen;
-  will-change: transform, opacity;
 }
 
 /**
@@ -304,7 +305,6 @@ button {
 @utility pool {
   position: absolute;
   border-radius: 100%;
-  filter: blur(38px);
   mix-blend-mode: screen;
 }
 
@@ -447,7 +447,6 @@ button {
   position: absolute;
   border-radius: 9999px;
   translate: -50% -50%;
-  filter: blur(9px);
   mix-blend-mode: screen;
 }
 

@@ -6,12 +6,26 @@ import type {Envelope, MessageKind, PlayerId} from '../net/protocol'
 export type Handler = (body: unknown, env: Envelope) => void
 
 /**
- * The room id exists before the player commits to anything: Trystero starts
- * gathering candidates while they are still typing a name, so the board is
- * populated the moment they hit enter. A minted-but-unused id costs nothing.
+ * A room is only created when someone asks for one. Arriving on the page used to
+ * mint an id and publish it to the hash immediately, which meant every visitor
+ * opened a room whether or not they ever pressed the button.
+ *
+ * Joiners still prewarm: they arrive with an id in the hash, so discovery starts
+ * while they are typing a name. Creators trade that for not making a room by
+ * accident, which is the right way round.
+ *
+ * A live binding, so importers see the id the moment it is assigned.
  */
-export const roomId = roomFromHash() ?? newRoomId()
+export let roomId = roomFromHash() ?? ''
 export const joinedExisting = roomFromHash() !== null
+
+export const openRoom = () => {
+  if (!roomId) {
+    roomId = newRoomId()
+    setRoomHash(roomId)
+  }
+  return roomId
+}
 
 type Report = ReturnType<Mesh['report']>
 
@@ -43,6 +57,7 @@ const dispatch = (env: Envelope, body: unknown) => {
  * after first paint. Anything sent before it lands waits in the outbox.
  */
 export const startMesh = () => {
+  if (!roomId) throw new Error('no room')
   if (booting) return booting
   booting = import('../net/mesh').then(({createMesh}) => {
     mesh = createMesh({roomId, onEnvelope: dispatch, onChange: publish})
@@ -86,7 +101,7 @@ export const useNet = () =>
 
 export const self = playerId
 
-export const publishRoomToHash = () => setRoomHash(roomId)
+export const meshStarted = () => booting !== null
 
 export const subscribe = (listener: () => void) => {
   listeners.add(listener)

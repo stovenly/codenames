@@ -92,7 +92,7 @@ const Lighting = () => {
             top: g.top,
             width: g.size,
             height: g.size,
-            background: `radial-gradient(circle, ${g.tint} 0%, transparent 68%)`,
+            background: `radial-gradient(circle, ${g.tint} 0%, transparent 62%)`,
             opacity: reduced ? 0.5 : undefined
           }}
         />
@@ -120,7 +120,7 @@ const Lighting = () => {
 
       <span
         className={cx(
-          'absolute -bottom-[24vh] left-1/2 h-[44vh] w-[130vw] -translate-x-1/2 rounded-[100%] blur-[70px]',
+          'absolute -bottom-[24vh] left-1/2 h-[44vh] w-[130vw] -translate-x-1/2 rounded-[100%]',
           !reduced && 'anim-breathe'
         )}
         style={{
@@ -271,7 +271,7 @@ export const Landing = ({needsPassword: rejected}: {needsPassword: boolean}) => 
                 maxLength={24}
                 onChange={e => setName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && void go()}
-                placeholder="Agent"
+                placeholder={joinedExisting ? 'Guest' : 'Host'}
                 className={input}
               />
             </Field>

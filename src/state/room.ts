@@ -7,7 +7,7 @@ import {defaultSettings, validate, type BoardSize, type Settings} from '../game/
 import type {ClueCount, Step} from '../game/steps'
 import type {Avatar, Player, Shared, Team} from '../game/types'
 import {otherTeam} from '../game/types'
-import {on, peers, roomId, self, send, startMesh, subscribe as onNetChange} from './net'
+import {joinedExisting, on, openRoom, peers, roomId, self, send, startMesh, subscribe as onNetChange} from './net'
 import * as words from './words'
 
 export type Role = 'idle' | 'joining' | 'rejected' | 'client' | 'host' | 'electing'
@@ -627,7 +627,9 @@ const proofFor = async (password: string | null) =>
 export const start = () => {
   if (started) return
   started = true
-  startMesh()
+  // Joiners arrive with a room in the hash, so discovery can begin at once.
+  // Creators have no room yet — createRoom boots the mesh.
+  if (joinedExisting) startMesh()
 
   on('hello', async (body, env) => {
     if (!isHost() || !shared) return
@@ -762,6 +764,8 @@ export const start = () => {
 
 export const createRoom = async (name: string, password: string | null) => {
   start()
+  openRoom()
+  startMesh()
   myName = name
   saveSession({name, password})
   rememberSeat(name)

@@ -2,7 +2,6 @@ import {AnimatePresence, motion} from 'motion/react'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import {Suspense, lazy, useEffect} from 'react'
 import {derive} from '../game/reducer'
-import {publishRoomToHash} from '../state/net'
 import {start, useRoom} from '../state/room'
 import * as words from '../state/words'
 import {AwayWatch, HostAwayPill} from './Away'
@@ -10,6 +9,7 @@ import {Diagnostics} from './Diagnostics'
 import {Label, Panel, Stage} from './atoms'
 import {cx} from './cx'
 import {spring} from './motion'
+import {Connecting} from './screens/Connecting'
 import {Landing} from './screens/Landing'
 
 const Waiting = lazy(() => import('./screens/Waiting').then(m => ({default: m.Waiting})))
@@ -47,7 +47,6 @@ export const App = () => {
 
   useEffect(() => {
     start()
-    publishRoomToHash()
   }, [])
 
   const view = shared
@@ -69,7 +68,7 @@ export const App = () => {
       {role === 'idle' || role === 'rejected' ? (
         <Landing needsPassword={role === 'rejected'} />
       ) : role === 'joining' ? (
-        <Loading label="Connecting…" />
+        <Connecting title="Taking your seat" />
       ) : view && view.phase !== 'setup' ? (
         <Suspense fallback={<Loading label="Dealing the board…" />}>
           <Game />
