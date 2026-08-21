@@ -3,11 +3,9 @@ import {useState} from 'react'
 import type {View} from '../../game/reducer'
 import type {Player, Team} from '../../game/types'
 import {myMark} from '../../state/presence'
-import {getPrefs, setPrefs, usePrefs} from '../../state/prefs'
 import {intend} from '../../state/room'
 import {Button, Glyph, Label, Panel, input} from '../atoms'
 import {spring, useMotion} from '../motion'
-import {sfx} from '../sound/audio'
 import {TimerArc} from './TimerArc'
 
 const Score = ({team, left, total, active}: {team: Team; left: number; total: number; active: boolean}) => {
@@ -110,7 +108,6 @@ export const Hud = ({
   busy: boolean
   size: number
 }) => {
-  const {muted} = usePrefs()
   const armed = myMark()
   const myTurn = me?.team === view.turn
   const amSpymaster = !!me?.spymaster
@@ -187,17 +184,6 @@ export const Hud = ({
 
       <Score team="blue" left={view.remaining.blue} total={view.totals.blue} active={view.turn === 'blue'} />
 
-      <Button
-        variant="quiet"
-        size="sm"
-        aria-label={muted ? 'Unmute' : 'Mute'}
-        onClick={() => {
-          setPrefs({muted: !getPrefs().muted})
-          if (muted) sfx.arm()
-        }}
-      >
-        {muted ? 'Muted' : 'Sound'}
-      </Button>
     </Panel>
   )
 }

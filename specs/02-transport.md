@@ -35,15 +35,26 @@ Nostr, MQTT, and BitTorrent trackers are independent public infrastructure with
 no accounts. Discovery now fails only if a player's network blocks all three.
 At redundancy 5 that is up to fifteen signalling endpoints.
 
-We also ship a curated `urls` override per transport in `src/data/relays.ts` —
-8-12 vetted public Nostr relays, MQTT brokers, and WebSocket trackers. Defaults
-drift and die; a list we control is updatable with a commit.
+`src/data/relays.ts` holds a per-transport **override**, not a replacement.
+Trystero's defaults are chosen for relays that accept the ephemeral events it
+publishes, and a hand-picked list looks more careful while usually being worse:
+a first attempt at one put `relay.damus.io` (rate-limits the signalling traffic)
+and `offchain.pub` (rejects it as a web-of-trust policy violation) into the
+rotation, costing two dead relays and a stream of console errors.
+
+So the rule is: take the defaults, and list a relay here only when a specific
+default is observed failing, with the reason. Currently that is
+`test.mosquitto.org:8081` and `tracker.btorrent.xyz`.
 
 **`urls` and `redundancy` are mutually exclusive in Trystero:** supplying `urls`
-makes it connect to all of them and ignore `redundancy` entirely. So we keep the
-full vetted list in the file and pass only the leading `REDUNDANCY` entries.
-That slice must be identical on every client — no per-room shuffling, or two
-players pick disjoint relays and never discover each other.
+makes it connect to all of them and ignore `redundancy`. An override list must
+therefore be short enough to be the whole set, and identical on every client —
+no per-room shuffling, or two players pick disjoint relays and never discover
+each other.
+
+**`warnOnRelayFailure: false`.** A public relay refusing us is routine and the
+diagnostics panel already reports it properly. Left on, the console fills with
+failures that hide real errors.
 
 `APP_ID` is a constant unique to this project. `roomId` is 10 chars of base32
 from `crypto.getRandomValues`, carried in the URL hash.

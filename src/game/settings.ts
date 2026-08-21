@@ -17,8 +17,8 @@ export const CLUE_TIMERS = [null, 30, 60, 90, 120] as const
 export const GUESS_TIMERS = [null, 60, 90, 120, 180] as const
 
 const PRESETS: Record<BoardSize, {teamCards: number; assassins: number}> = {
-  3: {teamCards: 2, assassins: 1},
-  4: {teamCards: 4, assassins: 1},
+  3: {teamCards: 3, assassins: 1},
+  4: {teamCards: 5, assassins: 1},
   5: {teamCards: 8, assassins: 1},
   6: {teamCards: 11, assassins: 2},
   7: {teamCards: 15, assassins: 2}
@@ -29,20 +29,22 @@ export const presetFor = (size: BoardSize) => PRESETS[size]
 export const cardCount = (size: BoardSize) => size * size
 
 export type Composition = {
-  starting: number
-  second: number
+  perTeam: number
   assassins: number
   neutral: number
   total: number
 }
 
+/**
+ * Both teams always get the same number of agents. Every other card is a
+ * bystander — the board absorbs the remainder, never one of the teams.
+ */
 export const composition = (settings: Pick<Settings, 'size' | 'teamCards' | 'assassins'>): Composition => {
   const total = cardCount(settings.size)
   return {
-    starting: settings.teamCards + 1,
-    second: settings.teamCards,
+    perTeam: settings.teamCards,
     assassins: settings.assassins,
-    neutral: total - (2 * settings.teamCards + 1) - settings.assassins,
+    neutral: total - 2 * settings.teamCards - settings.assassins,
     total
   }
 }

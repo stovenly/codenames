@@ -3,6 +3,8 @@ import {useEffect, useState} from 'react'
 import {refreshStats, roomId, self, useNet} from '../state/net'
 import {setPrefs, usePrefs} from '../state/prefs'
 import {Button, Heading, Label, Panel, Pill, Rule} from './atoms'
+import {Check, Close, Copy, IconButton, Signal} from './icons'
+import {MuteToggle} from './Controls'
 import {spring, useReducedMotion} from './motion'
 
 const Toggle = ({
@@ -99,23 +101,28 @@ export const Diagnostics = () => {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(v => !v)}
-        aria-expanded={open}
-        className={`type-mono fixed bottom-3 left-3 z-40 flex cursor-pointer items-center gap-2 rounded-full border bg-ink-800/90 px-3 py-1.5 text-[11px] backdrop-blur transition-colors hover:border-brass-400/50 hover:text-brass-200 ${tone}`}
-      >
-        <span
-          aria-hidden
-          className={`size-1.5 rounded-full ${
-            health === 'down' ? 'bg-void-rim' : health === 'alone' ? 'bg-brass-400' : health === 'ok' ? 'bg-brass-400/70' : 'bg-text-dim/50'
-          }`}
-        />
-        {health === 'down'
-          ? 'offline'
-          : `${report.router.directPeers} peer${report.router.directPeers === 1 ? '' : 's'}`}
-        <span className="opacity-50">diagnostics</span>
-      </button>
+      <div className="fixed bottom-3 left-3 z-40 flex items-center gap-1.5">
+        <MuteToggle />
+        <IconButton
+          label={
+            health === 'down'
+              ? 'Offline — open diagnostics'
+              : `${report.router.directPeers} connected — open diagnostics`
+          }
+          aria-expanded={open}
+          onClick={() => setOpen(v => !v)}
+          className={`surface-1 backdrop-blur ${
+            health === 'down' ? 'border-void-rim/70 text-red-glow' : ''
+          } ${tone}`}
+        >
+          <Signal />
+        </IconButton>
+        {report.router.directPeers > 0 && (
+          <span className="type-label surface-1 rounded-full border border-ink-600 px-2 py-1 backdrop-blur">
+            {report.router.directPeers}
+          </span>
+        )}
+      </div>
 
       <AnimatePresence>
         {open && (
@@ -129,9 +136,14 @@ export const Diagnostics = () => {
             <Panel level={2} className="max-h-[70vh] overflow-y-auto p-4 backdrop-blur">
               <div className="flex items-baseline justify-between gap-3">
                 <Heading>Diagnostics</Heading>
-                <Label>
-                  {roomId} · {self.slice(0, 6)}
-                </Label>
+                <span className="flex items-center gap-2">
+                  <Label>
+                    {roomId} · {self.slice(0, 6)}
+                  </Label>
+                  <IconButton label="Close" onClick={() => setOpen(false)} className="size-7">
+                    <Close />
+                  </IconButton>
+                </span>
               </div>
 
               <Rule className="my-3" />
@@ -193,7 +205,8 @@ export const Diagnostics = () => {
               </section>
 
               <div className="mt-4">
-                <Button variant="ghost" size="sm" onClick={copy} className="w-full">
+                <Button variant="ghost" size="sm" onClick={copy} className="flex w-full items-center justify-center gap-2">
+                  {copied ? <Check /> : <Copy />}
                   {copied ? 'Copied' : 'Copy diagnostics'}
                 </Button>
               </div>

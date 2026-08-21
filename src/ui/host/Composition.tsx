@@ -75,19 +75,18 @@ const Item = ({
 
 export const CompositionRow = ({settings}: {settings: Pick<Settings, 'size' | 'teamCards' | 'assassins'>}) => {
   const c = composition(settings)
-  const startFirst = c.starting >= c.second
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       <Item
         icon={<Agent className="text-red-glow" />}
-        value={startFirst ? c.starting : c.second}
+        value={c.perTeam}
         label="red"
         tone="border-red-500/40 bg-red-500/10 text-red-glow"
       />
       <Item
         icon={<Agent className="text-blue-glow" />}
-        value={startFirst ? c.second : c.starting}
+        value={c.perTeam}
         label="blue"
         tone="border-blue-500/40 bg-blue-500/10 text-blue-glow"
       />

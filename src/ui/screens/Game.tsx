@@ -3,7 +3,7 @@ import {Suspense, lazy, useEffect} from 'react'
 import {derive} from '../../game/reducer'
 import {startPresence} from '../../state/presence'
 import {useRoom} from '../../state/room'
-import {useTheatre} from '../../state/theatre'
+import {syncTheatre, useTheatre} from '../../state/theatre'
 import * as words from '../../state/words'
 import {Board} from '../board/Board'
 import {ClueReveal, TurnBand} from '../hud/ClueReveal'
@@ -24,6 +24,7 @@ export const Game = () => {
   useEffect(() => {
     startPresence()
     unlockAudio()
+    syncTheatre()
   }, [])
 
   if (!shared) return null

@@ -1,7 +1,9 @@
 import {motion} from 'motion/react'
 import type {Player, Team} from '../../game/types'
+import {intend} from '../../state/room'
 import {AvatarView} from '../avatar/Avatar'
 import {Glyph} from '../atoms'
+import {IconButton, Mask} from '../icons'
 import {spring, useMotion} from '../motion'
 
 const pip = (rtt: number | null, connected: boolean) => {
@@ -24,6 +26,7 @@ export const PlayerCard = ({
   isMe,
   rtt,
   draggable,
+  hostControls = false,
   onDragStart
 }: {
   player: Player
@@ -31,6 +34,8 @@ export const PlayerCard = ({
   isMe: boolean
   rtt: number | null
   draggable: boolean
+  /** Dragging is quick but imprecise, and impossible on touch — the host gets buttons too. */
+  hostControls?: boolean
   onDragStart?: () => void
 }) => {
   const {reduced} = useMotion()
@@ -81,6 +86,47 @@ export const PlayerCard = ({
           </span>
         </div>
       </div>
+
+      {hostControls && (
+        <div className="mt-2.5 flex items-center gap-1 border-t border-ink-600/70 pt-2 pl-1">
+          {([
+            ['red', 'Red', 'Move to red'],
+            [null, '—', 'Unassign'],
+            ['blue', 'Blue', 'Move to blue']
+          ] as const).map(([value, glyph, label]) => (
+            <button
+              key={label}
+              type="button"
+              title={label}
+              aria-label={label}
+              aria-pressed={team === value}
+              onClick={() => intend({kind: 'setTeam', target: player.id, team: value})}
+              className={`type-label h-7 flex-1 cursor-pointer rounded-sm border transition-colors duration-[120ms] ${
+                team === value
+                  ? value === 'red'
+                    ? 'border-red-500/60 bg-red-500/15 text-red-glow'
+                    : value === 'blue'
+                      ? 'border-blue-500/60 bg-blue-500/15 text-blue-glow'
+                      : 'border-brass-400/60 bg-brass-400/12 text-brass-200'
+                  : 'border-ink-600 hover:border-brass-400/45 hover:text-text'
+              }`}
+            >
+              {glyph}
+            </button>
+          ))}
+          <IconButton
+            label={player.spymaster ? 'Remove as spymaster' : 'Make spymaster'}
+            active={player.spymaster}
+            disabled={!team}
+            className="size-7"
+            onClick={() =>
+              intend({kind: 'setSpymaster', target: player.id, spymaster: !player.spymaster})
+            }
+          >
+            <Mask />
+          </IconButton>
+        </div>
+      )}
 
       <motion.span
         aria-hidden

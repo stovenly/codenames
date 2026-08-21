@@ -88,7 +88,7 @@ export const SettingsPanel = ({
         <Heading>Briefing</Heading>
         <Rule className="mt-3 mb-1" />
         <Readout label="Board" value={`${settings.size} × ${settings.size} · ${total} cards`} />
-        <Readout label="Agents" value={`${c.starting} / ${c.second}`} />
+        <Readout label="Agents" value={`${c.perTeam} each`} />
         <Readout label="Assassins" value={String(c.assassins)} />
         <Readout label="Bystanders" value={String(Math.max(0, c.neutral))} />
         <Rule className="my-1" />

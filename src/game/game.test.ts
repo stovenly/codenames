@@ -44,18 +44,32 @@ describe('prng', () => {
 
 describe('settings', () => {
   it('matches the documented default composition at every size', () => {
-    const table: Record<BoardSize, [number, number, number, number]> = {
-      3: [9, 3, 2, 3],
-      4: [16, 5, 4, 6],
-      5: [25, 9, 8, 7],
-      6: [36, 12, 11, 11],
-      7: [49, 16, 15, 16]
+    const table: Record<BoardSize, [number, number, number]> = {
+      3: [9, 3, 2],
+      4: [16, 5, 5],
+      5: [25, 8, 8],
+      6: [36, 11, 12],
+      7: [49, 15, 17]
     }
     for (const size of [3, 4, 5, 6, 7] as BoardSize[]) {
       const c = composition({size, ...presetFor(size)})
-      const [total, starting, second, neutral] = table[size]
-      expect([c.total, c.starting, c.second, c.neutral]).toEqual([total, starting, second, neutral])
-      expect(c.starting + c.second + c.assassins + c.neutral).toBe(c.total)
+      const [total, perTeam, neutral] = table[size]
+      expect([c.total, c.perTeam, c.neutral]).toEqual([total, perTeam, neutral])
+      expect(2 * c.perTeam + c.assassins + c.neutral).toBe(c.total)
+    }
+  })
+
+  it('never gives one team more agents than the other', () => {
+    for (const size of [3, 4, 5, 6, 7] as BoardSize[]) {
+      for (let teamCards = 1; teamCards <= 4; teamCards++) {
+        const cfg = {size, teamCards, assassins: 1}
+        if (composition(cfg).neutral < 0) continue
+        for (const start of ['red', 'blue'] as Team[]) {
+          const board = buildBoard(settings(cfg), WORDS, 'seed', start)
+          expect(board.filter(c => c.colour === 'red')).toHaveLength(teamCards)
+          expect(board.filter(c => c.colour === 'blue')).toHaveLength(teamCards)
+        }
+      }
     }
   })
 
@@ -64,13 +78,19 @@ describe('settings', () => {
     expect(problems.some(p => p.field === 'neutral')).toBe(true)
   })
 
+  it('absorbs the remainder into bystanders, not into a team', () => {
+    const c = composition({size: 5, teamCards: 4, assassins: 1})
+    expect(c.perTeam).toBe(4)
+    expect(c.neutral).toBe(25 - 8 - 1)
+  })
+
   it('rejects a word list shorter than the board', () => {
     const problems = validate({size: 7, teamCards: 15, assassins: 2}, 47)
     expect(problems.find(p => p.field === 'words')?.message).toContain('47 words')
   })
 
   it('flags a bystander-free board as degenerate but valid', () => {
-    const cfg = {size: 3 as BoardSize, teamCards: 3, assassins: 2}
+    const cfg = {size: 3 as BoardSize, teamCards: 3, assassins: 3}
     expect(composition(cfg).neutral).toBe(0)
     expect(isDegenerate(cfg)).toBe(true)
     expect(validate(cfg, 100)).toEqual([])
@@ -90,12 +110,11 @@ describe('board', () => {
     expect(a).not.toEqual(b)
   })
 
-  it('gives the starting team exactly one extra card', () => {
+  it('deals both teams the same number of agents whoever starts', () => {
     for (const start of ['red', 'blue'] as Team[]) {
       const board = buildBoard(settings(), WORDS, 'seed', start)
-      const red = board.filter(c => c.colour === 'red').length
-      const blue = board.filter(c => c.colour === 'blue').length
-      expect(start === 'red' ? red - blue : blue - red).toBe(1)
+      expect(board.filter(c => c.colour === 'red')).toHaveLength(8)
+      expect(board.filter(c => c.colour === 'blue')).toHaveLength(8)
     }
   })
 
@@ -120,7 +139,7 @@ describe('derive', () => {
     const view = run([start])
     expect(view.phase).toBe('clue')
     expect(view.turn).toBe('red')
-    expect(view.remaining).toEqual({red: 9, blue: 8})
+    expect(view.remaining).toEqual({red: 8, blue: 8})
   })
 
   it('grants count plus one guesses', () => {
@@ -146,7 +165,7 @@ describe('derive', () => {
     ])
     expect(view.turn).toBe('red')
     expect(view.guessesLeft).toBe(2)
-    expect(view.remaining.red).toBe(8)
+    expect(view.remaining.red).toBe(7)
     expect(view.lastGuess?.correct).toBe(true)
   })
 
@@ -158,7 +177,7 @@ describe('derive', () => {
       {t: 'guess', team: 'red', by: 'p2', card},
       {t: 'guess', team: 'red', by: 'p2', card}
     ])
-    expect(view.remaining.red).toBe(8)
+    expect(view.remaining.red).toBe(7)
     expect(view.guessesLeft).toBe(3)
   })
 
@@ -186,7 +205,7 @@ describe('derive', () => {
 
   it('awards the win when the opposing team reveals your last card', () => {
     const steps: Step[] = [start, {t: 'clue', team: 'blue', by: 'p1', word: 'X', count: 'unlimited'}]
-    for (let i = 0; i < 9; i++) {
+    for (let i = 0; i < 8; i++) {
       steps.push({t: 'guess', team: 'blue', by: 'p2', card: firstOf(board, 'red', i)})
     }
     const view = derive(cfg, WORDS, steps, steps.length)
@@ -205,7 +224,7 @@ describe('derive', () => {
     const back = derive(cfg, WORDS, steps, 2)
     expect(back).toEqual(before)
     expect(back.cards.map(c => c.word)).toEqual(after.cards.map(c => c.word))
-    expect(back.remaining.red).toBe(9)
+    expect(back.remaining.red).toBe(8)
   })
 
   it('ignores steps past the cursor', () => {

@@ -179,6 +179,14 @@ const pump = () => {
   }
 }
 
+/**
+ * The theatre lives in the lazily-loaded Game chunk, so by the time it is
+ * imported the room may already hold every step and have nothing further to
+ * publish. Without this the visual cursor sits at zero forever: an empty board,
+ * and no clue composer for the spymaster.
+ */
+export const syncTheatre = () => pump()
+
 export const resetTheatre = () => {
   clearTimers()
   shownCursor = 0

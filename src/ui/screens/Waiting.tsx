@@ -158,6 +158,7 @@ export const Waiting = () => {
                         isMe={p.id === me}
                         rtt={p.id === me ? 0 : rttFor(p.id)}
                         draggable={isHost}
+                        hostControls={isHost}
                         onDragStart={() => setDragging(p.id)}
                       />
                     ))}

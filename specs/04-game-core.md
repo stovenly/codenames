@@ -34,7 +34,7 @@ broadcast to about a hundred bytes.
 
 ```ts
 type Step =
-  | {t: 'start';   seed: string; startTeam: Team}
+  | {t: 'start';   seed: string; startTeam: Team}   // who moves first, not who gets more cards
   | {t: 'clue';    team: Team; by: PlayerId; word: string; count: number | 'unlimited'}
   | {t: 'guess';   team: Team; by: PlayerId; card: number}
   | {t: 'endTurn'; team: Team; reason: 'pass' | 'wrong' | 'timeout' | 'exhausted'}
@@ -76,10 +76,16 @@ type Settings = {
 Derived counts, where `N = size * size`:
 
 ```
-startingTeam = teamCards + 1
-secondTeam   = teamCards
-neutral      = N - (2 * teamCards + 1) - assassins
+perTeam = teamCards        // both teams, always
+neutral = N - 2 * teamCards - assassins
 ```
+
+**Both teams always get the same number of agents.** The published rules hand
+the starting team one extra card to offset moving first; we do not. Whatever is
+left over after two equal teams and the assassins becomes bystanders — the
+board absorbs the remainder, never one of the teams. A slider that produces
+9 red against 8 blue reads as a bug to the people playing, and being able to
+trust that the sides are even matters more here than matching the box.
 
 **Validation:** `neutral >= 0`, `teamCards >= 1`, `assassins >= 1`, and the
 resolved word list holds at least `N` words. `neutral === 0` is allowed but
@@ -87,13 +93,13 @@ flagged as degenerate.
 
 **Defaults:**
 
-| Size | N | teamCards | Start / Other | Assassins | Neutral |
-|---|---|---|---|---|---|
-| 3x3 | 9 | 2 | 3 / 2 | 1 | 3 |
-| 4x4 | 16 | 4 | 5 / 4 | 1 | 6 |
-| 5x5 | 25 | 8 | 9 / 8 | 1 | 7 |
-| 6x6 | 36 | 11 | 12 / 11 | 2 | 11 |
-| 7x7 | 49 | 15 | 16 / 15 | 2 | 16 |
+| Size | N | Per team | Assassins | Bystanders |
+|---|---|---|---|---|
+| 3x3 | 9 | 3 | 1 | 2 |
+| 4x4 | 16 | 5 | 1 | 5 |
+| 5x5 | 25 | 8 | 1 | 8 |
+| 6x6 | 36 | 11 | 2 | 12 |
+| 7x7 | 49 | 15 | 2 | 17 |
 
 The editing UI is [06](06-configuration.md#board-configuration). Settings change
 only in `setup` and `gameover`, never mid-game.

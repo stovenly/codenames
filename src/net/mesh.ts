@@ -2,7 +2,7 @@ import {joinRoom as joinNostr, getRelaySockets as nostrSockets} from '@trystero-
 import {joinRoom as joinMqtt, getRelaySockets as mqttSockets} from '@trystero-p2p/mqtt'
 import {joinRoom as joinTorrent, getRelaySockets as torrentSockets} from '@trystero-p2p/torrent'
 import type {JoinRoomConfig, MessageAction, Room} from '@trystero-p2p/core'
-import {MQTT_RELAYS, NOSTR_RELAYS, TORRENT_RELAYS, slice} from '../data/relays'
+import {MQTT_RELAYS, NOSTR_RELAYS, REDUNDANCY, TORRENT_RELAYS} from '../data/relays'
 import {OPEN_RELAY, RTC_CONFIG} from './ice'
 import {newEnvelopeId, playerId} from './identity'
 import {APP_ID, TTL_DEFAULT, type Envelope, type MessageKind, type PlayerId} from './protocol'
@@ -14,14 +14,23 @@ type Spec = {
   name: TransportName
   join: typeof joinNostr
   sockets: () => Record<string, WebSocket>
-  urls: string[]
+  urls: string[] | null
 }
 
 const SPECS: Spec[] = [
-  {name: 'nostr', join: joinNostr, sockets: nostrSockets, urls: slice(NOSTR_RELAYS)},
-  {name: 'mqtt', join: joinMqtt, sockets: mqttSockets, urls: slice(MQTT_RELAYS)},
-  {name: 'torrent', join: joinTorrent, sockets: torrentSockets, urls: slice(TORRENT_RELAYS)}
+  {name: 'nostr', join: joinNostr, sockets: nostrSockets, urls: NOSTR_RELAYS},
+  {name: 'mqtt', join: joinMqtt, sockets: mqttSockets, urls: MQTT_RELAYS},
+  {name: 'torrent', join: joinTorrent, sockets: torrentSockets, urls: TORRENT_RELAYS}
 ]
+
+/**
+ * A public relay refusing us is normal and already visible in the diagnostics
+ * panel, so Trystero's own console warnings are noise that hides real errors.
+ */
+const relayConfig = (spec: Spec) => ({
+  ...(spec.urls ? {urls: spec.urls} : {redundancy: REDUNDANCY}),
+  warnOnRelayFailure: false
+})
 
 export type TransportReport = {
   name: TransportName
@@ -201,7 +210,7 @@ export const createMesh = (opts: {
     const live: Live = {spec, room: null, action: null, status: 'connecting', error: null}
     lives.push(live)
     try {
-      const room = spec.join({...baseConfig, relayConfig: {urls: spec.urls}}, roomId, {
+      const room = spec.join({...baseConfig, relayConfig: relayConfig(spec)}, roomId, {
         onJoinError: ({error}) => {
           live.status = 'failed'
           live.error = error
@@ -286,7 +295,7 @@ export const createMesh = (opts: {
         status: live.status,
         error: live.error,
         relaysOpen: open,
-        relaysTotal: live.spec.urls.length,
+        relaysTotal: live.spec.urls?.length ?? REDUNDANCY,
         peers: [...links.values()].filter(l => l.transport === live.spec.name).length
       }
     })
