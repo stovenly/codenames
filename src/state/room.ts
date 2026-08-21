@@ -6,7 +6,7 @@ import {advance} from '../game/reducer'
 import {defaultSettings, validate, type BoardSize, type Settings} from '../game/settings'
 import type {ClueCount, Step} from '../game/steps'
 import type {Avatar, Player, Shared, Team} from '../game/types'
-import {otherTeam} from '../game/types'
+import {AVATAR_VARIANTS, otherTeam} from '../game/types'
 import {joinedExisting, on, openRoom, peers, roomId, self, send, startMesh, subscribe as onNetChange} from './net'
 import * as words from './words'
 
@@ -65,6 +65,13 @@ const saveSession = (patch: Partial<Session>) => {
 
 type Claim = {playerId: PlayerId; version: number; visible: boolean; uptime: number}
 
+/** A stable starting variant per player, so two people rarely open identical. */
+const seedFor = (id: string) => {
+  let h = 0
+  for (const ch of id) h = (Math.imul(h, 31) + ch.charCodeAt(0)) | 0
+  return Math.abs(h) % AVATAR_VARIANTS
+}
+
 const bornAt = Date.now()
 const listeners = new Set<() => void>()
 
@@ -74,7 +81,7 @@ let banner: string | null = null
 let bannerTimer: ReturnType<typeof setTimeout> | null = null
 let split = false
 let myName = loadSession()?.name ?? ''
-let myAvatar: Avatar = {style: 'shapes', seed: self, bg: '1B2740'}
+let myAvatar: Avatar = {style: 'lorelei', seed: String(seedFor(self)), bg: '141C30'}
 let passwordHash: string | null = null
 let lastHostAt = 0
 let clockOffset = 0
@@ -137,7 +144,7 @@ const emptyPlayer = (id: PlayerId, name: string): Player => ({
   team: null,
   spymaster: false,
   ready: false,
-  avatar: {style: 'shapes', seed: id, bg: '1B2740'},
+  avatar: {style: 'lorelei', seed: String(seedFor(id)), bg: '141C30'},
   connected: true
 })
 

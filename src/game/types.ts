@@ -8,9 +8,12 @@ export type Team = 'red' | 'blue'
 
 export type Avatar = {
   style: string
+  /** The variant index within the style, as a string, so a slider can find it. */
   seed: string
   bg: string
 }
+
+export const AVATAR_VARIANTS = 60
 
 export type Player = {
   id: PlayerId

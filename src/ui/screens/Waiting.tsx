@@ -92,7 +92,7 @@ export const Waiting = () => {
   const rttFor = (id: string) => report.peers.find(p => p.playerId === id)?.rttMs ?? null
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-5 py-9 sm:px-8">
+    <main className="mx-auto w-full max-w-[1350px] px-5 py-9 sm:px-8">
       <Enter className="flex flex-col gap-7">
         <Item className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-col gap-1.5">
@@ -192,6 +192,11 @@ export const Waiting = () => {
                   Spymaster
                 </Button>
               </div>
+            </section>
+
+            <section className="flex flex-col gap-4">
+              <Heading>Your avatar</Heading>
+              <Rule />
               {mine && <AvatarPicker value={mine.avatar} onChange={setAvatar} />}
             </section>
           </div>

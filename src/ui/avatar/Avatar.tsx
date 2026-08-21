@@ -24,7 +24,21 @@ const render = (spec: AvatarSpec): string | null => {
   return svg
 }
 
-/** Nothing in the room ever waits on an avatar: an unloaded style renders as Shapes. */
+/** A style still downloading renders as this, not as another style's avatar. */
+const Placeholder = ({size, bg}: {size: number; bg: string}) => (
+  <span
+    aria-hidden
+    className="grid size-full place-items-center"
+    style={{background: `#${bg.replace('#', '')}`}}
+  >
+    <svg viewBox="0 0 24 24" className="opacity-25" style={{width: size * 0.6}}>
+      <circle cx="12" cy="9" r="4" fill="currentColor" />
+      <path d="M3.5 23c0-4.7 3.8-8 8.5-8s8.5 3.3 8.5 8z" fill="currentColor" />
+    </svg>
+  </span>
+)
+
+/** Nothing in the room ever waits on an avatar. */
 export const AvatarView = ({
   spec,
   size = 48,
@@ -36,22 +50,32 @@ export const AvatarView = ({
 }) => {
   const [, bump] = useState(0)
 
-  useEffect(() => {
-    ensureStyle(spec.style, () => bump(n => n + 1))
-  }, [spec.style])
+  useEffect(() => ensureStyle(spec.style, () => bump(n => n + 1)), [spec.style])
 
   const svg = useMemo(
-    () => render(spec) ?? render({...spec, style: 'shapes'}),
+    () => render(spec),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [spec.style, spec.seed, spec.bg, styleFor(spec.style) !== null]
   )
+
+  if (!svg) {
+    return (
+      <span
+        aria-hidden
+        className={`block overflow-hidden rounded-md text-text-dim ${className}`}
+        style={{width: size, height: size}}
+      >
+        <Placeholder size={size} bg={spec.bg} />
+      </span>
+    )
+  }
 
   return (
     <span
       aria-hidden
       className={`block overflow-hidden rounded-md ${className}`}
       style={{width: size, height: size}}
-      dangerouslySetInnerHTML={{__html: svg ?? ''}}
+      dangerouslySetInnerHTML={{__html: svg}}
     />
   )
 }

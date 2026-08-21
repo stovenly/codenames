@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-@import "@fontsource/bungee/latin-400.css";
+@import "@fontsource/archivo-black/latin-400.css";
 @import "@fontsource-variable/big-shoulders-display";
 @import "@fontsource-variable/chivo";
 
@@ -35,7 +35,7 @@
   /* Signage, wayfinding, and text. No monospace anywhere: a fixed-pitch face
      belongs in a terminal, and using one as a UI font is the giveaway. Numbers
      get tabular figures from the feature, not from the whole face. */
-  --font-marquee: 'Bungee', 'Impact', ui-sans-serif, system-ui, sans-serif;
+  --font-marquee: 'Archivo Black', 'Impact', ui-sans-serif, system-ui, sans-serif;
   --font-plate: 'Big Shoulders Display Variable', 'Haettenschweiler', 'Arial Narrow', sans-serif;
   --font-ui: 'Chivo Variable', 'Helvetica Neue', ui-sans-serif, system-ui, sans-serif;
 
@@ -517,10 +517,15 @@ button {
 
 /* ------------------------------------------------------------------- type */
 
+/**
+ * Archivo Black, not Bungee. Bungee is drawn for signage and its counters close
+ * up badly below about 20px, which is where most of this sits — buttons, tabs,
+ * team names. This keeps the weight and stays readable small.
+ */
 @utility type-marquee {
   font-family: var(--font-marquee);
   font-weight: 400;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.015em;
   line-height: 1;
   text-transform: uppercase;
 }

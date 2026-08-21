@@ -87,10 +87,12 @@ Regenerating is a deliberate act, not part of `npm run build`.
 
 ### Selecting packs
 
-The host picks at lobby setup or between games; a change applies to the next game,
-never the current one. Multiple packs can be selected and are unioned before
-dedupe. A pack whose count is below `size * size` is disabled in the picker with
-the reason shown — a real constraint at 7x7 with a small themed pack.
+The host picks at lobby setup or between games; a change applies to the next
+game, never the current one. **One bank at a time** — unioning decks produced a
+soup nobody had actually chosen, and made the word count on screen a number the
+host had to reverse-engineer. A pack whose count is below `size * size` is
+disabled in the picker with the reason shown, which is a real constraint at 7x7
+with a small themed pack.
 
 ## Custom word lists
 

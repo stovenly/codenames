@@ -108,8 +108,10 @@ export const SettingsPanel = ({
   words.useWords()
 
   const remembered = words.lastSource()
-  const selected: PackId[] =
-    remembered?.source.kind === 'packs' ? remembered.source.packs.filter(knownPack) : ['original']
+  const picked: PackId =
+    (remembered?.source.kind === 'packs'
+      ? remembered.source.packs.filter(knownPack)[0]
+      : undefined) ?? 'original'
   const total = cardCount(settings.size)
   const problems = validate(settings, wordCount)
   const maxTeam = Math.floor((total - settings.assassins) / 2)
@@ -117,13 +119,9 @@ export const SettingsPanel = ({
 
   const patch = (p: Partial<Settings>) => editable && intend({kind: 'updateSettings', patch: p})
 
-  const togglePack = (id: PackId) => {
-    const next = selected.includes(id) ? selected.filter(p => p !== id) : [...selected, id]
-    const packs = next.length ? next : (['original'] as PackId[])
-    void setWordSource(
-      {kind: 'packs', packs},
-      packs.map(p => PACKS.find(x => x.id === p)?.name ?? p).join(' + ')
-    )
+  /** One bank at a time. Unioning decks mostly produced a soup nobody chose. */
+  const choosePack = (id: PackId) => {
+    void setWordSource({kind: 'packs', packs: [id]}, PACKS.find(p => p.id === id)?.name ?? id)
   }
 
   // Non-hosts get a readout, not a panel of dead controls.
@@ -219,14 +217,14 @@ export const SettingsPanel = ({
           {PACKS.map(pack => (
             <Chip
               key={pack.id}
-              active={selected.includes(pack.id)}
+              active={picked === pack.id}
               disabled={pack.count < total}
               title={
                 pack.count < total
                   ? `${pack.count} words, ${settings.size}×${settings.size} needs ${total}`
                   : pack.note
               }
-              onClick={() => togglePack(pack.id)}
+              onClick={() => choosePack(pack.id)}
             >
               {pack.name}
               <span className="ml-1.5 opacity-50">{pack.count}</span>
