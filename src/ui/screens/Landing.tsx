@@ -7,62 +7,39 @@ import {cx} from '../cx'
 import {useMotion} from '../motion'
 
 /**
- * A rig of three lights. Each is a source point, a beam, and the pool it throws
- * on the floor, all inside one element that swings about the source — so the
- * pool travels with its beam, which is the thing that reads as a real light
- * rather than a gradient someone animated.
+ * The rig. Each light is a lamp head and a conic wedge sharing an apex, on an
+ * element 300vmax across — the wedge fades out long before its own box, so the
+ * box can never appear no matter how far it swings.
  */
 const RIG = [
-  {tint: '255,197,61', anim: 'anim-swing-a', left: '18%', spread: '34vw'},
-  {tint: '240,68,56', anim: 'anim-swing-b', left: '50%', spread: '30vw'},
-  {tint: '46,134,255', anim: 'anim-swing-c', left: '82%', spread: '32vw'}
+  {tint: 'rgba(255,197,61,.30)', anim: 'anim-swing-a', x: 18},
+  {tint: 'rgba(240,68,56,.24)', anim: 'anim-swing-b', x: 50},
+  {tint: 'rgba(46,134,255,.26)', anim: 'anim-swing-c', x: 82}
 ]
 
-const GLOWS = [
-  {tint: 'rgba(255,197,61,.50)', anim: 'anim-float-a', size: '44vmax', left: '-10%', top: '-16%'},
-  {tint: 'rgba(46,134,255,.42)', anim: 'anim-float-b', size: '38vmax', left: '60%', top: '-8%'},
-  {tint: 'rgba(240,68,56,.38)', anim: 'anim-float-c', size: '36vmax', left: '16%', top: '54%'}
-]
+/** Dim house lamps along the top, so the beams come from somewhere. */
+const TRUSS = Array.from({length: 15}, (_, i) => ({
+  x: 4 + i * 6.6,
+  delay: -(i * 0.42)
+}))
 
-const Spot = ({tint, anim, left, spread}: (typeof RIG)[number]) => {
+const Spot = ({tint, anim, x}: (typeof RIG)[number]) => {
   const {reduced} = useMotion()
   return (
-    <span
-      className={cx('absolute top-0 h-[150vh] w-px', !reduced && anim)}
-      style={{left, transformOrigin: '50% 0'}}
-    >
+    <>
       <span
-        className="source"
-        style={{
-          width: 90,
-          height: 90,
-          top: '-2vh',
-          left: '50%',
-          background: `radial-gradient(circle, rgba(255,255,255,.9) 0%, rgba(${tint},.8) 35%, transparent 70%)`
-        }}
+        className={cx('spotlight', !reduced && anim)}
+        style={{left: `${x}%`, top: '-6vh', ['--tint' as string]: tint}}
       />
       <span
-        className="beam"
+        className="bulbhead"
         style={{
-          left: '50%',
-          translate: '-50% 0',
-          top: '-4vh',
-          width: spread,
-          ['--beam' as string]: `rgba(${tint},.34)`
+          left: `${x}%`,
+          top: '-6vh',
+          ['--tint' as string]: tint.replace(/[\d.]+\)$/, '.85)')
         }}
       />
-      <span
-        className="pool"
-        style={{
-          bottom: '-6vh',
-          left: '50%',
-          translate: '-50% 0',
-          width: `calc(${spread} * 1.5)`,
-          height: '26vh',
-          background: `radial-gradient(closest-side, rgba(${tint},.42), transparent)`
-        }}
-      />
-    </span>
+    </>
   )
 }
 
@@ -71,10 +48,10 @@ const Lighting = () => {
 
   const sparkles = useMemo(
     () =>
-      Array.from({length: 22}, (_, i) => ({
+      Array.from({length: 24}, (_, i) => ({
         left: `${(i * 13.7 + 5) % 97}%`,
         top: `${(i * 21.3 + 7) % 88}%`,
-        size: 16 + ((i * 7) % 26),
+        size: 14 + ((i * 7) % 26),
         duration: 5 + ((i * 3) % 7),
         delay: -(i * 1.37)
       })),
@@ -83,23 +60,35 @@ const Lighting = () => {
 
   return (
     <div aria-hidden className="lightbox">
-      {GLOWS.map((g, i) => (
-        <span
-          key={i}
-          className={cx('glow', !reduced && g.anim)}
-          style={{
-            left: g.left,
-            top: g.top,
-            width: g.size,
-            height: g.size,
-            background: `radial-gradient(circle, ${g.tint} 0%, transparent 62%)`,
-            opacity: reduced ? 0.5 : undefined
-          }}
-        />
-      ))}
+      <span
+        className={cx('ambience', !reduced && 'anim-ambience')}
+        style={{
+          backgroundImage: [
+            'radial-gradient(closest-side, rgba(255,197,61,.30), transparent)',
+            'radial-gradient(closest-side, rgba(46,134,255,.26), transparent)',
+            'radial-gradient(closest-side, rgba(240,68,56,.22), transparent)'
+          ].join(','),
+          backgroundSize: '78% 78%, 66% 66%, 60% 60%',
+          backgroundPosition: '12% 22%, 86% 12%, 42% 86%'
+        }}
+      />
 
       {RIG.map((r, i) => (
         <Spot key={i} {...r} />
+      ))}
+
+      <span aria-hidden className="absolute inset-x-0 top-0 h-px bg-gold-500/25" />
+      {TRUSS.map((t, i) => (
+        <span
+          key={i}
+          className={cx('absolute top-0 size-1.5 -translate-x-1/2 rounded-full bg-lamp-300', !reduced && 'anim-truss')}
+          style={{
+            left: `${t.x}%`,
+            animationDelay: `${t.delay}s`,
+            boxShadow: '0 0 10px 3px rgba(255,197,61,.55)',
+            opacity: reduced ? 0.7 : undefined
+          }}
+        />
       ))}
 
       {!reduced &&
@@ -119,12 +108,9 @@ const Lighting = () => {
         ))}
 
       <span
-        className={cx(
-          'absolute -bottom-[24vh] left-1/2 h-[44vh] w-[130vw] -translate-x-1/2 rounded-[100%]',
-          !reduced && 'anim-breathe'
-        )}
+        className={cx('absolute -bottom-[60vmax] left-1/2 size-[120vmax] -translate-x-1/2', !reduced && 'anim-breathe')}
         style={{
-          background: 'radial-gradient(closest-side, rgba(255,197,61,.30), transparent)',
+          background: 'radial-gradient(closest-side, rgba(255,197,61,.26), transparent 70%)',
           mixBlendMode: 'screen'
         }}
       />
@@ -132,7 +118,7 @@ const Lighting = () => {
       <span
         className="absolute inset-0"
         style={{
-          background: 'radial-gradient(125% 105% at 50% 45%, transparent 34%, rgba(5,6,11,.84) 100%)'
+          background: 'radial-gradient(125% 105% at 50% 45%, transparent 32%, rgba(5,6,11,.86) 100%)'
         }}
       />
     </div>

@@ -189,29 +189,139 @@ button {
   pointer-events: none;
 }
 
-/** A shaft: soft along its length, soft at the edges, never a polygon. */
-@utility beam {
+/**
+ * Every light here is painted on an element far larger than the viewport, and
+ * every one fades to transparent well inside its own box. That is the whole
+ * trick: a box edge can never enter frame, so no amount of moving, masking or
+ * blending can produce the rectangle earlier versions kept showing.
+ *
+ * `screen` blending is what makes overlapping lights add rather than stack.
+ */
+
+/** A beam is a conic wedge from the lamp, not a rotated rectangle. */
+@utility spotlight {
   position: absolute;
-  top: -34vh;
-  width: 40vw;
-  height: 175vh;
-  transform-origin: 50% 20%;
-  background: linear-gradient(to bottom, var(--beam) 0%, transparent 68%);
-  mask-image: radial-gradient(64% 92% at 50% 6%, #000 0%, #000 22%, transparent 82%);
+  width: 300vmax;
+  height: 300vmax;
+  translate: -50% -50%;
+  mix-blend-mode: screen;
+  background: conic-gradient(
+    from 0deg at 50% 50%,
+    transparent 0deg 164deg,
+    color-mix(in oklab, var(--tint) 18%, transparent) 172deg,
+    var(--tint) 180deg,
+    color-mix(in oklab, var(--tint) 18%, transparent) 188deg,
+    transparent 196deg 360deg
+  );
+  mask-image: radial-gradient(
+    closest-side,
+    #000 0%,
+    #000 5%,
+    rgba(0, 0, 0, 0.55) 22%,
+    rgba(0, 0, 0, 0.18) 38%,
+    transparent 54%
+  );
+}
+
+/** The hot lamp itself, at the apex of its beam. */
+@utility bulbhead {
+  position: absolute;
+  width: 26vmin;
+  height: 26vmin;
+  translate: -50% -50%;
+  mix-blend-mode: screen;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.95) 0%,
+    var(--tint) 14%,
+    color-mix(in oklab, var(--tint) 40%, transparent) 30%,
+    transparent 58%
+  );
+}
+
+/** Colour depth. One oversized layer, moved by background-position, never by a box. */
+@utility ambience {
+  position: absolute;
+  inset: -25%;
+  mix-blend-mode: screen;
+  background-repeat: no-repeat;
+}
+
+@keyframes ambience-drift {
+  0%,
+  100% {
+    background-position: 12% 22%, 86% 12%, 42% 86%;
+  }
+  33% {
+    background-position: 32% 6%, 58% 34%, 14% 68%;
+  }
+  66% {
+    background-position: 4% 38%, 96% 20%, 62% 96%;
+  }
+}
+
+@utility anim-ambience {
+  animation: ambience-drift 34s ease-in-out infinite;
+}
+
+@keyframes swing-a {
+  0%, 100% { transform: rotate(-15deg); }
+  50% { transform: rotate(9deg); }
+}
+
+@keyframes swing-b {
+  0%, 100% { transform: rotate(12deg); }
+  50% { transform: rotate(-13deg); }
+}
+
+@keyframes swing-c {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(14deg); }
+}
+
+@utility anim-swing-a { animation: swing-a 11s ease-in-out infinite; }
+@utility anim-swing-b { animation: swing-b 14s ease-in-out infinite; }
+@utility anim-swing-c { animation: swing-c 17s ease-in-out infinite; }
+
+@keyframes truss-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+@utility anim-truss { animation: truss-pulse 3.6s ease-in-out infinite; }
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.85; }
+}
+
+@utility anim-breathe { animation: breathe 6s ease-in-out infinite; }
+
+/**
+ * A studio glint: a bright core with tapered arms, which is what a specular
+ * highlight looks like through a lens. Round bokeh dots read as out-of-focus
+ * background, not as sparkle.
+ */
+@utility sparkle {
+  position: absolute;
+  translate: -50% -50%;
+  background:
+    radial-gradient(closest-side, rgba(255, 255, 255, 0.95), transparent 68%),
+    linear-gradient(90deg, transparent 44%, rgba(255, 240, 200, 0.9) 50%, transparent 56%),
+    linear-gradient(0deg, transparent 44%, rgba(255, 240, 200, 0.9) 50%, transparent 56%);
+  mask-image: radial-gradient(closest-side, #000 4%, rgba(0, 0, 0, 0.55) 26%, transparent 78%);
   mix-blend-mode: screen;
 }
 
-/**
- * A pool of coloured light. No blur filter: a radial gradient is already
- * perfectly soft, and blurring one only costs a compositing layer whose bounds
- * the browser then clips the filter to — which is where the visible square
- * edges came from. Softness comes from the gradient stops instead.
- */
-@utility glow {
-  position: absolute;
-  border-radius: 9999px;
-  mix-blend-mode: screen;
+@keyframes twinkle {
+  0%, 74%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); }
+  8% { opacity: 1; transform: scale(1) rotate(24deg); }
+  22% { opacity: 0.35; transform: scale(0.75) rotate(40deg); }
+  34% { opacity: 0.9; transform: scale(0.92) rotate(56deg); }
+  52% { opacity: 0; transform: scale(0.4) rotate(76deg); }
 }
+
+@utility anim-twinkle { animation: twinkle linear infinite; }
 
 /**
  * One lamp. A real marquee chase is lamps switching on in sequence around the
@@ -255,154 +365,6 @@ button {
   animation-delay: calc(var(--i) / var(--n) * -3.4s);
 }
 
-/**
- * A studio glint: a bright core with tapered arms, which is what a specular
- * highlight actually looks like through a lens. Round bokeh dots read as
- * out-of-focus background, not as sparkle.
- */
-@utility sparkle {
-  position: absolute;
-  translate: -50% -50%;
-  background:
-    radial-gradient(closest-side, rgba(255, 255, 255, 0.95), transparent 68%),
-    linear-gradient(90deg, transparent 44%, rgba(255, 240, 200, 0.9) 50%, transparent 56%),
-    linear-gradient(0deg, transparent 44%, rgba(255, 240, 200, 0.9) 50%, transparent 56%);
-  mask-image: radial-gradient(closest-side, #000 4%, rgba(0, 0, 0, 0.55) 26%, transparent 78%);
-  mix-blend-mode: screen;
-  will-change: opacity, transform;
-}
-
-@keyframes twinkle {
-  0%,
-  74%,
-  100% {
-    opacity: 0;
-    transform: scale(0.3) rotate(0deg);
-  }
-  8% {
-    opacity: 1;
-    transform: scale(1) rotate(24deg);
-  }
-  22% {
-    opacity: 0.35;
-    transform: scale(0.75) rotate(40deg);
-  }
-  34% {
-    opacity: 0.9;
-    transform: scale(0.92) rotate(56deg);
-  }
-  52% {
-    opacity: 0;
-    transform: scale(0.4) rotate(76deg);
-  }
-}
-
-@utility anim-twinkle {
-  animation: twinkle linear infinite;
-}
-
-/** The pool a beam throws on the floor. Moves with the beam, which is the tell. */
-@utility pool {
-  position: absolute;
-  border-radius: 100%;
-  mix-blend-mode: screen;
-}
-
-@keyframes swing-a {
-  0%,
-  100% {
-    transform: rotate(-14deg);
-  }
-  50% {
-    transform: rotate(10deg);
-  }
-}
-
-@keyframes swing-b {
-  0%,
-  100% {
-    transform: rotate(11deg);
-  }
-  50% {
-    transform: rotate(-16deg);
-  }
-}
-
-@keyframes swing-c {
-  0%,
-  100% {
-    transform: rotate(3deg) scaleX(1);
-  }
-  50% {
-    transform: rotate(-7deg) scaleX(1.25);
-  }
-}
-
-@keyframes float-a {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
-    opacity: 0.5;
-  }
-  50% {
-    transform: translate3d(7vw, -5vh, 0) scale(1.3);
-    opacity: 0.95;
-  }
-}
-
-@keyframes float-b {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(1.15);
-    opacity: 0.4;
-  }
-  50% {
-    transform: translate3d(-8vw, 6vh, 0) scale(0.85);
-    opacity: 0.85;
-  }
-}
-
-@keyframes float-c {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(0.9);
-    opacity: 0.45;
-  }
-  50% {
-    transform: translate3d(5vw, 7vh, 0) scale(1.25);
-    opacity: 0.9;
-  }
-}
-
-@keyframes rise {
-  0% {
-    transform: translate3d(0, 0, 0);
-    opacity: 0;
-  }
-  14% {
-    opacity: 0.7;
-  }
-  86% {
-    opacity: 0.4;
-  }
-  100% {
-    transform: translate3d(3vw, -85vh, 0);
-    opacity: 0;
-  }
-}
-
-@keyframes breathe {
-  0%,
-  100% {
-    opacity: 0.42;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.08);
-  }
-}
-
 @keyframes sheen {
   0%,
   8% {
@@ -414,42 +376,9 @@ button {
   }
 }
 
-@utility anim-swing-a {
-  animation: swing-a 9s ease-in-out infinite;
-}
-@utility anim-swing-b {
-  animation: swing-b 11s ease-in-out infinite;
-}
-@utility anim-swing-c {
-  animation: swing-c 13s ease-in-out infinite;
-}
-@utility anim-float-a {
-  animation: float-a 10s ease-in-out infinite;
-}
-@utility anim-float-b {
-  animation: float-b 13s ease-in-out infinite;
-}
-@utility anim-float-c {
-  animation: float-c 16s ease-in-out infinite;
-}
-@utility anim-breathe {
-  animation: breathe 6s ease-in-out infinite;
-}
 @utility anim-sheen {
   animation: sheen 7s cubic-bezier(0.5, 0, 0.2, 1) infinite;
 }
-@utility anim-rise {
-  animation: rise linear infinite;
-}
-
-/** The rig above: a hot source point where each beam originates. */
-@utility source {
-  position: absolute;
-  border-radius: 9999px;
-  translate: -50% -50%;
-  mix-blend-mode: screen;
-}
-
 /** The glow layer sits behind the type so the flicker animates opacity, not shadow. */
 @utility neon {
   text-shadow:
