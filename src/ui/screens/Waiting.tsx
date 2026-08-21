@@ -123,6 +123,43 @@ export const Waiting = () => {
 
         <Item className="grid gap-7 lg:grid-cols-[1fr_23rem]">
           <div className="flex flex-col gap-7">
+            <section className="flex flex-col gap-3">
+              <Heading>Your avatar</Heading>
+              <Rule />
+              {mine && <AvatarPicker value={mine.avatar} onChange={setAvatar} />}
+            </section>
+
+            <section className="flex flex-col gap-4">
+              <Heading>Your team</Heading>
+              <Rule />
+              <div className="flex flex-wrap gap-1.5">
+                {COLUMNS.map(col => (
+                  <Button
+                    key={col.label}
+                    size="sm"
+                    variant={mine?.team === col.team ? 'primary' : 'ghost'}
+                    onClick={() => intend({kind: 'setTeam', target: me, team: col.team})}
+                  >
+                    {col.label}
+                  </Button>
+                ))}
+                <span aria-hidden className="mx-1 h-8 w-px self-center bg-stage-600" />
+
+                <Button
+                  size="sm"
+                  variant={mine?.spymaster ? 'primary' : 'ghost'}
+                  disabled={!mine?.team}
+                  onClick={() =>
+                    intend({kind: 'setSpymaster', target: me, spymaster: !mine?.spymaster})
+                  }
+                  className="flex items-center gap-1.5"
+                >
+                  <VenetianMask className="size-3.5" />
+                  Spymaster
+                </Button>
+              </div>
+            </section>
+
             <section className="grid gap-4 sm:grid-cols-3">
               {COLUMNS.map(col => (
                 <div
@@ -165,43 +202,6 @@ export const Waiting = () => {
                   </AnimatePresence>
                 </div>
               ))}
-            </section>
-
-            <section className="flex flex-col gap-4">
-              <Heading>Your seat</Heading>
-              <Rule />
-              <div className="flex flex-wrap gap-1.5">
-                {COLUMNS.map(col => (
-                  <Button
-                    key={col.label}
-                    size="sm"
-                    variant={mine?.team === col.team ? 'primary' : 'ghost'}
-                    onClick={() => intend({kind: 'setTeam', target: me, team: col.team})}
-                  >
-                    {col.label}
-                  </Button>
-                ))}
-                <span aria-hidden className="mx-1 h-8 w-px self-center bg-stage-600" />
-
-                <Button
-                  size="sm"
-                  variant={mine?.spymaster ? 'primary' : 'ghost'}
-                  disabled={!mine?.team}
-                  onClick={() =>
-                    intend({kind: 'setSpymaster', target: me, spymaster: !mine?.spymaster})
-                  }
-                  className="flex items-center gap-1.5"
-                >
-                  <VenetianMask className="size-3.5" />
-                  Spymaster
-                </Button>
-              </div>
-            </section>
-
-            <section className="flex flex-col gap-4">
-              <Heading>Your avatar</Heading>
-              <Rule />
-              {mine && <AvatarPicker value={mine.avatar} onChange={setAvatar} />}
             </section>
           </div>
 

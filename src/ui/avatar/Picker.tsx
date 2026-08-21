@@ -106,41 +106,39 @@ export const AvatarPicker = ({
     setVariant(String((variant + 1 + Math.floor(Math.random() * (VARIANTS - 1))) % VARIANTS))
 
   return (
-    <Panel className="flex flex-col gap-5 p-4">
-      <div className="flex items-center gap-4">
+    <Panel className="flex flex-col gap-3 p-3">
+      {/* One line: who you are, how to change it, and the dice. */}
+      <div className="flex items-center gap-3">
         <span className="shrink-0 rounded-md bg-stage-000 p-1.5 ring-1 ring-gold-500/35">
-          <AvatarView spec={value} size={84} />
+          <AvatarView spec={value} size={60} />
         </span>
 
-        <div className="flex flex-1 flex-col gap-2.5">
-          <div className="flex items-center justify-between gap-3">
-            <Label>
-              {style.name} · {variant + 1} of {VARIANTS}
-            </Label>
-            <IconButton label="Roll a random one" onClick={roll} className="size-8">
-              <Dices className="size-4" />
-            </IconButton>
-          </div>
+        <Label className="w-32 shrink-0">
+          {style.name} · {variant + 1}/{VARIANTS}
+        </Label>
 
-          {/* Scrubs the variants inside the chosen style, not the styles themselves. */}
-          <Slider.Root
-            min={0}
-            max={VARIANTS - 1}
-            step={1}
-            value={[variant]}
-            onValueChange={([i]) => setVariant(String(i ?? 0))}
-            aria-label={`${style.name} variant`}
-            className="relative flex h-5 w-full touch-none items-center select-none"
-          >
-            <Slider.Track className="relative h-1 w-full grow rounded-full bg-stage-600">
-              <Slider.Range className="absolute h-full rounded-full bg-gradient-to-r from-gold-500 to-lamp-500" />
-            </Slider.Track>
-            <Slider.Thumb className="block size-4 cursor-grab rounded-full border border-lamp-300/60 bg-gradient-to-b from-lamp-300 to-lamp-500 shadow-[0_2px_8px_-2px_rgba(255,197,61,.8)] active:cursor-grabbing" />
-          </Slider.Root>
-        </div>
+        <Slider.Root
+          min={0}
+          max={VARIANTS - 1}
+          step={1}
+          value={[variant]}
+          onValueChange={([i]) => setVariant(String(i ?? 0))}
+          aria-label={`${style.name} variant`}
+          className="relative flex h-5 max-w-56 flex-1 touch-none items-center select-none"
+        >
+          <Slider.Track className="relative h-1 w-full grow rounded-full bg-stage-600">
+            <Slider.Range className="absolute h-full rounded-full bg-gradient-to-r from-gold-500 to-lamp-500" />
+          </Slider.Track>
+          <Slider.Thumb className="block size-4 cursor-grab rounded-full border border-lamp-300/60 bg-gradient-to-b from-lamp-300 to-lamp-500 shadow-[0_2px_8px_-2px_rgba(255,197,61,.8)] active:cursor-grabbing" />
+        </Slider.Root>
+
+        <IconButton label="Roll a random one" onClick={roll} className="size-8 shrink-0">
+          <Dices className="size-4" />
+        </IconButton>
       </div>
 
-      <div className="grid grid-cols-4 gap-2">
+      {/* Names live above; repeating them under every icon was the same word twice. */}
+      <div className="flex flex-wrap gap-1.5">
         {STYLES.map(s => (
           <button
             key={s.id}
@@ -148,8 +146,9 @@ export const AvatarPicker = ({
             title={s.note}
             aria-pressed={value.style === s.id}
             onClick={() => setStyle(s.id)}
+            aria-label={s.name}
             className={cx(
-              'flex cursor-pointer flex-col items-center gap-1 rounded-sm border p-1.5 transition-colors duration-[120ms]',
+              'cursor-pointer rounded-sm border p-1 transition-colors duration-[120ms]',
               value.style === s.id
                 ? 'border-lamp-500/70 bg-lamp-500/10'
                 : 'border-stage-600 hover:border-gold-500/50'
@@ -159,9 +158,8 @@ export const AvatarPicker = ({
                 meant scrubbing or switching anywhere re-rolled every swatch. */}
             <AvatarView
               spec={{...value, style: s.id, seed: seeds[s.id] ?? openingVariant(s.id)}}
-              size={46}
+              size={40}
             />
-            <Label>{s.name}</Label>
           </button>
         ))}
       </div>

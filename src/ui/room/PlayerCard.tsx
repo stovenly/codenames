@@ -3,7 +3,7 @@ import {Crown, UserMinus, VenetianMask} from 'lucide-react'
 import type {Player, Team} from '../../game/types'
 import {intend} from '../../state/room'
 import {AvatarView} from '../avatar/Avatar'
-import {Bulbs, IconButton, Label} from '../atoms'
+import {IconButton, Label} from '../atoms'
 import {cx} from '../cx'
 import {spring, useMotion} from '../motion'
 
@@ -15,13 +15,20 @@ const pip = (rtt: number | null, connected: boolean) => {
   return 'bg-kill-lit'
 }
 
-const RAIL: Record<'red' | 'blue' | 'none', string> = {
+const BAND: Record<'red' | 'blue' | 'none', string> = {
   red: 'from-red-500 to-red-deep',
   blue: 'from-blue-500 to-blue-deep',
   none: 'from-stage-600 to-stage-800'
 }
 
-/** A lit podium rather than a list row: glass, name plate, and a lamp for ready. */
+/**
+ * Every row is a fixed height whether or not it has anything to say, so a card
+ * never changes size. A card that grows when someone volunteers as spymaster
+ * shoves the whole column around, which reads as the roster glitching.
+ *
+ * That is also why the spymaster badge lives in the team band and the host mark
+ * is pinned to a corner: both used to sit in the meta line and reflow it.
+ */
 export const PlayerCard = ({
   player,
   isHost,
@@ -44,8 +51,6 @@ export const PlayerCard = ({
 
   return (
     <motion.div
-      // Position only: a size animation on a card that grows a spymaster badge
-      // reads as the card vanishing and coming back.
       layout={reduced ? false : 'position'}
       layoutId={reduced ? undefined : `player-${player.id}`}
       initial={reduced ? {opacity: 0} : {opacity: 0, y: 14, scale: 0.97}}
@@ -55,52 +60,52 @@ export const PlayerCard = ({
       draggable={draggable}
       onDragStart={onDragStart}
       className={cx(
-        'plate gloss overflow-hidden rounded-md',
-        // A ghost is a seat still held, not a player still here.
+        'plate gloss relative overflow-hidden rounded-md',
         !player.connected && 'border-dashed grayscale-[.55]',
         draggable && 'cursor-grab active:cursor-grabbing'
       )}
     >
-      <span aria-hidden className={cx('block h-1 w-full bg-gradient-to-r', RAIL[team ?? 'none'])} />
+      {/* The team band. Tall enough for the badge on every card, occupied or not. */}
+      <span
+        className={cx(
+          'flex h-6 items-center gap-1.5 bg-gradient-to-r px-2.5 text-white/95',
+          BAND[team ?? 'none']
+        )}
+      >
+        {player.spymaster && team && (
+          <>
+            <VenetianMask className="size-3.5" />
+            <span className="type-marquee text-[10px] tracking-[0.16em] drop-shadow-[0_1px_2px_rgba(0,0,0,.55)]">
+              Spymaster
+            </span>
+          </>
+        )}
+      </span>
 
-      <div className="flex items-center gap-3 p-2.5">
+      {isHost && (
+        <span
+          title="Host"
+          className="absolute top-8 right-2 grid size-6 place-items-center rounded-full bg-stage-000/70 text-lamp-300 ring-1 ring-lamp-500/40"
+        >
+          <Crown className="size-3.5" />
+        </span>
+      )}
+
+      <div className="flex items-center gap-3 p-2.5 pr-9">
         <span className="relative shrink-0 rounded-sm bg-stage-000 p-[3px] ring-1 ring-gold-500/30">
           <AvatarView spec={player.avatar} size={46} />
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-0 rounded-sm"
-            style={{
-              background: 'linear-gradient(155deg, rgba(255,255,255,.22) 0%, transparent 45%)'
-            }}
-          />
         </span>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <span className="flex items-baseline gap-1.5">
-            <span className="type-plate truncate text-xl text-text">{player.name}</span>
-            {isMe && <Label className="shrink-0">you</Label>}
-          </span>
-          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="type-plate truncate text-xl text-text">{player.name}</span>
+          <span className="flex h-4 items-center gap-2">
             <span
               className={cx('size-1.5 shrink-0 rounded-full', pip(rtt, player.connected))}
               title={rtt ? `${Math.round(rtt)}ms` : undefined}
             />
-            {isHost && (
-              <span className="type-label flex items-center gap-1 text-lamp-300">
-                <Crown className="size-3" /> host
-              </span>
-            )}
-            {player.spymaster && team && (
-              <span
-                className={cx(
-                  'type-label flex items-center gap-1',
-                  team === 'red' ? 'text-red-lit' : 'text-blue-lit'
-                )}
-              >
-                <VenetianMask className="size-3" /> spymaster
-              </span>
-            )}
-            {!player.connected && <Label className="text-lamp-500/70">seat held</Label>}
+            <Label className="truncate">
+              {!player.connected ? 'seat held' : isMe ? 'you' : ''}
+            </Label>
           </span>
         </div>
       </div>
@@ -159,7 +164,30 @@ export const PlayerCard = ({
         </div>
       )}
 
-      <Bulbs lit={player.ready} className="opacity-90" />
+      {/* Ready strip: lamps plus a word, so it is legible rather than decorative. */}
+      <span
+        className={cx(
+          'flex h-7 items-center justify-between gap-2 border-t px-2.5 transition-colors duration-200',
+          player.ready
+            ? 'border-lamp-500/40 bg-lamp-500/12'
+            : 'border-stage-600/70 bg-stage-000/40'
+        )}
+      >
+        <span className="flex items-center gap-1">
+          {[0, 1, 2, 3, 4].map(i => (
+            <span
+              key={i}
+              className={cx(
+                'size-1.5 rounded-full transition-colors duration-200',
+                player.ready ? 'bg-lamp-500 shadow-[0_0_6px_1px_rgba(255,197,61,.7)]' : 'bg-lamp-dim'
+              )}
+            />
+          ))}
+        </span>
+        <Label className={player.ready ? 'text-lamp-300' : 'text-text-dim/60'}>
+          {player.ready ? 'Ready' : 'Not ready'}
+        </Label>
+      </span>
     </motion.div>
   )
 }
