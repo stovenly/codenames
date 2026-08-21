@@ -245,8 +245,14 @@ First paint must stay under **200 KB gzipped**, which it currently clears at
 hand-rolled effects that come out. `vaul` is loaded with the host drawer, which
 is already split. Fonts are separate requests and latin-only.
 
-Measured after the build: **151 KB gzipped** for first paint, against ~127 KB
-before. The three new faces are separate requests and latin-only.
+Measured after the build: **179 KB gzipped** for first paint. The three new
+faces are separate requests and latin-only.
+
+Roughly 27 KB of that is the two traced silhouettes, which are in the entry
+deliberately. They were split out at first, which is the textbook call for
+background art — but a lazily-loaded backdrop announces itself when it lands,
+and a preload hint plus a fade only softened that. A backdrop that arrives after
+the page is a worse defect than 27 KB, so it renders with everything else.
 
 ## Done when
 

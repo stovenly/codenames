@@ -1,18 +1,11 @@
-import {Suspense, lazy, useMemo, useState} from 'react'
+import {useMemo, useState} from 'react'
 import {abandonSeat, offeredSeat, resumedSeat, takeSeat} from '../../net/identity'
 import {joinedExisting} from '../../state/net'
 import {createRoom, joinRoom, myDisplayName} from '../../state/room'
 import {Button, Enter, Field, Item, Label, Panel, Rule, input} from '../atoms'
 import {cx} from '../cx'
 import {useMotion} from '../motion'
-
-/**
- * Traced silhouettes are decoration and stay out of the entry chunk, but the
- * request starts here at module scope rather than when React first renders the
- * component — that is several hundred milliseconds earlier on a cold load.
- */
-const silhouettes = import('./Silhouettes')
-const Crowd = lazy(() => silhouettes.then(m => ({default: m.Crowd})))
+import {Crowd} from './Silhouettes'
 
 /**
  * The rig. Each light is a lamp head and a conic wedge sharing an apex, on an
@@ -92,9 +85,7 @@ const Lighting = () => {
 
       {/* Behind the beams: a screen-blended spotlight passing over them reads as
           light through fog, which is the whole effect. */}
-      <Suspense fallback={null}>
-        <Crowd />
-      </Suspense>
+      <Crowd />
 
       {RIG.map((r, i) => (
         <Spot key={i} {...r} />

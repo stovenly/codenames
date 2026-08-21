@@ -1,25 +1,8 @@
-import {copyFile, readdir, readFile, writeFile} from 'node:fs/promises'
+import {copyFile, readFile, writeFile} from 'node:fs/promises'
 
 const OUT = 'docs'
 
-const assets = await readdir(`${OUT}/assets`)
-let html = await readFile(`${OUT}/index.html`, 'utf8')
-
-/**
- * The browser cannot discover a lazily-imported chunk until the entry has
- * downloaded, parsed and run — a whole round trip of waterfall. The crowd is
- * decoration, so it must not be in the entry, but it should not wait behind it
- * either. A preload hint gets it fetching in parallel from the first byte of
- * HTML, which is the difference between it fading in and popping in.
- */
-const preload = assets.filter(a => /^Silhouettes-.*\.js$/.test(a))
-if (preload.length) {
-  const tags = preload
-    .map(a => `    <link rel="modulepreload" href="/codenames/assets/${a}" />`)
-    .join('\n')
-  html = html.replace('</head>', `${tags}\n  </head>`)
-  await writeFile(`${OUT}/index.html`, html)
-}
+const html = await readFile(`${OUT}/index.html`, 'utf8')
 
 await copyFile(`${OUT}/index.html`, `${OUT}/404.html`)
 
@@ -83,6 +66,4 @@ self.addEventListener('fetch', event => {
 `
 )
 
-console.log(
-  `postbuild: 404.html + sw.js (${version}, ${shell.length} shell entries, ${preload.length} preloaded)`
-)
+console.log(`postbuild: 404.html + sw.js (${version}, ${shell.length} shell entries)`)

@@ -28,7 +28,7 @@ const FLANK: Array<{
 export const Crowd = () => {
   const {reduced} = useMotion()
   return (
-    <div aria-hidden className="anim-fade-up pointer-events-none absolute inset-x-0 bottom-0 h-[72vh]">
+    <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[72vh]">
       <div className="grid h-full grid-cols-2 items-end">
         {FLANK.map(({figure, side, height, opacity, sway, flip, seal}, i) => (
           <div key={side} className="flex justify-center pb-[11vh]">
