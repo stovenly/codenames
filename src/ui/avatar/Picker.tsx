@@ -53,12 +53,12 @@ export const AvatarPicker = ({
   }
 
   return (
-    <Panel className="flex flex-col gap-4 p-4" tab="Your file">
+    <Panel className="flex flex-col gap-4 p-4">
       <div className="flex items-center gap-4">
         <motion.div
           animate={spinning && !reduced ? {rotate: [0, -4, 4, 0], scale: [1, 1.06, 1]} : {}}
           transition={{duration: 0.18, repeat: spinning ? Infinity : 0}}
-          className="rounded-md bg-ink-900 p-1.5 ring-1 ring-brass-400/35"
+          className="rounded-md bg-stage-000 p-1.5 ring-1 ring-gold-500/35"
         >
           <AvatarView spec={spinning ? preview : value} size={72} />
         </motion.div>
@@ -74,7 +74,7 @@ export const AvatarPicker = ({
                 aria-label={`Background ${bg}`}
                 onClick={() => onChange({...value, bg})}
                 className={`size-6 cursor-pointer rounded-xs border transition-transform duration-[120ms] hover:scale-110 ${
-                  value.bg === bg ? 'border-brass-200' : 'border-ink-600'
+                  value.bg === bg ? 'border-gold-200' : 'border-stage-600'
                 }`}
                 style={{background: `#${bg}`}}
               />
@@ -94,8 +94,8 @@ export const AvatarPicker = ({
             onClick={() => onChange({...value, style: style.id})}
             className={`flex cursor-pointer flex-col items-center gap-1 rounded-sm border p-1.5 transition-colors duration-[120ms] ${
               value.style === style.id
-                ? 'border-brass-400/70 bg-brass-400/10'
-                : 'border-ink-600 hover:border-brass-400/40'
+                ? 'border-gold-500/70 bg-lamp-500/10'
+                : 'border-stage-600 hover:border-gold-500/40'
             }`}
           >
             <AvatarView spec={{...value, style: style.id}} size={34} />

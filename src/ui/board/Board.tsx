@@ -1,11 +1,12 @@
 import {motion} from 'motion/react'
 import {useCallback, useEffect, useState} from 'react'
 import type {View} from '../../game/reducer'
-import type {Avatar as AvatarSpec, PlayerId, Player} from '../../game/types'
+import type {Avatar as AvatarSpec, Player, PlayerId} from '../../game/types'
 import {armCard, myMark, useMarks} from '../../state/presence'
 import {intend} from '../../state/room'
 import type {Stage} from '../../state/theatre'
-import {useReducedMotion} from '../motion'
+import {Bulbs} from '../atoms'
+import {useMotion} from '../motion'
 import {sfx} from '../sound/audio'
 import {Card, type CardPhase} from './Card'
 
@@ -32,13 +33,12 @@ export const Board = ({
   spymaster: boolean
 }) => {
   const marks = useMarks()
-  const reduced = useReducedMotion()
+  const {reduced} = useMotion()
   const [focus, setFocus] = useState(0)
   const armedCard = myMark()
 
   const avatars = new Map<PlayerId, AvatarSpec>(players.map(p => [p.id, p.avatar]))
   const busy = stage.kind === 'windup' || stage.kind === 'landing' || stage.kind === 'aftermath'
-  const dimmed = stage.kind === 'windup'
 
   const arm = useCallback(
     (index: number) => {
@@ -93,51 +93,34 @@ export const Board = ({
 
   return (
     <div className="relative w-full">
+      <Bulbs lit={view.phase === 'guess'} chase={view.phase === 'guess'} className="mb-2" />
+
       <motion.div
-        animate={{
-          filter: dimmed && !reduced ? 'saturate(0.28) brightness(0.42)' : 'saturate(1) brightness(1)'
-        }}
-        transition={{duration: reduced ? 0.12 : 0.45}}
+        animate={{opacity: stage.kind === 'windup' && !reduced ? 0.35 : 1}}
+        transition={{duration: reduced ? 0.12 : 0.35}}
         className="grid w-full gap-1.5 sm:gap-2.5"
         style={{gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`}}
       >
-        {view.cards.map((card, i) => {
-          const phase = phaseFor(stage, i)
-          return (
-            <div key={`${card.word}-${i}`} style={{filter: phase !== 'idle' ? 'none' : undefined}}>
-              <Card
-                card={card}
-                index={i}
-                phase={phase}
-                landedColour={
-                  stage.kind === 'landing' || stage.kind === 'aftermath' ? stage.colour : null
-                }
-                spymaster={spymaster}
-                interactive={canGuess && !card.revealed && !busy}
-                armed={armedCard === i}
-                marks={marks.get(i) ?? new Set()}
-                avatars={avatars}
-                onArm={() => arm(i)}
-                onConfirm={() => confirm(i)}
-                focused={focus === i && canGuess}
-              />
-            </div>
-          )
-        })}
+        {view.cards.map((card, i) => (
+          <Card
+            key={`${card.word}-${i}`}
+            card={card}
+            index={i}
+            phase={phaseFor(stage, i)}
+            landedColour={stage.kind === 'landing' || stage.kind === 'aftermath' ? stage.colour : null}
+            spymaster={spymaster}
+            interactive={canGuess && !card.revealed && !busy}
+            armed={armedCard === i}
+            marks={marks.get(i) ?? new Set()}
+            avatars={avatars}
+            onArm={() => arm(i)}
+            onConfirm={() => confirm(i)}
+            focused={focus === i && canGuess}
+          />
+        ))}
       </motion.div>
 
-      {dimmed && !reduced && (
-        <motion.span
-          aria-hidden
-          initial={{opacity: 0}}
-          animate={{opacity: 1}}
-          exit={{opacity: 0}}
-          className="pointer-events-none absolute inset-0 -z-10"
-          style={{
-            background: 'radial-gradient(60% 60% at 50% 50%, rgba(217,164,65,.10), transparent 70%)'
-          }}
-        />
-      )}
+      <Bulbs lit={view.phase === 'guess'} chase={view.phase === 'guess'} className="mt-2" />
     </div>
   )
 }

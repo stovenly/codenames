@@ -15,14 +15,15 @@ import * as words from './words'
 export type Stage =
   | {kind: 'idle'}
   | {kind: 'clue'; clue: Clue}
-  | {kind: 'windup'; card: number; team: Team; until: number; from: number}
+  | {kind: 'windup'; card: number; team: Team; colour: Colour; until: number; from: number}
   | {kind: 'landing'; card: number; colour: Colour; team: Team}
   | {kind: 'aftermath'; card: number; colour: Colour; team: Team; correct: boolean}
   | {kind: 'turn'; team: Team}
   | {kind: 'finish'; winner: Team; reason: 'cards' | 'assassin'}
 
 const FULL = {
-  windup: 1500,
+  /** Cabinet rise 400 + three reels settling at 900 / 1350 / 1800. */
+  windup: 2200,
   landing: 520,
   correct: 700,
   wrong: 950,
@@ -86,7 +87,7 @@ const playGuess = (card: number, team: Team) => {
   const colour: Colour = outcome?.colour ?? 'neutral'
   const correct = colour === team
 
-  stage = {kind: 'windup', card, team, until: Date.now() + t.windup, from: Date.now()}
+  stage = {kind: 'windup', card, team, colour, until: Date.now() + t.windup, from: Date.now()}
   publish()
   sfx.confirm()
   if (!reducedMotion()) sfx.riser(t.windup / 1000)

@@ -1,92 +1,103 @@
 import {motion} from 'motion/react'
-import {useReducedMotion} from '../motion'
+import {useMotion} from '../motion'
 
-/** A full takeover. Everything desaturates, the vignette pulses, and it holds. */
+/**
+ * The assassin kills the stage lights: true black first, then the emergency
+ * wash. The blackout is what makes the red arrive as a shock rather than a
+ * colour change.
+ */
 export const AssassinTakeover = () => {
-  const reduced = useReducedMotion()
+  const {reduced} = useMotion()
   return (
     <motion.div
       initial={{opacity: 0}}
       animate={{opacity: 1}}
       exit={{opacity: 0}}
-      transition={{duration: reduced ? 0.12 : 0.2}}
+      transition={{duration: reduced ? 0.12 : 0.1}}
       className="pointer-events-none fixed inset-0 z-40"
     >
       <motion.span
+        className="absolute inset-0 bg-stage-000"
+        animate={reduced ? {opacity: 0.7} : {opacity: [1, 1, 0.55, 0.7, 0.5]}}
+        transition={{duration: 2.2, times: [0, 0.08, 0.3, 0.6, 1]}}
+      />
+      <motion.span
         className="absolute inset-0"
-        animate={
-          reduced
-            ? {opacity: 0.6}
-            : {opacity: [0.25, 0.85, 0.4, 0.8, 0.35]}
-        }
-        transition={{duration: 2.2, times: [0, 0.2, 0.45, 0.7, 1]}}
+        animate={reduced ? {opacity: 0.6} : {opacity: [0, 0.9, 0.4, 0.85, 0.45]}}
+        transition={{duration: 2.2, times: [0, 0.18, 0.42, 0.68, 1]}}
         style={{
           background:
-            'radial-gradient(120% 90% at 50% 50%, transparent 25%, rgba(196,30,30,.55) 75%, rgba(90,0,0,.92) 100%)'
+            'radial-gradient(125% 90% at 50% 50%, transparent 18%, rgba(255,45,45,.42) 70%, rgba(90,0,0,.95) 100%)'
         }}
       />
       {!reduced && (
         <motion.span
-          className="absolute inset-x-0 top-1/2 h-px bg-void-rim"
-          animate={{scaleX: [0, 1, 1], opacity: [0, 0.8, 0]}}
-          transition={{duration: 1.1}}
+          aria-hidden
+          className="absolute inset-x-0 top-0 h-2 bg-kill-lit"
+          animate={{opacity: [0, 1, 0.2, 1, 0.3]}}
+          transition={{duration: 2.2, repeat: 0}}
+          style={{filter: 'blur(6px)'}}
         />
       )}
       <motion.span
-        initial={reduced ? {opacity: 0} : {scale: 3, opacity: 0, rotate: -10}}
-        animate={{scale: 1, opacity: 1, rotate: -4}}
-        transition={reduced ? {duration: 0.12} : {type: 'spring', stiffness: 300, damping: 16}}
-        className="type-display absolute inset-x-0 top-[42%] text-center text-4xl tracking-[0.2em] text-void-rim drop-shadow-[0_0_30px_rgba(196,30,30,.8)] sm:text-6xl"
+        initial={reduced ? {opacity: 0} : {scale: 2.8, opacity: 0, rotate: -8}}
+        animate={{scale: 1, opacity: 1, rotate: -3}}
+        transition={
+          reduced ? {duration: 0.12} : {type: 'spring', stiffness: 280, damping: 15, delay: 0.16}
+        }
+        className="type-marquee absolute inset-x-0 top-[42%] text-center text-4xl tracking-[0.16em] text-kill-lit sm:text-6xl"
+        style={{textShadow: '0 0 46px rgba(255,45,45,.9)'}}
       >
-        ASSASSIN
+        Assassin
       </motion.span>
     </motion.div>
   )
 }
 
-/** Fires with the correct-guess burst so the whole room feels the hit, not just the card. */
+/** Fires with the correct-guess burst so the whole room feels it, not just the plate. */
 export const BoardBreath = ({team}: {team: 'red' | 'blue'}) => {
-  const reduced = useReducedMotion()
+  const {reduced} = useMotion()
   if (reduced) return null
   return (
     <motion.span
       aria-hidden
       initial={{opacity: 0}}
-      animate={{opacity: [0, 0.5, 0]}}
+      animate={{opacity: [0, 0.55, 0]}}
       transition={{duration: 0.7, ease: 'easeOut'}}
       className="pointer-events-none fixed inset-0 z-30"
       style={{
         background: `radial-gradient(70% 55% at 50% 50%, ${
-          team === 'red' ? 'rgba(255,107,87,.22)' : 'rgba(95,168,255,.22)'
+          team === 'red' ? 'rgba(255,122,92,.26)' : 'rgba(111,182,255,.26)'
         }, transparent 70%)`
       }}
     />
   )
 }
 
+/** The spymaster is in the booth: hazard bands, and a watermark a screen-share cannot hide. */
 export const SpymasterChrome = () => (
   <>
     {(['top-0', 'bottom-0'] as const).map(edge => (
       <span
         key={edge}
         aria-hidden
-        className={`pointer-events-none fixed inset-x-0 ${edge} z-30 flex h-6 items-center justify-center overflow-hidden`}
+        className={`pointer-events-none fixed inset-x-0 ${edge} z-30 flex h-5 items-center justify-center overflow-hidden`}
         style={{
           background:
-            'repeating-linear-gradient(135deg, rgba(217,164,65,.85) 0 12px, rgba(7,10,20,.9) 12px 24px)'
+            'repeating-linear-gradient(135deg, rgba(255,197,61,.8) 0 12px, rgba(5,6,11,.92) 12px 24px)'
         }}
       >
-        <span className="type-mono rounded bg-ink-900/90 px-3 py-0.5 text-[10px] tracking-[0.35em] text-brass-200">
-          EYES ONLY
+        <span className="type-marquee rounded-xs bg-stage-000/92 px-3 py-0.5 text-[9px] tracking-[0.3em] text-lamp-300">
+          Spymaster
         </span>
       </span>
     ))}
     <span
       aria-hidden
-      className="type-display pointer-events-none fixed inset-0 z-20 grid select-none place-items-center overflow-hidden text-[18vw] leading-none text-brass-400/[0.045]"
-      style={{transform: 'rotate(-22deg)'}}
+      className="type-marquee pointer-events-none fixed inset-0 z-20 grid select-none place-items-center overflow-hidden text-[16vw] leading-none text-lamp-500/[0.04]"
+      style={{transform: 'rotate(-20deg)'}}
     >
-      SPYMASTER
+      Spymaster
     </span>
   </>
 )

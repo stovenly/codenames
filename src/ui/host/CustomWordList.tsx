@@ -25,7 +25,7 @@ export const CustomWordList = ({size}: {size: BoardSize}) => {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-md border border-ink-600 bg-ink-900/50 p-3">
+    <div className="flex flex-col gap-3 rounded-md border border-stage-600 bg-stage-000/50 p-3">
       {saved.length > 0 && (
         <div className="flex flex-col gap-1.5">
           <Label>Saved lists</Label>
@@ -75,18 +75,18 @@ export const CustomWordList = ({size}: {size: BoardSize}) => {
             {report.droppedBlank > 0 && `, ${report.droppedBlank} blank`}
             {report.rejected.length > 0 && `, ${report.rejected.length} rejected`}
             {' · '}
-            <span className={report.accepted.length < needed ? 'text-red-glow' : 'text-brass-200'}>
+            <span className={report.accepted.length < needed ? 'text-red-lit' : 'text-lamp-300'}>
               need {needed} for {size}×{size}
             </span>
           </p>
-          {report.fatal && <p className="type-mono text-red-glow">{report.fatal}</p>}
+          {report.fatal && <p className="type-mono text-red-lit">{report.fatal}</p>}
           {report.rejected.slice(0, 4).map((r, i) => (
-            <p key={i} className="type-mono text-red-glow/80">
+            <p key={i} className="type-mono text-red-lit/80">
               {r.entry} — {r.reason}
             </p>
           ))}
           {report.warnings.slice(0, 2).map((w, i) => (
-            <p key={i} className="type-mono text-brass-200/80">
+            <p key={i} className="type-mono text-lamp-300/80">
               {w}
             </p>
           ))}

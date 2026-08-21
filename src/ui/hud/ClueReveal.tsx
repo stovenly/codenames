@@ -25,7 +25,7 @@ export const ClueReveal = ({clue}: {clue: Clue}) => {
     return () => clearInterval(id)
   }, [clue.word, reduced])
 
-  const tint = clue.team === 'red' ? 'text-red-glow' : 'text-blue-glow'
+  const tint = clue.team === 'red' ? 'text-red-lit' : 'text-blue-lit'
 
   return (
     <motion.div
@@ -33,14 +33,14 @@ export const ClueReveal = ({clue}: {clue: Clue}) => {
       animate={{opacity: 1}}
       exit={{opacity: 0, scale: reduced ? 1 : 0.94}}
       transition={{duration: reduced ? 0.12 : 0.28}}
-      className="fixed inset-0 z-50 grid place-items-center bg-ink-900/92 backdrop-blur-sm"
+      className="fixed inset-0 z-50 grid place-items-center bg-stage-000/92 backdrop-blur-sm"
     >
       <motion.span
         aria-hidden
         className="absolute inset-x-0 h-px"
         style={{
           background: `linear-gradient(90deg, transparent, ${
-            clue.team === 'red' ? '#FF6B57' : '#5FA8FF'
+            clue.team === 'red' ? '#FF7A5C' : '#6FB6FF'
           }, transparent)`
         }}
         initial={{top: '50%', opacity: 0}}
@@ -54,13 +54,13 @@ export const ClueReveal = ({clue}: {clue: Clue}) => {
         </span>
 
         <div className="flex flex-wrap items-center justify-center gap-5">
-          <span className="type-mono text-4xl tracking-wider text-text sm:text-6xl">
+          <span className="type-marquee text-3xl tracking-wider text-text sm:text-5xl">
             {typed}
             {!reduced && typed.length < clue.word.length && (
               <motion.span
                 animate={{opacity: [1, 0]}}
                 transition={{duration: 0.5, repeat: Infinity}}
-                className="text-brass-400"
+                className="text-lamp-500"
               >
                 _
               </motion.span>
@@ -72,7 +72,7 @@ export const ClueReveal = ({clue}: {clue: Clue}) => {
               initial={reduced ? {opacity: 0} : {scale: 2.6, opacity: 0, rotate: -14}}
               animate={{scale: 1, opacity: 1, rotate: 0}}
               transition={reduced ? {duration: 0.12} : {type: 'spring', stiffness: 620, damping: 18}}
-              className="type-display grid size-16 place-items-center rounded-lg border-2 border-brass-400 bg-brass-400/10 text-3xl text-brass-200 sm:size-20 sm:text-4xl"
+              className="type-marquee grid size-16 place-items-center rounded-lg border-2 border-lamp-500 bg-lamp-500/10 text-3xl text-lamp-300 sm:size-20 sm:text-4xl"
             >
               {clue.count === 'unlimited' ? '∞' : clue.count}
             </motion.span>
@@ -113,11 +113,11 @@ export const TurnBand = ({team}: {team: 'red' | 'blue'}) => {
         style={{
           background:
             team === 'red'
-              ? 'linear-gradient(90deg, rgba(224,80,63,0), #E0503F 20%, #B93A2C 80%, rgba(185,58,44,0))'
-              : 'linear-gradient(90deg, rgba(61,139,232,0), #3D8BE8 20%, #2A63AA 80%, rgba(42,99,170,0))'
+              ? 'linear-gradient(90deg, rgba(240,68,56,0), #F04438 20%, #7A1A12 80%, rgba(122,26,18,0))'
+              : 'linear-gradient(90deg, rgba(46,134,255,0), #2E86FF 20%, #10305E 80%, rgba(16,48,94,0))'
         }}
       >
-        <span className="type-display text-3xl text-[#0A0D16] sm:text-5xl">
+        <span className="type-marquee text-3xl text-[#05060B] sm:text-5xl">
           {team === 'red' ? 'RED' : 'BLUE'} TO PLAY
         </span>
       </motion.div>

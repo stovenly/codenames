@@ -1,68 +1,54 @@
 import {AnimatePresence, motion} from 'motion/react'
+import {Activity, Check, Copy, X} from 'lucide-react'
 import {useEffect, useState} from 'react'
 import {refreshStats, roomId, self, useNet} from '../state/net'
 import {setPrefs, usePrefs} from '../state/prefs'
-import {Button, Heading, Label, Panel, Pill, Rule} from './atoms'
-import {Check, Close, Copy, IconButton, Signal} from './icons'
+import {Button, Heading, IconButton, Label, Panel, Rule} from './atoms'
 import {MuteToggle} from './Controls'
-import {spring, useReducedMotion} from './motion'
+import {cx} from './cx'
+import {spring, useMotion} from './motion'
 
-const Toggle = ({
-  label,
-  on,
-  onClick
-}: {
-  label: string
-  on: boolean
-  onClick: () => void
-}) => (
+const advice = (report: ReturnType<typeof useNet>['report']) => {
+  if (!report.transports.some(t => t.relaysOpen > 0))
+    return 'Nothing is reachable. A VPN, a school or office network, or strict DNS filtering will do this — try turning the VPN off first.'
+  if (report.peers.length === 0)
+    return 'Connected, but nobody else has turned up. Check everyone opened the same link.'
+  if (report.peers.every(p => p.relayed))
+    return 'Everyone is coming through a relay, which is slower. Usually a strict firewall on one end.'
+  return 'Everything looks healthy.'
+}
+
+const Toggle = ({label, on, onClick}: {label: string; on: boolean; onClick: () => void}) => (
   <button
     type="button"
     role="switch"
     aria-checked={on}
     onClick={onClick}
-    className="flex cursor-pointer items-center justify-between gap-3 rounded-sm border border-ink-600 px-3 py-2 text-left transition-colors duration-[120ms] hover:border-brass-400/45"
+    className="flex cursor-pointer items-center justify-between gap-3 rounded-sm border border-stage-600 px-3 py-2 text-left transition-colors duration-[120ms] hover:border-gold-500/50"
   >
     <Label>{label}</Label>
     <span
-      className={`relative h-4 w-8 shrink-0 rounded-full transition-colors ${
-        on ? 'bg-brass-400' : 'bg-ink-600'
-      }`}
+      className={cx(
+        'relative h-4 w-8 shrink-0 rounded-full transition-colors',
+        on ? 'bg-lamp-500' : 'bg-stage-600'
+      )}
     >
       <span
-        className={`absolute top-0.5 size-3 rounded-full bg-ink-900 transition-[left] ${
+        className={cx(
+          'absolute top-0.5 size-3 rounded-full bg-stage-000 transition-[left]',
           on ? 'left-4' : 'left-0.5'
-        }`}
+        )}
       />
     </span>
   </button>
 )
-
-const STATUS_TONE = {
-  ready: 'brass',
-  connecting: 'neutral',
-  failed: 'red'
-} as const
-
-const advice = (report: ReturnType<typeof useNet>['report']) => {
-  const anyRelay = report.transports.some(t => t.relaysOpen > 0)
-  const anyPeer = report.peers.length > 0
-
-  if (!anyRelay)
-    return 'No signalling relay is reachable. A VPN, a school or corporate network, or strict DNS filtering will do this. Try disabling the VPN first.'
-  if (!anyPeer)
-    return 'Relays are up but no peer has been found. Check everyone is on the same link, and that the other player has the tab open.'
-  if (report.peers.every(p => p.relayed))
-    return 'Every connection is going through a TURN relay, which is slower and shares a public quota. Usually a symmetric NAT or a strict firewall on one end.'
-  return 'Connections look healthy.'
-}
 
 export const Diagnostics = () => {
   const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const {report} = useNet()
   const prefs = usePrefs()
-  const reduced = useReducedMotion()
+  const {reduced} = useMotion()
 
   useEffect(() => {
     if (!open) return
@@ -72,26 +58,11 @@ export const Diagnostics = () => {
   }, [open])
 
   const relays = report.transports.reduce((n, t) => n + t.relaysOpen, 0)
-  const health =
-    report.transports.length === 0
-      ? 'idle'
-      : relays === 0
-        ? 'down'
-        : report.router.directPeers === 0
-          ? 'alone'
-          : 'ok'
-
-  const tone = {
-    idle: 'border-ink-600 text-text-dim',
-    down: 'border-void-rim/70 text-red-glow',
-    alone: 'border-brass-400/50 text-brass-200',
-    ok: 'border-ink-600 text-text-dim'
-  }[health]
+  const down = report.transports.length > 0 && relays === 0
 
   const copy = async () => {
-    const text = JSON.stringify({roomId, self, ...report}, null, 2)
     try {
-      await navigator.clipboard.writeText(text)
+      await navigator.clipboard.writeText(JSON.stringify({roomId, self, ...report}, null, 2))
       setCopied(true)
       setTimeout(() => setCopied(false), 1800)
     } catch {
@@ -101,27 +72,16 @@ export const Diagnostics = () => {
 
   return (
     <>
-      <div className="fixed bottom-3 left-3 z-40 flex items-center gap-1.5">
+      <div className="fixed bottom-4 left-4 z-40 flex items-center gap-2">
         <MuteToggle />
         <IconButton
-          label={
-            health === 'down'
-              ? 'Offline — open diagnostics'
-              : `${report.router.directPeers} connected — open diagnostics`
-          }
+          label={down ? 'Offline' : `${report.router.directPeers} connected`}
           aria-expanded={open}
           onClick={() => setOpen(v => !v)}
-          className={`surface-1 backdrop-blur ${
-            health === 'down' ? 'border-void-rim/70 text-red-glow' : ''
-          } ${tone}`}
+          className={cx('backdrop-blur', down && 'border-kill-lit/70 text-kill-lit')}
         >
-          <Signal />
+          <Activity className="size-4" />
         </IconButton>
-        {report.router.directPeers > 0 && (
-          <span className="type-label surface-1 rounded-full border border-ink-600 px-2 py-1 backdrop-blur">
-            {report.router.directPeers}
-          </span>
-        )}
       </div>
 
       <AnimatePresence>
@@ -131,19 +91,14 @@ export const Diagnostics = () => {
             animate={{opacity: 1, y: 0}}
             exit={reduced ? {opacity: 0} : {opacity: 0, y: 12}}
             transition={spring.firm}
-            className="fixed bottom-14 left-3 z-40 w-[min(92vw,26rem)]"
+            className="fixed bottom-16 left-4 z-40 w-[min(92vw,25rem)]"
           >
             <Panel level={2} className="max-h-[70vh] overflow-y-auto p-4 backdrop-blur">
-              <div className="flex items-baseline justify-between gap-3">
-                <Heading>Diagnostics</Heading>
-                <span className="flex items-center gap-2">
-                  <Label>
-                    {roomId} · {self.slice(0, 6)}
-                  </Label>
-                  <IconButton label="Close" onClick={() => setOpen(false)} className="size-7">
-                    <Close />
-                  </IconButton>
-                </span>
+              <div className="flex items-center justify-between gap-3">
+                <Heading>Connection</Heading>
+                <IconButton label="Close" onClick={() => setOpen(false)} className="size-7">
+                  <X className="size-3.5" />
+                </IconButton>
               </div>
 
               <Rule className="my-3" />
@@ -151,10 +106,19 @@ export const Diagnostics = () => {
               <section className="flex flex-col gap-2">
                 {report.transports.map(t => (
                   <div key={t.name} className="flex items-center justify-between gap-2">
-                    <Pill tone={STATUS_TONE[t.status]}>{t.name}</Pill>
-                    <span className="type-label">
-                      {t.error ?? `${t.relaysOpen}/${t.relaysTotal} relays · ${t.peers} links`}
+                    <span
+                      className={cx(
+                        'type-label',
+                        t.status === 'ready'
+                          ? 'text-lamp-300'
+                          : t.status === 'failed'
+                            ? 'text-kill-lit'
+                            : ''
+                      )}
+                    >
+                      {t.name}
                     </span>
+                    <Label>{t.error ?? `${t.relaysOpen}/${t.relaysTotal} · ${t.peers} links`}</Label>
                   </div>
                 ))}
               </section>
@@ -163,27 +127,20 @@ export const Diagnostics = () => {
 
               <section className="flex flex-col gap-2">
                 {report.peers.length === 0 ? (
-                  <p className="type-body">No peers yet.</p>
+                  <p className="type-body">Nobody else connected.</p>
                 ) : (
                   report.peers.map(p => (
                     <div key={p.playerId} className="flex items-center justify-between gap-2">
-                      <span className="type-mono text-[11px] text-text">{p.playerId.slice(0, 6)}</span>
-                      <span className="type-label">
+                      <span className="type-read text-[11px] text-text">{p.playerId.slice(0, 6)}</span>
+                      <Label>
                         {p.ice}
-                        {p.relayed ? ' · TURN' : ''}
-                        {p.rttMs === null ? '' : ` · ${Math.round(p.rttMs)}ms`} · {p.transports.join('+')}
-                      </span>
+                        {p.relayed ? ' · relayed' : ''}
+                        {p.rttMs === null ? '' : ` · ${Math.round(p.rttMs)}ms`}
+                      </Label>
                     </div>
                   ))
                 )}
               </section>
-
-              <Rule className="my-3" />
-
-              <p className="type-label">
-                direct {report.router.directPeers} · sent {report.router.sent} · recv{' '}
-                {report.router.received} · fwd {report.router.forwarded} · dup {report.router.dropped}
-              </p>
 
               <p className="type-body mt-3">{advice(report)}</p>
 
@@ -201,15 +158,17 @@ export const Diagnostics = () => {
                   on={prefs.colourblind}
                   onClick={() => setPrefs({colourblind: !prefs.colourblind})}
                 />
-                <Toggle label="Sound" on={!prefs.muted} onClick={() => setPrefs({muted: !prefs.muted})} />
               </section>
 
-              <div className="mt-4">
-                <Button variant="ghost" size="sm" onClick={copy} className="flex w-full items-center justify-center gap-2">
-                  {copied ? <Check /> : <Copy />}
-                  {copied ? 'Copied' : 'Copy diagnostics'}
-                </Button>
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={copy}
+                className="mt-4 flex w-full items-center justify-center gap-2"
+              >
+                {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                {copied ? 'Copied' : 'Copy details'}
+              </Button>
             </Panel>
           </motion.div>
         )}

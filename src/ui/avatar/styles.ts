@@ -61,7 +61,7 @@ export const STYLES: Entry[] = [
 ]
 
 /** Deliberately excludes the two team colours, so an avatar never contradicts a team column. */
-export const BACKGROUNDS = ['161D30', '232C44', 'D9A441', 'F0D18A', 'E8E3D6', '05060A']
+export const BACKGROUNDS = ['121A2E', '1B2740', 'C9962C', 'FFC53D', 'F1ECE0', '05060B']
 
 const loaded = new Map<StyleId, Style<never>>()
 const pending = new Map<StyleId, Promise<Style<never>>>()

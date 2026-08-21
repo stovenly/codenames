@@ -1,4 +1,5 @@
 import {AnimatePresence, motion} from 'motion/react'
+import * as Tooltip from '@radix-ui/react-tooltip'
 import {Suspense, lazy, useEffect} from 'react'
 import {derive} from '../game/reducer'
 import {publishRoomToHash} from '../state/net'
@@ -6,7 +7,8 @@ import {start, useRoom} from '../state/room'
 import * as words from '../state/words'
 import {AwayWatch, HostAwayPill} from './Away'
 import {Diagnostics} from './Diagnostics'
-import {Panel} from './atoms'
+import {Label, Panel, Stage} from './atoms'
+import {cx} from './cx'
 import {spring} from './motion'
 import {Landing} from './screens/Landing'
 
@@ -15,27 +17,26 @@ const Game = lazy(() => import('./screens/Game').then(m => ({default: m.Game})))
 
 const Loading = ({label}: {label: string}) => (
   <main className="flex min-h-full items-center justify-center">
-    <p className="type-label animate-pulse">{label}</p>
+    <Label className="animate-pulse">{label}</Label>
   </main>
 )
 
-const Banner = ({text, tone}: {text: string; tone: 'brass' | 'danger'}) => (
+const Banner = ({text, tone}: {text: string; tone: 'lamp' | 'danger'}) => (
   <motion.div
     initial={{opacity: 0, y: -12}}
     animate={{opacity: 1, y: 0}}
     exit={{opacity: 0, y: -12}}
     transition={spring.firm}
-    className="fixed inset-x-0 top-3 z-50 mx-auto w-fit max-w-[92vw] px-3"
+    className="fixed inset-x-0 top-4 z-50 mx-auto w-fit max-w-[92vw] px-3"
   >
     <Panel
       level={2}
-      className={`border px-4 py-2 text-xs ${
-        tone === 'danger'
-          ? 'border-void-rim/60 text-bone'
-          : 'border-brass-400/40 text-brass-200'
-      }`}
+      className={cx(
+        'px-4 py-2',
+        tone === 'danger' ? 'border-kill-lit/60 text-bone' : 'border-lamp-500/50 text-lamp-300'
+      )}
     >
-      {text}
+      <span className="type-read text-xs">{text}</span>
     </Panel>
   </motion.div>
 )
@@ -54,18 +55,15 @@ export const App = () => {
     : null
 
   return (
-    <>
+    <Tooltip.Provider delayDuration={350} skipDelayDuration={200}>
+      <Stage />
       <AwayWatch />
 
       <AnimatePresence>
         {split && (
-          <Banner
-            key="split"
-            tone="danger"
-            text="The room looks split in two. Someone should reload to bring it back together."
-          />
+          <Banner key="split" tone="danger" text="The room has split in two. Someone should reload." />
         )}
-        {banner && !split && <Banner key={banner} tone="brass" text={banner} />}
+        {banner && !split && <Banner key={banner} tone="lamp" text={banner} />}
       </AnimatePresence>
 
       {role === 'idle' || role === 'rejected' ? (
@@ -84,6 +82,6 @@ export const App = () => {
 
       <HostAwayPill />
       <Diagnostics />
-    </>
+    </Tooltip.Provider>
   )
 }

@@ -1,83 +1,44 @@
 import {AnimatePresence, motion} from 'motion/react'
-import {memo, useEffect, useRef, useState} from 'react'
+import {memo, useRef, useState} from 'react'
 import type {Colour} from '../../game/board'
 import type {Card as CardModel} from '../../game/reducer'
 import type {Avatar as AvatarSpec, PlayerId} from '../../game/types'
 import {AvatarView} from '../avatar/Avatar'
-import {spring, useReducedMotion} from '../motion'
+import {cx} from '../cx'
+import {spring, useMotion} from '../motion'
 import {sfx} from '../sound/audio'
+import {INK, STAMP, SURFACE} from './symbols'
 
 export type CardPhase = 'idle' | 'windup' | 'landing' | 'aftermath'
 
-const SURFACE: Record<Colour, string> = {
-  red: 'linear-gradient(150deg, #E0503F 0%, #B93A2C 100%)',
-  blue: 'linear-gradient(150deg, #3D8BE8 0%, #2A63AA 100%)',
-  neutral: 'linear-gradient(150deg, #E8E3D6 0%, #C3BCAA 100%)',
-  assassin: 'linear-gradient(150deg, #14161F 0%, #05060A 100%)'
-}
-
-const STAMP: Record<Colour, string> = {
-  red: 'RED AGENT',
-  blue: 'BLUE AGENT',
-  neutral: 'BYSTANDER',
-  assassin: 'ASSASSIN'
-}
-
-const INK: Record<Colour, string> = {
-  red: '#2A0C07',
-  blue: '#071B33',
-  neutral: '#2B2718',
-  assassin: '#C41E1E'
-}
-
 const PATTERN: Record<Colour, string> = {
-  red: 'repeating-linear-gradient(45deg, rgba(42,12,7,.28) 0 2px, transparent 2px 8px)',
-  blue: 'radial-gradient(rgba(7,27,51,.32) 1.3px, transparent 1.5px)',
+  red: 'repeating-linear-gradient(45deg, rgba(43,10,6,.26) 0 2px, transparent 2px 8px)',
+  blue: 'radial-gradient(rgba(6,28,54,.30) 1.3px, transparent 1.5px)',
   neutral: 'none',
-  assassin: 'repeating-linear-gradient(135deg, rgba(196,30,30,.30) 0 3px, transparent 3px 10px)'
+  assassin: 'repeating-linear-gradient(135deg, rgba(255,45,45,.26) 0 3px, transparent 3px 10px)'
 }
 
-const REEL: Colour[] = ['red', 'neutral', 'blue', 'assassin', 'neutral', 'red', 'blue', 'neutral']
-
-/** Fast at first, then decelerating like a reel finding its detent. */
-const useReel = (active: boolean, durationMs: number) => {
-  const [colour, setColour] = useState<Colour>('neutral')
-
-  useEffect(() => {
-    if (!active) return
-    let index = Math.floor(Math.random() * REEL.length)
-    let elapsed = 0
-    let handle: ReturnType<typeof setTimeout>
-
-    const tick = () => {
-      const progress = Math.min(1, elapsed / durationMs)
-      setColour(REEL[index++ % REEL.length]!)
-      sfx.reelTick(progress)
-      const gap = 42 + 260 * Math.pow(progress, 2.4)
-      elapsed += gap
-      handle = setTimeout(tick, gap)
-    }
-
-    handle = setTimeout(tick, 0)
-    return () => clearTimeout(handle)
-  }, [active, durationMs])
-
-  return colour
+/** The spymaster's key: a tint on the unlit plate, never the full face. */
+const KEY_TINT: Record<Colour, string> = {
+  red: 'rgba(240,68,56,.30)',
+  blue: 'rgba(46,134,255,.30)',
+  neutral: 'rgba(241,236,224,.12)',
+  assassin: 'rgba(255,45,45,.30)'
 }
 
-const Particles = ({colour}: {colour: Colour}) => {
+const Burst = ({colour}: {colour: Colour}) => {
   const bits = useRef(
-    Array.from({length: 24}, (_, i) => ({
-      angle: (i / 24) * Math.PI * 2 + Math.random() * 0.3,
-      distance: 46 + Math.random() * 62,
+    Array.from({length: 22}, (_, i) => ({
+      angle: (i / 22) * Math.PI * 2 + Math.random() * 0.3,
+      distance: 48 + Math.random() * 60,
       size: 3 + Math.random() * 4,
-      delay: Math.random() * 0.09,
-      spin: Math.random() * 300 - 150
+      delay: Math.random() * 0.08,
+      spin: Math.random() * 320 - 160
     }))
   ).current
 
   const tint =
-    colour === 'red' ? '#FF6B57' : colour === 'blue' ? '#5FA8FF' : colour === 'assassin' ? '#C41E1E' : '#F0D18A'
+    colour === 'red' ? '#FF7A5C' : colour === 'blue' ? '#6FB6FF' : colour === 'assassin' ? '#FF2D2D' : '#FFC53D'
 
   return (
     <span className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
@@ -92,7 +53,7 @@ const Particles = ({colour}: {colour: Colour}) => {
             rotate: b.spin,
             scale: 0.4
           }}
-          transition={{duration: 0.75, delay: b.delay, ease: [0.16, 1, 0.3, 1]}}
+          transition={{duration: 0.72, delay: b.delay, ease: [0.16, 1, 0.3, 1]}}
           style={{width: b.size, height: b.size * 2.2, background: tint, borderRadius: 1}}
           className="absolute"
         />
@@ -128,121 +89,98 @@ const CardBase = ({
   onConfirm: () => void
   focused: boolean
 }) => {
-  const reduced = useReducedMotion()
+  const {reduced} = useMotion()
   const ref = useRef<HTMLButtonElement>(null)
-  const [tilt, setTilt] = useState({x: 0, y: 0})
-  const [glow, setGlow] = useState({x: 50, y: 50})
-
-  const winding = phase === 'windup'
-  const reelColour = useReel(winding && !reduced, 1500)
+  const [sheen, setSheen] = useState({x: 50, y: 50})
 
   const shown: Colour | null = card.revealed
     ? card.colour
     : phase === 'landing' || phase === 'aftermath'
       ? landedColour
-      : winding && !reduced
-        ? reelColour
-        : null
+      : null
 
-  const faceUp = card.revealed || phase === 'landing' || phase === 'aftermath'
+  const faceUp = shown !== null
   const key = spymaster && !faceUp ? card.colour : null
 
   const move = (e: React.MouseEvent) => {
     if (reduced || !interactive) return
     const box = ref.current?.getBoundingClientRect()
     if (!box) return
-    const px = (e.clientX - box.left) / box.width
-    const py = (e.clientY - box.top) / box.height
-    setTilt({x: (0.5 - py) * 6, y: (px - 0.5) * 6})
-    setGlow({x: px * 100, y: py * 100})
+    setSheen({x: ((e.clientX - box.left) / box.width) * 100, y: ((e.clientY - box.top) / box.height) * 100})
   }
-
-  const leave = () => {
-    setTilt({x: 0, y: 0})
-    setGlow({x: 50, y: 50})
-  }
-
-  const surface = shown
-    ? SURFACE[shown]
-    : key
-      ? `linear-gradient(150deg, ${
-          key === 'red' ? 'rgba(224,80,63,.32)' : key === 'blue' ? 'rgba(61,139,232,.32)' : key === 'assassin' ? 'rgba(5,6,10,.85)' : 'rgba(232,227,214,.14)'
-        } 0%, rgba(13,18,32,.9) 100%)`
-      : 'linear-gradient(150deg, #1B2338 0%, #121829 100%)'
 
   return (
     <motion.button
       ref={ref}
       type="button"
       disabled={!interactive}
-      aria-label={`${card.word}${faceUp ? `, ${STAMP[shown ?? 'neutral']}` : ''}`}
+      aria-label={`${card.word}${faceUp ? `, ${STAMP[shown]}` : ''}`}
       aria-pressed={armed}
       onMouseMove={move}
-      onMouseLeave={leave}
+      onMouseLeave={() => setSheen({x: 50, y: 50})}
       onMouseEnter={() => interactive && sfx.hover()}
       onClick={() => (armed ? onConfirm() : onArm())}
-      animate={{
-        scale: winding ? 1.14 : phase === 'landing' ? 1.06 : armed ? 1.04 : 1,
-        rotateX: reduced ? 0 : tilt.x,
-        rotateY: reduced ? 0 : tilt.y,
-        y: phase === 'aftermath' && shown && shown !== 'assassin' && !card.revealed ? 0 : 0
-      }}
+      animate={{scale: armed && !faceUp ? 1.035 : 1, y: 0}}
       whileHover={interactive && !reduced ? {y: -4} : undefined}
-      transition={winding ? {...spring.heavy} : spring.firm}
+      transition={spring.firm}
       style={{
-        background: surface,
-        transformStyle: 'preserve-3d',
+        background: faceUp
+          ? SURFACE[shown]
+          : `linear-gradient(178deg, rgba(255,255,255,.06) 0%, transparent 20%), linear-gradient(180deg, ${
+              key ? KEY_TINT[key] : 'rgba(27,39,64,0)'
+            } 0%, transparent 62%), linear-gradient(180deg, #121A2E 0%, #0A0D18 100%)`,
         containerType: 'inline-size',
-        zIndex: winding || phase === 'landing' || phase === 'aftermath' ? 30 : armed ? 10 : 1,
-        boxShadow: winding
-          ? '0 30px 70px -20px rgba(0,0,0,1), 0 0 0 2px rgba(217,164,65,.9), 0 0 60px rgba(217,164,65,.35)'
-          : faceUp
-            ? '0 2px 6px -3px rgba(0,0,0,.8)'
-            : armed
-              ? '0 18px 40px -18px rgba(0,0,0,1), 0 0 0 2px rgba(217,164,65,.85)'
-              : '0 10px 26px -16px rgba(0,0,0,.95)'
+        zIndex: armed ? 10 : 1,
+        boxShadow: faceUp
+          ? 'inset 0 1px 0 rgba(255,255,255,.22), 0 2px 5px -3px rgba(0,0,0,.9)'
+          : armed
+            ? 'inset 0 1px 0 rgba(255,255,255,.14), 0 0 0 2px rgba(255,197,61,.85), 0 16px 34px -18px rgba(0,0,0,1), 0 0 34px rgba(255,197,61,.30)'
+            : 'inset 0 1px 0 rgba(255,255,255,.1), inset 0 -2px 8px rgba(0,0,0,.55), 0 10px 26px -16px rgba(0,0,0,.95)'
       }}
-      className={`paper relative grid aspect-[7/5] w-full place-items-center overflow-hidden rounded-lg border text-center transition-[filter] ${
-        faceUp ? 'border-black/25' : 'border-ink-600'
-      } ${interactive ? 'cursor-pointer' : 'cursor-default'} ${
-        card.revealed && phase === 'idle' ? 'saturate-[0.72] brightness-90' : ''
-      } ${focused ? 'outline-2 outline-brass-400 outline-offset-2' : ''}`}
+      className={cx(
+        'relative grid aspect-[7/5] w-full place-items-center overflow-hidden rounded-md border text-center transition-[filter,border-color] duration-200',
+        faceUp ? 'border-black/30' : 'border-gold-500/30 hover:border-gold-500/70',
+        interactive ? 'cursor-pointer' : 'cursor-default',
+        card.revealed && phase === 'idle' && 'brightness-[.82] saturate-[.72]',
+        focused && 'outline-2 outline-lamp-500 outline-offset-2'
+      )}
     >
       {!faceUp && !reduced && interactive && (
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-70 transition-opacity"
+          className="pointer-events-none absolute inset-0"
           style={{
-            background: `radial-gradient(38% 55% at ${glow.x}% ${glow.y}%, rgba(240,209,138,.16), transparent 70%)`
+            background: `radial-gradient(40% 60% at ${sheen.x}% ${sheen.y}%, rgba(255,226,154,.14), transparent 70%)`
           }}
         />
       )}
 
-      {shown && PATTERN[shown] !== 'none' && (
+      {faceUp && PATTERN[shown] !== 'none' && (
         <span
           aria-hidden
           className="pointer-events-none absolute inset-0"
-          style={{backgroundImage: PATTERN[shown], backgroundSize: shown === 'blue' ? '8px 8px' : undefined}}
-        />
-      )}
-
-      {phase === 'landing' && shown && !reduced && (
-        <motion.span
-          aria-hidden
-          initial={{clipPath: 'circle(0% at 50% 50%)'}}
-          animate={{clipPath: 'circle(140% at 50% 50%)'}}
-          transition={{duration: 0.42, ease: [0.16, 1, 0.3, 1]}}
-          className="pointer-events-none absolute inset-0"
-          style={{background: SURFACE[shown]}}
+          style={{
+            backgroundImage: PATTERN[shown],
+            backgroundSize: shown === 'blue' ? '8px 8px' : undefined
+          }}
         />
       )}
 
       <span
-        className="type-display relative z-20 px-1 leading-tight"
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
         style={{
-          fontSize: 'clamp(9px, 14cqw, 26px)',
-          color: faceUp ? INK[shown ?? 'neutral'] : 'var(--color-text)',
-          textShadow: faceUp ? 'none' : '0 1px 0 rgba(0,0,0,.5)'
+          background: faceUp
+            ? 'linear-gradient(168deg, rgba(255,255,255,.28) 0%, rgba(255,255,255,.05) 24%, transparent 52%)'
+            : 'linear-gradient(168deg, rgba(255,255,255,.09) 0%, transparent 40%)'
+        }}
+      />
+
+      <span
+        className={cx('type-plate relative z-20 px-1.5', !faceUp && 'letterpress')}
+        style={{
+          fontSize: 'clamp(10px, 15cqw, 30px)',
+          color: faceUp ? INK[shown] : 'var(--color-text)'
         }}
       >
         {card.word}
@@ -252,15 +190,15 @@ const CardBase = ({
         {phase === 'landing' && shown && (
           <motion.span
             key="stamp"
-            initial={reduced ? {opacity: 0} : {opacity: 0, scale: 2.4, rotate: -22}}
-            animate={reduced ? {opacity: 1} : {opacity: 1, scale: 1, rotate: -11}}
+            initial={reduced ? {opacity: 0} : {opacity: 0, scale: 2.2, rotate: -20}}
+            animate={reduced ? {opacity: 1} : {opacity: 1, scale: 1, rotate: -10}}
             transition={reduced ? {duration: 0.12} : {type: 'spring', stiffness: 700, damping: 17}}
-            className="type-display pointer-events-none absolute z-20 rounded border-2 px-2 py-0.5"
+            className="type-marquee pointer-events-none absolute z-20 rounded-xs border-2 px-2 py-0.5"
             style={{
-              fontSize: 'clamp(6px, 7cqw, 13px)',
+              fontSize: 'clamp(5px, 6.5cqw, 12px)',
               color: INK[shown],
               borderColor: INK[shown],
-              background: 'rgba(255,255,255,.14)'
+              background: 'rgba(255,255,255,.16)'
             }}
           >
             {STAMP[shown]}
@@ -268,16 +206,7 @@ const CardBase = ({
         )}
       </AnimatePresence>
 
-      {phase === 'aftermath' && !reduced && shown && shown !== 'neutral' && <Particles colour={shown} />}
-
-      {winding && !reduced && (
-        <motion.span
-          aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-lg border-2 border-brass-200"
-          animate={{opacity: [0.15, 0.9, 0.15]}}
-          transition={{duration: 0.34, repeat: Infinity}}
-        />
-      )}
+      {phase === 'aftermath' && !reduced && shown && shown !== 'neutral' && <Burst colour={shown} />}
 
       {!faceUp && marks.size > 0 && (
         <span className="pointer-events-none absolute -top-1.5 -right-1.5 z-20 flex -space-x-2">
@@ -290,7 +219,7 @@ const CardBase = ({
                 animate={{scale: 1, y: 0, opacity: 1}}
                 exit={{scale: 0, opacity: 0}}
                 transition={spring.firm}
-                className="rounded-full border border-brass-400/70 bg-ink-900"
+                className="rounded-full ring-2 ring-lamp-500/80"
               >
                 <AvatarView spec={avatar} size={20} className="rounded-full" />
               </motion.span>
@@ -299,31 +228,28 @@ const CardBase = ({
         </span>
       )}
 
-      {key && !faceUp && (
+      {key && (
         <span
           aria-hidden
-          className={`absolute top-1 left-1 z-20 size-2 rounded-full ${
+          className={cx(
+            'absolute top-1.5 left-1.5 z-20 size-2 rounded-full',
             key === 'red'
-              ? 'bg-red-glow'
+              ? 'bg-red-lit'
               : key === 'blue'
-                ? 'bg-blue-glow'
+                ? 'bg-blue-lit'
                 : key === 'assassin'
-                  ? 'bg-void-rim'
+                  ? 'bg-kill-lit'
                   : 'bg-bone/40'
-          }`}
+          )}
         />
       )}
 
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-0 rounded-lg shadow-[inset_0_1px_0_rgba(255,255,255,.07),inset_0_-2px_6px_rgba(0,0,0,.35)]"
-      />
       <span className="sr-only">{index + 1}</span>
     </motion.button>
   )
 }
 
-/** 49 tiles re-render on every broadcast otherwise; only these inputs change what a tile looks like. */
+/** 49 tiles re-render on every broadcast otherwise; only these inputs change a tile. */
 export const Card = memo(
   CardBase,
   (a, b) =>

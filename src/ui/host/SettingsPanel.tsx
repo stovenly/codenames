@@ -1,3 +1,5 @@
+import * as Slider from '@radix-ui/react-slider'
+import * as ToggleGroup from '@radix-ui/react-toggle-group'
 import {useState} from 'react'
 import {PACKS, type PackId} from '../../data/wordlists'
 import {
@@ -13,6 +15,7 @@ import {
 import {intend, setWordSource} from '../../state/room'
 import * as words from '../../state/words'
 import {Button, Chip, Heading, Label, Panel, Rule} from '../atoms'
+import {cx} from '../cx'
 import {CompositionRow} from './Composition'
 import {CustomWordList} from './CustomWordList'
 
@@ -30,7 +33,8 @@ const Readout = ({label, value}: {label: string; value: string}) => (
   </div>
 )
 
-const Slider = ({
+/** Radix rather than `input[type=range]`: keyboard-operable and actually styleable. */
+const Dial = ({
   min,
   max,
   value,
@@ -41,14 +45,54 @@ const Slider = ({
   value: number
   onChange: (v: number) => void
 }) => (
-  <input
-    type="range"
+  <Slider.Root
     min={min}
     max={max}
+    step={1}
+    value={[value]}
+    onValueChange={([v]) => onChange(v ?? min)}
+    className="relative flex h-5 w-full touch-none items-center select-none"
+  >
+    <Slider.Track className="relative h-1 w-full grow rounded-full bg-stage-600">
+      <Slider.Range className="absolute h-full rounded-full bg-gradient-to-r from-gold-500 to-lamp-500" />
+    </Slider.Track>
+    <Slider.Thumb
+      aria-label="Value"
+      className="block size-4 cursor-grab rounded-full border border-lamp-300/60 bg-gradient-to-b from-lamp-300 to-lamp-500 shadow-[0_2px_8px_-2px_rgba(255,197,61,.8)] active:cursor-grabbing"
+    />
+  </Slider.Root>
+)
+
+/** Roving tabindex and group semantics, which a row of buttons does not have. */
+const Picker = <T extends string>({
+  value,
+  options,
+  onPick
+}: {
+  value: T
+  options: Array<{value: T; label: string}>
+  onPick: (v: T) => void
+}) => (
+  <ToggleGroup.Root
+    type="single"
     value={value}
-    onChange={e => onChange(Number(e.target.value))}
-    className="w-full accent-[var(--color-brass-400)]"
-  />
+    onValueChange={v => v && onPick(v as T)}
+    className="flex flex-wrap gap-1.5"
+  >
+    {options.map(o => (
+      <ToggleGroup.Item
+        key={o.value}
+        value={o.value}
+        className={cx(
+          'type-read cursor-pointer rounded-sm border px-2.5 py-1.5 text-[11px] transition-colors duration-[120ms]',
+          'border-stage-600 text-text-dim hover:border-gold-500/50 hover:text-text',
+          'data-[state=on]:border-lamp-500/70 data-[state=on]:bg-lamp-500/12 data-[state=on]:text-lamp-300'
+        )}
+      >
+        {o.label}
+      </ToggleGroup.Item>
+    ))}
+  </ToggleGroup.Root>
 )
 
 export const SettingsPanel = ({
@@ -67,7 +111,7 @@ export const SettingsPanel = ({
   const selected: PackId[] = remembered?.source.kind === 'packs' ? remembered.source.packs : ['original']
   const total = cardCount(settings.size)
   const problems = validate(settings, wordCount)
-  const maxTeam = Math.floor((total - 1 - settings.assassins) / 2)
+  const maxTeam = Math.floor((total - settings.assassins) / 2)
   const c = composition(settings)
 
   const patch = (p: Partial<Settings>) => editable && intend({kind: 'updateSettings', patch: p})
@@ -81,11 +125,11 @@ export const SettingsPanel = ({
     )
   }
 
-  // Non-hosts get a readout, not a set of dead controls.
+  // Non-hosts get a readout, not a panel of dead controls.
   if (!editable) {
     return (
-      <Panel className="h-fit p-5" tab="Proposed">
-        <Heading>Briefing</Heading>
+      <Panel className="h-fit p-5">
+        <Heading>On the card</Heading>
         <Rule className="mt-3 mb-1" />
         <Readout label="Board" value={`${settings.size} × ${settings.size} · ${total} cards`} />
         <Readout label="Agents" value={`${c.perTeam} each`} />
@@ -95,11 +139,7 @@ export const SettingsPanel = ({
         <Readout label="Clue timer" value={settings.clueTimer ? `${settings.clueTimer}s` : 'off'} />
         <Readout label="Guess timer" value={settings.guessTimer ? `${settings.guessTimer}s` : 'off'} />
         <Rule className="my-1" />
-        <Readout label="Word list" value={settings.wordListName} />
-        <Readout
-          label="Words"
-          value={wordCount < total ? `${wordCount} — needs ${total}` : String(wordCount)}
-        />
+        <Readout label="Words" value={`${settings.wordListName} · ${wordCount}`} />
         <div className="mt-4">
           <CompositionRow settings={settings} />
         </div>
@@ -108,26 +148,25 @@ export const SettingsPanel = ({
   }
 
   return (
-    <Panel className="flex h-fit flex-col gap-6 p-5" tab="Configuration">
+    <Panel className="flex h-fit flex-col gap-6 p-5">
+      <Heading>Set the board</Heading>
+
       <div className="flex flex-col gap-3">
-        <Row label={`Board — ${settings.size} × ${settings.size}, ${total} cards`}>
-          <div className="flex flex-wrap gap-1.5">
-            {([3, 4, 5, 6, 7] as BoardSize[]).map(size => (
-              <Chip
-                key={size}
-                active={settings.size === size}
-                onClick={() => patch({size, ...presetFor(size)})}
-              >
-                {size}×{size}
-              </Chip>
-            ))}
-          </div>
+        <Row label={`${settings.size} × ${settings.size} · ${total} cards`}>
+          <Picker
+            value={String(settings.size)}
+            options={([3, 4, 5, 6, 7] as BoardSize[]).map(s => ({
+              value: String(s),
+              label: `${s}×${s}`
+            }))}
+            onPick={v => patch({size: Number(v) as BoardSize, ...presetFor(Number(v) as BoardSize)})}
+          />
         </Row>
 
         <CompositionRow settings={settings} />
 
-        <Row label={`Agents per team — ${settings.teamCards}`}>
-          <Slider
+        <Row label={`Agents each — ${settings.teamCards}`}>
+          <Dial
             min={1}
             max={Math.max(1, maxTeam)}
             value={settings.teamCards}
@@ -136,49 +175,45 @@ export const SettingsPanel = ({
         </Row>
 
         <Row label={`Assassins — ${settings.assassins}`}>
-          <Slider
+          <Dial
             min={1}
-            max={Math.max(1, total - 2 * settings.teamCards - 1)}
+            max={Math.max(1, total - 2 * settings.teamCards)}
             value={settings.assassins}
             onChange={assassins => patch({assassins})}
           />
         </Row>
 
         {problems.map(p => (
-          <p key={p.field} className="type-label text-red-glow">
+          <p key={p.field} className="type-label text-kill-lit">
             {p.message}
           </p>
         ))}
         {!problems.length && c.neutral === 0 && (
-          <p className="type-label text-brass-200">No bystanders — playable, but brutal.</p>
+          <p className="type-label text-lamp-300">No bystanders — playable, but brutal.</p>
         )}
       </div>
 
       <Rule />
 
       <Row label="Clue timer">
-        <div className="flex flex-wrap gap-1.5">
-          {CLUE_TIMERS.map((v, i) => (
-            <Chip key={i} active={settings.clueTimer === v} onClick={() => patch({clueTimer: v})}>
-              {v === null ? 'off' : `${v}s`}
-            </Chip>
-          ))}
-        </div>
+        <Picker
+          value={String(settings.clueTimer)}
+          options={CLUE_TIMERS.map(v => ({value: String(v), label: v === null ? 'off' : `${v}s`}))}
+          onPick={v => patch({clueTimer: v === 'null' ? null : Number(v)})}
+        />
       </Row>
 
       <Row label="Guessing timer">
-        <div className="flex flex-wrap gap-1.5">
-          {GUESS_TIMERS.map((v, i) => (
-            <Chip key={i} active={settings.guessTimer === v} onClick={() => patch({guessTimer: v})}>
-              {v === null ? 'off' : `${v}s`}
-            </Chip>
-          ))}
-        </div>
+        <Picker
+          value={String(settings.guessTimer)}
+          options={GUESS_TIMERS.map(v => ({value: String(v), label: v === null ? 'off' : `${v}s`}))}
+          onPick={v => patch({guessTimer: v === 'null' ? null : Number(v)})}
+        />
       </Row>
 
       <Rule />
 
-      <Row label={`Word list — ${wordCount} words`}>
+      <Row label={`Words — ${wordCount}`}>
         <div className="flex flex-wrap gap-1.5">
           {PACKS.map(pack => (
             <Chip

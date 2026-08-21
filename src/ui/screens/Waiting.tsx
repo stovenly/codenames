@@ -1,4 +1,5 @@
 import {AnimatePresence, motion} from 'motion/react'
+import {Check, Link2} from 'lucide-react'
 import {useEffect, useState} from 'react'
 import {shareLink} from '../../net/identity'
 import {roomId, useNet} from '../../state/net'
@@ -7,17 +8,18 @@ import * as words from '../../state/words'
 import {validate} from '../../game/settings'
 import type {Player, Team} from '../../game/types'
 import {AvatarPicker} from '../avatar/Picker'
-import {Button, Heading, Item, Label, Panel, Rule, Stack} from '../atoms'
+import {Bulbs, Button, Enter, Heading, Item, Label, Panel, Rule} from '../atoms'
+import {cx} from '../cx'
 import {SettingsPanel} from '../host/SettingsPanel'
 import {useMotion} from '../motion'
 import {PlayerCard} from '../room/PlayerCard'
 
 const HOST_NOTICE_KEY = 'cn.hostNoticeSeen'
 
-const COLUMNS: Array<{team: Team | null; label: string; rail: string; text: string}> = [
-  {team: 'red', label: 'Red', rail: 'bg-red-500', text: 'text-red-glow'},
-  {team: null, label: 'Unassigned', rail: 'bg-ink-600', text: 'text-text-dim'},
-  {team: 'blue', label: 'Blue', rail: 'bg-blue-500', text: 'text-blue-glow'}
+const COLUMNS: Array<{team: Team | null; label: string; tint: string; glow: string}> = [
+  {team: 'red', label: 'Red', tint: 'text-red-lit', glow: 'rgba(240,68,56,.18)'},
+  {team: null, label: 'Bench', tint: 'text-text-dim', glow: 'transparent'},
+  {team: 'blue', label: 'Blue', tint: 'text-blue-lit', glow: 'rgba(46,134,255,.18)'}
 ]
 
 const HostNotice = () => {
@@ -30,8 +32,8 @@ const HostNotice = () => {
   })
   if (seen) return null
   return (
-    <div className="flex items-start gap-4 border-l-2 border-brass-400/60 py-1 pl-4">
-      <p className="type-body flex-1 text-brass-200/85">
+    <div className="flex items-center gap-4 border-l-2 border-lamp-500/60 py-1 pl-4">
+      <p className="type-body flex-1 text-lamp-300/85">
         You&apos;re running the room — keep this tab in front while you play.
       </p>
       <Button
@@ -46,7 +48,7 @@ const HostNotice = () => {
           setSeen(true)
         }}
       >
-        Dismiss
+        Got it
       </Button>
     </div>
   )
@@ -81,47 +83,36 @@ export const Waiting = () => {
 
   const blockers = [
     ...problems.map(p => p.message),
-    ...emptyTeams.map(t => `${t === 'red' ? 'Red' : 'Blue'} team has no players`),
-    ...missingSpymaster.map(t => `${t === 'red' ? 'Red' : 'Blue'} team has no spymaster`)
+    ...emptyTeams.map(t => `${t === 'red' ? 'Red' : 'Blue'} has nobody on it`),
+    ...missingSpymaster.map(t => `${t === 'red' ? 'Red' : 'Blue'} needs a spymaster`)
   ]
 
   const readyCount = shared.players.filter(p => p.ready).length
   const outstanding = shared.players.filter(p => !p.ready).map(p => p.name)
   const rttFor = (id: string) => report.peers.find(p => p.playerId === id)?.rttMs ?? null
 
-  const drop = (team: Team | null) => {
-    if (!dragging || !isHost) return
-    intend({kind: 'setTeam', target: dragging, team})
-    setDragging(null)
-  }
-
   return (
-    <main className="mx-auto w-full max-w-6xl px-5 py-10 sm:px-8">
-      <Stack className="flex flex-col gap-8">
-        <Item className="flex flex-wrap items-end justify-between gap-5">
-          <div className="flex flex-col gap-2">
-            <Label className="text-brass-400/70">
-              {isHost ? 'You are hosting' : 'Waiting room'} · {shared.players.length} in the room
+    <main className="mx-auto w-full max-w-6xl px-5 py-9 sm:px-8">
+      <Enter className="flex flex-col gap-7">
+        <Item className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-lamp-500/80">
+              {isHost ? 'You are running the room' : 'Waiting room'}
             </Label>
-            <h1 className="type-title text-4xl text-brass-200 sm:text-5xl">
-              Code<span className="text-text">names</span>
-            </h1>
+            <h1 className="type-marquee text-2xl text-lamp-300 sm:text-3xl">Codenames</h1>
           </div>
 
-          <div className="flex items-center gap-2">
-            <code className="type-mono hidden max-w-72 truncate rounded-md border border-ink-600 bg-ink-900/70 px-3 py-2 text-[11px] text-text-dim sm:block">
-              {shareLink(roomId)}
-            </code>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                void navigator.clipboard.writeText(shareLink(roomId))
-                setCopied(true)
-              }}
-            >
-              {copied ? 'Copied' : 'Copy invite'}
-            </Button>
-          </div>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              void navigator.clipboard.writeText(shareLink(roomId))
+              setCopied(true)
+            }}
+            className="flex items-center gap-2"
+          >
+            {copied ? <Check className="size-3.5" /> : <Link2 className="size-3.5" />}
+            {copied ? 'Copied' : 'Invite link'}
+          </Button>
         </Item>
 
         {isHost && (
@@ -130,24 +121,34 @@ export const Waiting = () => {
           </Item>
         )}
 
-        <Item className="grid gap-8 lg:grid-cols-[1fr_19rem]">
-          <div className="flex flex-col gap-8">
+        <Item className="grid gap-7 lg:grid-cols-[1fr_19rem]">
+          <div className="flex flex-col gap-7">
             <section className="grid gap-4 sm:grid-cols-3">
               {COLUMNS.map(col => (
                 <div
                   key={col.label}
                   onDragOver={e => isHost && e.preventDefault()}
-                  onDrop={() => drop(col.team)}
-                  className={`flex min-h-36 flex-col gap-2.5 rounded-md pl-3 transition-colors ${
-                    dragging && isHost ? 'bg-brass-400/[0.04]' : ''
-                  }`}
-                  style={{borderLeft: '2px solid transparent'}}
+                  onDrop={() => {
+                    if (!dragging || !isHost) return
+                    intend({kind: 'setTeam', target: dragging, team: col.team})
+                    setDragging(null)
+                  }}
+                  className="relative flex min-h-40 flex-col gap-2.5 rounded-md px-2 pt-2 pb-4"
+                  style={{
+                    background:
+                      dragging && isHost
+                        ? 'rgba(255,197,61,.05)'
+                        : `radial-gradient(90% 60% at 50% 100%, ${col.glow}, transparent 70%)`
+                  }}
                 >
-                  <div className="-ml-3 flex items-center gap-2.5">
-                    <span className={`h-4 w-0.5 rounded-full ${col.rail}`} />
-                    <span className={`type-heading ${col.text}`}>{col.label}</span>
-                    <span className="type-label ml-auto pr-1">{on(col.team).length}</span>
+                  <div className="flex items-center justify-between">
+                    <span className={cx('type-marquee text-[11px] tracking-[0.18em]', col.tint)}>
+                      {col.label}
+                    </span>
+                    <Label>{on(col.team).length}</Label>
                   </div>
+                  <Bulbs lit={col.team !== null && on(col.team).length > 0} className="-mt-1 mb-1" />
+
                   <AnimatePresence initial={false}>
                     {on(col.team).map((p: Player) => (
                       <PlayerCard
@@ -197,10 +198,10 @@ export const Waiting = () => {
 
           <SettingsPanel settings={shared.settings} editable={isHost} wordCount={list.length} />
         </Item>
-      </Stack>
+      </Enter>
 
-      <div className="sticky bottom-4 z-30 mt-10">
-        <Panel level={2} className="flex flex-wrap items-center gap-4 px-4 py-3 backdrop-blur">
+      <div className="sticky bottom-4 z-30 mt-9">
+        <Panel level={2} glossy className="flex flex-wrap items-center gap-4 px-4 py-3 backdrop-blur">
           <div className="flex min-w-40 flex-1 flex-col gap-0.5">
             <span className="type-read text-sm text-text">
               {readyCount} <span className="text-text-dim">/ {shared.players.length} ready</span>
@@ -211,7 +212,7 @@ export const Waiting = () => {
                 initial={reduced ? {opacity: 0} : {opacity: 0, y: 4}}
                 animate={{opacity: 1, y: 0}}
                 exit={{opacity: 0}}
-                className={`type-label ${blockers.length ? 'text-red-glow' : ''}`}
+                className={cx('type-label', blockers.length && 'text-kill-lit')}
               >
                 {blockers[0] ??
                   (outstanding.length && outstanding.length <= 3
@@ -229,8 +230,8 @@ export const Waiting = () => {
               {mine?.ready ? 'Ready' : 'Ready up'}
             </Button>
             {isHost && (
-              <Button onClick={() => intend({kind: 'startGame'})} disabled={blockers.length > 0}>
-                Start game
+              <Button size="lg" onClick={() => intend({kind: 'startGame'})} disabled={blockers.length > 0}>
+                Start
               </Button>
             )}
           </div>

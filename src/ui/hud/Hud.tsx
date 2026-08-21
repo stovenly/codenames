@@ -1,48 +1,43 @@
 import {AnimatePresence, motion} from 'motion/react'
+import NumberFlow from '@number-flow/react'
+import {Minus, Plus} from 'lucide-react'
 import {useState} from 'react'
 import type {View} from '../../game/reducer'
 import type {Player, Team} from '../../game/types'
 import {myMark} from '../../state/presence'
 import {intend} from '../../state/room'
-import {Button, Glyph, Label, Panel, input} from '../atoms'
+import {Bulbs, Button, Glyph, Label, Panel, input} from '../atoms'
+import {cx} from '../cx'
 import {spring, useMotion} from '../motion'
 import {TimerArc} from './TimerArc'
 
-const Score = ({team, left, total, active}: {team: Team; left: number; total: number; active: boolean}) => {
-  const {reduced} = useMotion()
-  return (
-    <motion.div
-      animate={{opacity: active ? 1 : 0.4}}
-      transition={spring.firm}
-      className="flex shrink-0 items-center gap-2"
+/** The scoreboard is an odometer, so a card landing reads as a count, not a swap. */
+const Score = ({team, left, active}: {team: Team; left: number; active: boolean}) => (
+  <motion.div
+    animate={{opacity: active ? 1 : 0.42}}
+    transition={spring.firm}
+    className="flex shrink-0 flex-col items-center gap-1"
+  >
+    <span
+      className={cx(
+        'flex items-center gap-1.5 rounded-sm px-2 py-0.5',
+        team === 'red' ? 'pattern-red text-red-lit' : 'pattern-blue text-blue-lit'
+      )}
     >
-      <span
-        className={`grid size-7 place-items-center rounded-sm ${
-          team === 'red' ? 'pattern-red text-red-glow' : 'pattern-blue text-blue-glow'
-        }`}
-      >
-        <Glyph team={team} />
-      </span>
-      <span className="flex items-baseline gap-1">
-        <AnimatePresence mode="popLayout" initial={false}>
-          <motion.span
-            key={left}
-            initial={reduced ? {opacity: 0} : {y: 14, opacity: 0}}
-            animate={{y: 0, opacity: 1}}
-            exit={reduced ? {opacity: 0} : {y: -14, opacity: 0}}
-            transition={spring.firm}
-            className={`type-display text-2xl leading-none ${
-              team === 'red' ? 'text-red-glow' : 'text-blue-glow'
-            }`}
-          >
-            {left}
-          </motion.span>
-        </AnimatePresence>
-        <Label>/{total}</Label>
-      </span>
-    </motion.div>
-  )
-}
+      <Glyph team={team} className="size-2.5" />
+      <span className="type-label">{team}</span>
+    </span>
+    <NumberFlow
+      value={left}
+      className={cx('type-marquee text-3xl leading-none', team === 'red' ? 'text-red-lit' : 'text-blue-lit')}
+      style={{
+        textShadow:
+          team === 'red' ? '0 0 18px rgba(255,122,92,.5)' : '0 0 18px rgba(111,182,255,.5)'
+      }}
+    />
+    <Bulbs lit={active} chase={active} className="w-14" />
+  </motion.div>
+)
 
 const ClueComposer = ({size}: {size: number}) => {
   const [word, setWord] = useState('')
@@ -71,17 +66,20 @@ const ClueComposer = ({size}: {size: number}) => {
         onKeyDown={e => e.key === 'Enter' && submit()}
         placeholder="Your clue"
         maxLength={40}
-        className={`${input} type-read min-w-32 flex-1 border-brass-400/30 text-base tracking-[0.12em] uppercase placeholder:text-xs placeholder:tracking-normal placeholder:normal-case`}
+        className={cx(
+          input,
+          'min-w-32 flex-1 border-lamp-500/40 text-base tracking-[0.14em] uppercase placeholder:text-xs placeholder:tracking-normal placeholder:normal-case'
+        )}
       />
       <div className="flex items-center gap-1">
         <Button variant="ghost" size="sm" aria-label="Fewer" onClick={() => step(-1)}>
-          −
+          <Minus className="size-3.5" />
         </Button>
-        <span className="type-display w-9 text-center text-lg text-brass-200">
+        <span className="type-marquee w-9 text-center text-lg text-lamp-300">
           {count === 'unlimited' ? '∞' : count}
         </span>
         <Button variant="ghost" size="sm" aria-label="More" onClick={() => step(1)}>
-          +
+          <Plus className="size-3.5" />
         </Button>
       </div>
       <Button onClick={submit} disabled={!word.trim()}>
@@ -90,8 +88,6 @@ const ClueComposer = ({size}: {size: number}) => {
     </div>
   )
 }
-
-const Divider = () => <span aria-hidden className="hidden h-8 w-px bg-ink-600 sm:block" />
 
 export const Hud = ({
   view,
@@ -108,6 +104,7 @@ export const Hud = ({
   busy: boolean
   size: number
 }) => {
+  const {reduced} = useMotion()
   const armed = myMark()
   const myTurn = me?.team === view.turn
   const amSpymaster = !!me?.spymaster
@@ -116,20 +113,25 @@ export const Hud = ({
   const canAct = myTurn && !amSpymaster && view.phase === 'guess' && !busy
 
   return (
-    <Panel level={2} className="flex flex-wrap items-center gap-x-5 gap-y-3 px-4 py-3">
-      <Score team="red" left={view.remaining.red} total={view.totals.red} active={view.turn === 'red'} />
+    <Panel level={2} glossy className="flex flex-wrap items-center gap-x-5 gap-y-3 px-4 py-3">
+      <Score team="red" left={view.remaining.red} active={view.turn === 'red'} />
 
-      <Divider />
-
-      <div className="flex min-w-44 flex-1 flex-col justify-center">
+      <div className="flex min-w-44 flex-1 flex-col items-center justify-center gap-0.5 text-center">
         {view.clue ? (
           <>
-            <span className="type-read text-xl leading-tight text-text">
+            <motion.span
+              key={view.clue.word}
+              initial={reduced ? {opacity: 0} : {opacity: 0, y: 8}}
+              animate={{opacity: 1, y: 0}}
+              transition={spring.firm}
+              className="type-marquee text-xl leading-tight text-text sm:text-2xl"
+              style={{textShadow: '0 0 20px rgba(255,197,61,.28)'}}
+            >
               {view.clue.word}
-              <span className="ml-2 text-brass-200">
+              <span className="ml-3 text-lamp-300">
                 {view.clue.count === 'unlimited' || view.clue.count === 0 ? '∞' : view.clue.count}
               </span>
-            </span>
+            </motion.span>
             <Label>
               {view.unlimited
                 ? 'unlimited guesses'
@@ -140,7 +142,7 @@ export const Hud = ({
           <Label>
             <span aria-live="polite">
               {view.phase === 'clue'
-                ? `Waiting on the ${view.turn} spymaster`
+                ? `${view.turn} spymaster is thinking`
                 : view.phase === 'gameover'
                   ? 'Game over'
                   : ''}
@@ -163,8 +165,8 @@ export const Hud = ({
                 exit={{opacity: 0, scale: 0.92}}
                 transition={spring.firm}
               >
-                <Button onClick={() => intend({kind: 'guess', card: armed})}>
-                  Confirm {view.cards[armed]?.word}
+                <Button size="lg" onClick={() => intend({kind: 'guess', card: armed})}>
+                  Lock in {view.cards[armed]?.word}
                 </Button>
               </motion.div>
             )}
@@ -180,10 +182,7 @@ export const Hud = ({
         </div>
       )}
 
-      <Divider />
-
-      <Score team="blue" left={view.remaining.blue} total={view.totals.blue} active={view.turn === 'blue'} />
-
+      <Score team="blue" left={view.remaining.blue} active={view.turn === 'blue'} />
     </Panel>
   )
 }

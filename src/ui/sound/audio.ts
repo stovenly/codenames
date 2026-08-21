@@ -112,6 +112,19 @@ export const sfx = {
     tone({freq: 180, to: 840, type: 'sine', dur, gain: 0.035})
   },
 
+  /** The cabinet arriving: a servo whine under a heavy seat. */
+  cabinet: () => {
+    tone({freq: 60, to: 190, type: 'sawtooth', dur: 0.4, gain: 0.08, sweep: [180, 1400], q: 4})
+    tone({freq: 130, to: 74, type: 'sine', dur: 0.26, gain: 0.24, delay: 0.34})
+    noise(0.1, 0.12, 1800, 0.34)
+  },
+
+  /** One reel finding its stop. Each is a semitone up, so three landing reads as a phrase. */
+  detent: (index: number) => {
+    tone({freq: 320 * Math.pow(2, index / 12), type: 'square', dur: 0.06, gain: 0.09})
+    noise(0.07, 0.16, 2400)
+  },
+
   land: () => {
     noise(0.12, 0.2, 3200)
     tone({freq: 240, to: 120, type: 'sine', dur: 0.16, gain: 0.22})

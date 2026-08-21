@@ -1,11 +1,9 @@
+import {Volume2, VolumeX} from 'lucide-react'
 import {getPrefs, setPrefs, usePrefs} from '../state/prefs'
+import {IconButton} from './atoms'
 import {sfx} from './sound/audio'
-import {IconButton, SoundOff, SoundOn} from './icons'
 
-/**
- * Persistent corner controls. Mute belongs here rather than in the HUD: it is a
- * preference, not a game action, and it has to be reachable from every screen.
- */
+/** Mute is a preference, not a game action, so it lives in the corner on every screen. */
 export const MuteToggle = () => {
   const {muted} = usePrefs()
   return (
@@ -17,9 +15,9 @@ export const MuteToggle = () => {
         setPrefs({muted: next})
         if (!next) sfx.arm()
       }}
-      className="surface-1 backdrop-blur"
+      className="backdrop-blur"
     >
-      {muted ? <SoundOff /> : <SoundOn />}
+      {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
     </IconButton>
   )
 }

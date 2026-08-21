@@ -107,7 +107,7 @@ Researched against the registry rather than recalled. Every one earns a line.
 | `@radix-ui/react-toggle-group` | 1.1.19 | Roving tabindex for the timer and pack pickers, which are currently a row of buttons with no group semantics |
 | `class-variance-authority` | 0.7.1 | Variants declared once instead of template-literal class soup |
 | `tailwind-merge` + `clsx` | 3.6.0 / 2.1.1 | Makes a `className` override actually override rather than losing to specificity order |
-| `vaul` | 1.1.2 | The host drawer as a real bottom sheet on touch, with drag-to-dismiss |
+| ~~`vaul`~~ | — | Dropped during the build. `@radix-ui/react-dialog` already gives the host panel focus management, and a bottom sheet is two CSS rules from there — not worth a second overlay library |
 
 **Considered and rejected:**
 
@@ -178,10 +178,23 @@ filling up looks like a room that is filling up.
 stage with the word typing in and the number landing beside it, held under a
 spotlight, then docking to the HUD. The existing sequence, on a set.
 
-**The draw.** The wind-up from [07](07-board-and-play.md#reveal-choreography) is
-kept exactly — it is the best thing in the app — and re-lit: the reel scrub
-becomes the plate's lamp cycling through team colours, the stage goes to
-blackout around it, and the marquee bulbs chase faster as the reel slows.
+**The draw.** The wind-up from [07](07-board-and-play.md#reveal-choreography)
+becomes a physical reel cabinet, and the cabinet is a **prop on the set** rather
+than a second visual language: same lacquer, same gold bevel, same marquee
+lamps. It rises out of the stage floor under a spotlight on a servo whine, the
+stage blacks out behind it, and three reels spin.
+
+All three reels land on the same symbol, because there is only ever one outcome
+— the reels are not deciding anything. That is exactly what makes it work:
+seeing the first reel stop on a skull, then the second, then the third, is a far
+worse way to find the assassin than watching a card change colour. Reels settle
+left to right at 900 / 1350 / 1800ms after a 400ms rise, each with a detent
+click a semitone up from the last, so three landing reads as a phrase. The
+payline then flashes in the outcome colour and the cabinet drops away as the
+plate on the wall flips to match.
+
+Under `prefers-reduced-motion` the cabinet never appears at all and the plate
+simply changes colour.
 
 **Blackout.** The assassin kills the stage lights. Everything to `--stage-000`
 for 180ms of true black, then the emergency wash comes up in `--kill-lit` with
@@ -224,8 +237,8 @@ First paint must stay under **200 KB gzipped**, which it currently clears at
 hand-rolled effects that come out. `vaul` is loaded with the host drawer, which
 is already split. Fonts are separate requests and latin-only.
 
-If the estimate is wrong, the fix is to split the stage effects rather than to
-drop a primitive that carries accessibility.
+Measured after the build: **151 KB gzipped** for first paint, against ~127 KB
+before. The three new faces are separate requests and latin-only.
 
 ## Done when
 

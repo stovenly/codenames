@@ -74,7 +74,7 @@ let banner: string | null = null
 let bannerTimer: ReturnType<typeof setTimeout> | null = null
 let split = false
 let myName = loadSession()?.name ?? ''
-let myAvatar: Avatar = {style: 'shapes', seed: self, bg: 'ink-700'}
+let myAvatar: Avatar = {style: 'shapes', seed: self, bg: '1B2740'}
 let passwordHash: string | null = null
 let lastHostAt = 0
 let clockOffset = 0
@@ -137,7 +137,7 @@ const emptyPlayer = (id: PlayerId, name: string): Player => ({
   team: null,
   spymaster: false,
   ready: false,
-  avatar: {style: 'shapes', seed: id, bg: 'ink-700'},
+  avatar: {style: 'shapes', seed: id, bg: '1B2740'},
   connected: true
 })
 

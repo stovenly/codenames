@@ -36,13 +36,13 @@ export const TimerArc = ({deadline, total}: {deadline: number; total: number}) =
       className="relative grid size-14 shrink-0 place-items-center"
     >
       <svg viewBox="0 0 52 52" className="absolute inset-0 -rotate-90">
-        <circle cx="26" cy="26" r={R} fill="none" stroke="var(--color-ink-600)" strokeWidth="3" />
+        <circle cx="26" cy="26" r={R} fill="none" stroke="var(--color-stage-600)" strokeWidth="3" />
         <circle
           cx="26"
           cy="26"
           r={R}
           fill="none"
-          stroke={urgent ? 'var(--color-red-glow)' : 'var(--color-brass-400)'}
+          stroke={urgent ? 'var(--color-red-lit)' : 'var(--color-lamp-500)'}
           strokeWidth="3"
           strokeLinecap="round"
           strokeDasharray={C}
@@ -51,7 +51,7 @@ export const TimerArc = ({deadline, total}: {deadline: number; total: number}) =
         />
       </svg>
       <span
-        className={`type-mono text-[11px] tabular-nums ${urgent ? 'text-red-glow' : 'text-text-dim'}`}
+        className={`type-mono text-[11px] tabular-nums ${urgent ? 'text-red-lit' : 'text-text-dim'}`}
       >
         {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')}
       </span>

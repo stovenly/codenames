@@ -5,15 +5,16 @@ import {startPresence} from '../../state/presence'
 import {useRoom} from '../../state/room'
 import {syncTheatre, useTheatre} from '../../state/theatre'
 import * as words from '../../state/words'
+import {Label} from '../atoms'
 import {Board} from '../board/Board'
+import {Cabinet} from '../board/Cabinet'
 import {ClueReveal, TurnBand} from '../hud/ClueReveal'
 import {Hud} from '../hud/Hud'
 import {AssassinTakeover, BoardBreath, SpymasterChrome} from '../hud/Overlays'
-
 import {unlockAudio} from '../sound/audio'
 import {GameOver} from './GameOver'
 
-/** Neither is needed on first paint, and the panel is host-only. */
+/** Host-only and not needed on first paint. */
 const HostPanel = lazy(() => import('../host/HostPanel').then(m => ({default: m.HostPanel})))
 
 export const Game = () => {
@@ -35,15 +36,17 @@ export const Game = () => {
   const isHost = role === 'host'
   const busy = stage.kind !== 'idle' && stage.kind !== 'finish'
 
+  const panel = isHost ? (
+    <Suspense fallback={null}>
+      <HostPanel />
+    </Suspense>
+  ) : null
+
   if (stage.kind === 'finish' || (view.phase === 'gameover' && stage.kind === 'idle')) {
     return (
       <>
         <GameOver view={view} me={player} isHost={isHost} />
-        {isHost && (
-          <Suspense fallback={null}>
-            <HostPanel />
-          </Suspense>
-        )}
+        {panel}
       </>
     )
   }
@@ -51,7 +54,7 @@ export const Game = () => {
   if (!list.length) {
     return (
       <main className="grid min-h-full place-items-center">
-        <p className="type-mono animate-pulse text-sm text-text-dim">Fetching the word list…</p>
+        <Label className="animate-pulse">Fetching the words…</Label>
       </main>
     )
   }
@@ -64,7 +67,7 @@ export const Game = () => {
       {player?.spymaster && <SpymasterChrome />}
 
       <main className="mx-auto flex min-h-full max-w-5xl flex-col items-center gap-4 px-3 py-8 sm:px-6">
-        <div className="w-full" style={{maxWidth: 'min(92vw, 78vh)'}}>
+        <div className="w-full" style={{maxWidth: 'min(94vw, 74vh)'}}>
           <Board
             view={view}
             stage={stage}
@@ -88,19 +91,24 @@ export const Game = () => {
       </main>
 
       <AnimatePresence>
+        {stage.kind === 'windup' && (
+          <Cabinet
+            key={`cabinet-${stage.card}`}
+            word={view.cards[stage.card]?.word ?? ''}
+            colour={stage.colour}
+          />
+        )}
         {stage.kind === 'clue' && <ClueReveal key="clue" clue={stage.clue} />}
         {stage.kind === 'turn' && <TurnBand key={`turn-${stage.team}`} team={stage.team} />}
-        {stage.kind === 'aftermath' && stage.colour === 'assassin' && <AssassinTakeover key="assassin" />}
+        {stage.kind === 'aftermath' && stage.colour === 'assassin' && (
+          <AssassinTakeover key="assassin" />
+        )}
         {stage.kind === 'aftermath' && stage.correct && (
           <BoardBreath key={`breath-${stage.card}`} team={stage.team} />
         )}
       </AnimatePresence>
 
-      {isHost && (
-        <Suspense fallback={null}>
-          <HostPanel />
-        </Suspense>
-      )}
+      {panel}
     </>
   )
 }

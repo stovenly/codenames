@@ -1,103 +1,125 @@
+import {cva, type VariantProps} from 'class-variance-authority'
 import {motion} from 'motion/react'
+import * as Tooltip from '@radix-ui/react-tooltip'
 import type {ComponentProps, ReactNode} from 'react'
+import {cx} from './cx'
 import {spring, useMotion} from './motion'
 
-/** Trim marks, the way a printed form is cut. Dim enough to read as texture. */
-const Marks = () => (
-  <span aria-hidden className="pointer-events-none absolute inset-0 text-ink-600">
-    {(
-      [
-        'top-1.5 left-1.5 border-t border-l',
-        'top-1.5 right-1.5 border-t border-r',
-        'bottom-1.5 left-1.5 border-b border-l',
-        'bottom-1.5 right-1.5 border-b border-r'
-      ] as const
-    ).map(pos => (
-      <span key={pos} className={`absolute size-2 border-current opacity-70 ${pos}`} />
-    ))}
-  </span>
+/* ------------------------------------------------------------------ stage */
+
+export const Stage = () => (
+  <>
+    <div aria-hidden className="stage" />
+    <div aria-hidden className="haze" />
+  </>
 )
+
+export const Bulbs = ({
+  lit = false,
+  chase = false,
+  className = ''
+}: {
+  lit?: boolean
+  chase?: boolean
+  className?: string
+}) => {
+  const {reduced} = useMotion()
+  return (
+    <span
+      aria-hidden
+      className={cx('bulbs block w-full', lit && 'bulbs-lit', chase && !reduced && 'bulbs-chase', className)}
+    />
+  )
+}
+
+/* --------------------------------------------------------------- surfaces */
+
+const panel = cva('plate relative rounded-lg', {
+  variants: {
+    level: {1: 'shadow-2', 2: 'shadow-3'},
+    glossy: {true: 'gloss', false: ''}
+  },
+  defaultVariants: {level: 1, glossy: false}
+})
 
 export const Panel = ({
   children,
-  className = '',
-  level = 1,
-  marks = false,
-  tab,
+  className,
+  level,
+  glossy,
   ...rest
-}: {
-  children: ReactNode
-  className?: string
-  /** 1 panel, 2 raised. Elevation, not decoration. */
-  level?: 1 | 2
-  marks?: boolean
-  tab?: string
-} & Omit<ComponentProps<'div'>, 'ref'>) => (
-  <div
-    className={`paper relative rounded-lg ${
-      level === 1 ? 'surface-1 shadow-2' : 'surface-2 shadow-3'
-    } ${tab ? 'rounded-tl-none' : ''} ${className}`}
-    {...rest}
-  >
-    {tab && (
-      <span className="type-label surface-1 absolute -top-[22px] left-0 rounded-t-md px-3 py-1 text-brass-200/80 shadow-2">
-        {tab}
-      </span>
-    )}
-    {marks && <Marks />}
+}: {children: ReactNode; className?: string} & VariantProps<typeof panel> &
+  Omit<ComponentProps<'div'>, 'ref'>) => (
+  <div className={cx(panel({level, glossy}), className)} {...rest}>
     {children}
   </div>
 )
 
-export const Rule = ({className = '', brass = false}: {className?: string; brass?: boolean}) => (
-  <span aria-hidden className={`${brass ? 'rule-brass' : 'rule'} block ${className}`} />
+export const Rule = ({className = '', lit = false}: {className?: string; lit?: boolean}) => (
+  <span
+    aria-hidden
+    className={cx(
+      'block h-px w-full',
+      lit
+        ? 'bg-gradient-to-r from-transparent via-gold-500/60 to-transparent'
+        : 'bg-gradient-to-r from-transparent via-stage-600/80 to-transparent',
+      className
+    )}
+  />
 )
 
-export const Label = ({children, className = ''}: {children: ReactNode; className?: string}) => (
-  <span className={`type-label ${className}`}>{children}</span>
+export const Label = ({children, className}: {children: ReactNode; className?: string}) => (
+  <span className={cx('type-label', className)}>{children}</span>
 )
 
-export const Heading = ({children, className = ''}: {children: ReactNode; className?: string}) => (
-  <h2 className={`type-heading ${className}`}>{children}</h2>
+export const Heading = ({children, className}: {children: ReactNode; className?: string}) => (
+  <h2 className={cx('type-marquee text-[11px] tracking-[0.14em] text-gold-200', className)}>
+    {children}
+  </h2>
 )
 
-type ButtonProps = {
-  children: ReactNode
-  variant?: 'primary' | 'ghost' | 'danger' | 'quiet'
-  size?: 'sm' | 'md'
-  className?: string
-} & ComponentProps<typeof motion.button>
+/* ---------------------------------------------------------------- buttons */
 
-const VARIANTS = {
-  primary:
-    'border-brass-200/30 bg-brass-400 text-ink-900 hover:bg-brass-200 disabled:border-ink-600 disabled:bg-ink-700 disabled:text-text-dim',
-  ghost:
-    'surface-2 border-ink-600 text-text hover:border-brass-400/45 hover:text-brass-200 disabled:text-text-dim/50',
-  danger:
-    'border-red-glow/35 bg-void-rim/90 text-bone hover:bg-void-rim disabled:border-ink-600 disabled:bg-ink-700 disabled:text-text-dim',
-  quiet:
-    'border-transparent text-text-dim hover:text-brass-200 disabled:text-text-dim/40'
-}
+const button = cva(
+  'type-marquee relative cursor-pointer rounded-md border transition-colors duration-[120ms] disabled:cursor-not-allowed',
+  {
+    variants: {
+      variant: {
+        primary:
+          'border-lamp-300/40 bg-gradient-to-b from-lamp-300 to-lamp-500 text-stage-000 shadow-[0_8px_20px_-10px_rgba(255,197,61,.75)] hover:from-lamp-300 hover:to-lamp-300 disabled:border-stage-600 disabled:from-stage-700 disabled:to-stage-800 disabled:text-text-dim disabled:shadow-none',
+        ghost:
+          'border-stage-600 bg-stage-800/80 text-text hover:border-gold-500/60 hover:text-gold-200 disabled:text-text-dim/50',
+        danger:
+          'border-kill-lit/45 bg-gradient-to-b from-[#9C1B15] to-[#5E0F0B] text-bone hover:from-[#B92018] disabled:border-stage-600 disabled:from-stage-700 disabled:to-stage-800 disabled:text-text-dim',
+        quiet: 'border-transparent text-text-dim hover:text-gold-200 disabled:text-text-dim/40'
+      },
+      size: {
+        sm: 'px-3 py-1.5 text-[10px]',
+        md: 'px-5 py-2.5 text-[11px]',
+        lg: 'px-7 py-3.5 text-sm'
+      }
+    },
+    defaultVariants: {variant: 'primary', size: 'md'}
+  }
+)
 
-const SIZES = {sm: 'px-3 py-1.5 text-[11px]', md: 'px-5 py-2.5 text-xs'}
-
-/** Pressing feels like a lever, not a link: it sinks and the shadow collapses. */
 export const Button = ({
   children,
-  variant = 'primary',
-  size = 'md',
-  className = '',
+  className,
+  variant,
+  size,
   ...rest
-}: ButtonProps) => {
+}: {children: ReactNode; className?: string} & VariantProps<typeof button> &
+  ComponentProps<typeof motion.button>) => {
   const {reduced} = useMotion()
   const still = reduced || rest.disabled
   return (
     <motion.button
       type="button"
       whileHover={still ? undefined : {y: -2}}
-      whileTap={still ? undefined : {y: 1, scale: 0.985}}
+      whileTap={still ? undefined : {y: 1, scale: 0.98}}
       transition={spring.firm}
-      className={`type-display cursor-pointer rounded-md border shadow-2 transition-colors duration-[120ms] disabled:cursor-not-allowed disabled:shadow-none ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
+      className={cx(button({variant, size}), className)}
       {...rest}
     >
       {children}
@@ -105,42 +127,34 @@ export const Button = ({
   )
 }
 
-/** Live status only. Anything that is not changing is a label, not a pill. */
-export const Pill = ({
-  children,
-  tone = 'neutral'
-}: {
-  children: ReactNode
-  tone?: 'neutral' | 'brass' | 'red' | 'blue' | 'warn'
-}) => {
-  const tones = {
-    neutral: 'border-ink-600 text-text-dim',
-    brass: 'border-brass-400/45 text-brass-200',
-    red: 'border-red-500/45 text-red-glow',
-    blue: 'border-blue-500/45 text-blue-glow',
-    warn: 'border-brass-400/60 bg-brass-400/10 text-brass-200'
+const chip = cva(
+  'type-read cursor-pointer rounded-sm border px-2.5 py-1.5 text-[11px] transition-colors duration-[120ms]',
+  {
+    variants: {
+      active: {
+        true: 'border-lamp-500/70 bg-lamp-500/12 text-lamp-300',
+        false: 'border-stage-600 text-text-dim hover:border-gold-500/50 hover:text-text'
+      },
+      off: {true: 'cursor-not-allowed opacity-35 hover:border-stage-600', false: ''}
+    },
+    defaultVariants: {active: false, off: false}
   }
-  return (
-    <span
-      className={`type-label inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 ${tones[tone]}`}
-    >
-      {children}
-    </span>
-  )
-}
+)
 
 export const Chip = ({
   active,
   disabled,
   title,
   onClick,
-  children
+  children,
+  className
 }: {
   active?: boolean
   disabled?: boolean
   title?: string
   onClick: () => void
   children: ReactNode
+  className?: string
 }) => (
   <button
     type="button"
@@ -148,15 +162,61 @@ export const Chip = ({
     title={title}
     aria-pressed={active}
     onClick={onClick}
-    className={`type-mono rounded-sm border px-2.5 py-1.5 text-[11px] transition-colors duration-[120ms] ${
-      active
-        ? 'border-brass-400/70 bg-brass-400/12 text-brass-200'
-        : 'border-ink-600 text-text-dim hover:border-brass-400/40 hover:text-text'
-    } ${disabled ? 'cursor-not-allowed opacity-35 hover:border-ink-600' : 'cursor-pointer'}`}
+    className={cx(chip({active: !!active, off: !!disabled}), className)}
   >
     {children}
   </button>
 )
+
+/** Icon-only controls need a name on hover and on focus, not just a title attribute. */
+export const IconButton = ({
+  label,
+  children,
+  active = false,
+  className,
+  ...rest
+}: {
+  label: string
+  children: ReactNode
+  active?: boolean
+  className?: string
+} & ComponentProps<typeof motion.button>) => {
+  const {reduced} = useMotion()
+  return (
+    <Tooltip.Root>
+      <Tooltip.Trigger asChild>
+        <motion.button
+          type="button"
+          aria-label={label}
+          whileHover={reduced || rest.disabled ? undefined : {y: -1}}
+          whileTap={reduced || rest.disabled ? undefined : {scale: 0.92}}
+          transition={spring.firm}
+          className={cx(
+            'grid size-9 shrink-0 cursor-pointer place-items-center rounded-md border transition-colors duration-[120ms] disabled:cursor-not-allowed disabled:opacity-40',
+            active
+              ? 'border-lamp-500/70 bg-lamp-500/12 text-lamp-300'
+              : 'border-stage-600 bg-stage-800/80 text-text-dim hover:border-gold-500/60 hover:text-gold-200',
+            className
+          )}
+          {...rest}
+        >
+          {children}
+        </motion.button>
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Content
+          side="top"
+          sideOffset={8}
+          className="type-label z-50 rounded-sm border border-stage-600 bg-stage-900 px-2 py-1 text-text shadow-3"
+        >
+          {label}
+        </Tooltip.Content>
+      </Tooltip.Portal>
+    </Tooltip.Root>
+  )
+}
+
+/* ------------------------------------------------------------------ forms */
 
 export const Field = ({
   label,
@@ -175,22 +235,26 @@ export const Field = ({
 )
 
 export const input =
-  'w-full rounded-md border border-ink-600 bg-ink-900/80 px-3 py-2.5 text-sm text-text transition-colors placeholder:text-text-dim/45 hover:border-ink-600 focus:border-brass-400/50'
+  'type-read w-full rounded-md border border-stage-600 bg-stage-000/70 px-3 py-2.5 text-sm text-text transition-colors placeholder:text-text-dim/45 focus:border-lamp-500/60'
 
-export const Glyph = ({team, className = ''}: {team: 'red' | 'blue'; className?: string}) =>
+/* ----------------------------------------------------------------- glyphs */
+
+export const Glyph = ({team, className}: {team: 'red' | 'blue'; className?: string}) =>
   team === 'red' ? (
-    <svg viewBox="0 0 12 12" aria-hidden className={`size-3 ${className}`}>
+    <svg viewBox="0 0 12 12" aria-hidden className={cx('size-3', className)}>
       <path d="M6 0.5 11.5 6 6 11.5 0.5 6Z" fill="currentColor" />
     </svg>
   ) : (
-    <svg viewBox="0 0 12 12" aria-hidden className={`size-3 ${className}`}>
+    <svg viewBox="0 0 12 12" aria-hidden className={cx('size-3', className)}>
       <circle cx="6" cy="6" r="5.2" fill="currentColor" />
     </svg>
   )
 
-export const Stack = ({
+/* ------------------------------------------------------------- entrances */
+
+export const Enter = ({
   children,
-  className = ''
+  className
 }: {
   children: ReactNode
   className?: string
@@ -205,7 +269,7 @@ export const Stack = ({
 
 export const Item = ({
   children,
-  className = '',
+  className,
   variant = 'enter'
 }: {
   children: ReactNode
