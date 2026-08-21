@@ -133,6 +133,10 @@ replica wholesale.
 
 ## Design system
 
+**Superseded by [11](11-showtime.md).** The concept below shipped through step
+10 and was wrong for the product: a quiet, document-shaped idea for a loud party
+game. The tokens here are kept only as the record of what 11 replaces.
+
 **Concept: The Briefing Room.** A 1960s spy-thriller dossier lit by a modern
 gameshow rig. Dark, warm, physical — brass and ink rather than neon — with the
 gameshow energy coming from lighting and timing rather than bright colour.

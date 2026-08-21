@@ -32,8 +32,8 @@ export const Landing = ({needsPassword: rejected}: {needsPassword: boolean}) => 
           </div>
           <p className="type-body max-w-sm">
             {joinedExisting
-              ? 'Someone has sent you a room. Take a seat, pick a side, and wait for the briefing.'
-              : 'Peer to peer, no server, no accounts. Create a room and send the link to whoever should be in it.'}
+              ? 'Take a seat, pick a side, and wait for the briefing.'
+              : 'Two teams. One assassin. Say the wrong word and it is over.'}
           </p>
         </Item>
 
@@ -76,12 +76,6 @@ export const Landing = ({needsPassword: rejected}: {needsPassword: boolean}) => 
           </Panel>
         </Item>
 
-        <Item>
-          <p className="type-label max-w-md leading-loose">
-            Nothing is stored. The game lives in the browsers playing it and is gone when the last
-            one closes.
-          </p>
-        </Item>
       </Stack>
     </main>
   )

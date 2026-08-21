@@ -32,8 +32,7 @@ const HostNotice = () => {
   return (
     <div className="flex items-start gap-4 border-l-2 border-brass-400/60 py-1 pl-4">
       <p className="type-body flex-1 text-brass-200/85">
-        You&apos;re hosting. Keep this tab in front — a backgrounded tab gets throttled by the
-        browser, and everyone&apos;s connection suffers for it.
+        You&apos;re running the room — keep this tab in front while you play.
       </p>
       <Button
         variant="quiet"

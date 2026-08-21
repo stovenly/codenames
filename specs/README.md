@@ -9,7 +9,7 @@ sends intents back. If the host leaves, someone else is promoted.
 
 ## How to use this spec
 
-**The documents are in build order.** Work 01 through 09 in sequence. Each one
+**The documents are in build order.** Work 01 through 11 in sequence. Each one
 states what it depends on, what to build, and what "done" looks like, and each
 ends somewhere you can open in a browser and see working. Nothing in a document
 depends on a later one.
@@ -26,6 +26,7 @@ depends on a later one.
 | [08](08-host-controls.md) | Host controls | History, undo, transfer, end game |
 | [09](09-resilience.md) | Resilience | Hardened, offline-capable, degrades visibly |
 | [10](10-polish.md) | Polish | Reads as one designed thing, not nine steps stacked up |
+| [11](11-showtime.md) | Showtime | Looks like a game show, not a web app about a game |
 
 Items marked **OPEN** need a decision before that section is built. None of them
 block an earlier step. Resolutions are recorded inline where the item was

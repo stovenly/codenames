@@ -217,9 +217,7 @@ export const HostPanel = () => {
                           {pass.trim() ? 'Set' : 'Clear'}
                         </Button>
                       </div>
-                      <p className="type-body text-[11px]">
-                        Applies to new joiners. Nobody in the room is disconnected.
-                      </p>
+                      <p className="type-body text-[11px]">Applies to new players only.</p>
                     </div>
 
                     <Rule />
@@ -249,8 +247,7 @@ export const HostPanel = () => {
                           </Button>
                         )}
                         <p className="type-body text-[11px]">
-                          Discards the current game and returns everyone to the waiting room with
-                          teams and settings intact.
+                          Everyone returns to the waiting room. Teams and settings are kept.
                         </p>
                       </div>
                     )}
