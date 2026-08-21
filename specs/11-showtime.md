@@ -81,13 +81,19 @@ screen shouts. Three faces, each with a job it is actually built for:
 |---|---|---|---|
 | Marquee | **Bungee** | `@fontsource/bungee` | The wordmark, team names, the turn band, WINS/ASSASSIN. Signage type, drawn for exactly this |
 | Plate | **Big Shoulders Display** | `@fontsource-variable/big-shoulders-display` | Card words. A wayfinding face: condensed enough to fit 7x7 on a phone and still be read across a room |
-| Readout | **Azeret Mono** | `@fontsource-variable/azeret-mono` | Clues, timers, counts, labels, the little prose there is |
+| Text | **Chivo** | `@fontsource-variable/chivo` | Clues, timers, counts, labels, the little prose there is |
 
-**Not JetBrains Mono, and not Anton.** JetBrains Mono is a code editor's font
-and reads as one — it belongs in a terminal, not on a scoreboard. Anton is the
-default answer to "condensed display face" and is on half the web. Neither is
-bad type; both are the obvious pick, and the obvious pick is what makes an
-interface look generated rather than chosen.
+**No monospace anywhere.** A fixed-pitch face exists so code columns line up;
+using one as an interface font is the single loudest signal that a screen was
+assembled rather than designed. JetBrains Mono is the worst offender because it
+is literally a code editor's font, but swapping it for a nicer monospace does
+not fix anything — the problem is the genre, not the family. Digits get tabular
+figures from `font-variant-numeric` and the `tnum` feature, which is all the
+alignment a timer or a scoreboard ever needed.
+
+**Not Anton either.** It is the default answer to "condensed display face" and
+is on half the web. Neither it nor JetBrains Mono is bad type; both are the
+obvious pick, and the obvious pick is what makes an interface look generated.
 
 All three are variable or single-weight and subset by unicode-range, so only
 latin is fetched and the committed `docs/` does not grow by every writing

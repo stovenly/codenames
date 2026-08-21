@@ -51,7 +51,7 @@ export const TimerArc = ({deadline, total}: {deadline: number; total: number}) =
         />
       </svg>
       <span
-        className={`type-mono text-[11px] tabular-nums ${urgent ? 'text-red-lit' : 'text-text-dim'}`}
+        className={`type-read text-[11px] tabular-nums ${urgent ? 'text-red-lit' : 'text-text-dim'}`}
       >
         {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')}
       </span>

@@ -49,7 +49,7 @@ export const ClueReveal = ({clue}: {clue: Clue}) => {
       />
 
       <div className="flex flex-col items-center gap-5 px-6 text-center">
-        <span className={`type-mono text-xs tracking-[0.4em] ${tint}`}>
+        <span className={`type-read text-xs tracking-[0.4em] ${tint}`}>
           {clue.team === 'red' ? 'RED' : 'BLUE'} SPYMASTER
         </span>
 

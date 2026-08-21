@@ -64,12 +64,12 @@ export const CustomWordList = ({size}: {size: BoardSize}) => {
         onChange={e => setText(e.target.value)}
         rows={6}
         placeholder={`One word per line, up to ${MAX_CUSTOM_ENTRIES}`}
-        className={`${input} type-mono resize-y text-xs`}
+        className={`${input} type-read resize-y text-xs`}
       />
 
       {text.trim() && (
         <div className="flex flex-col gap-1 text-[11px]">
-          <p className="type-mono text-text-dim">
+          <p className="type-read text-text-dim">
             {report.accepted.length} accepted
             {report.droppedDuplicate > 0 && `, ${report.droppedDuplicate} duplicate`}
             {report.droppedBlank > 0 && `, ${report.droppedBlank} blank`}
@@ -79,14 +79,14 @@ export const CustomWordList = ({size}: {size: BoardSize}) => {
               need {needed} for {size}×{size}
             </span>
           </p>
-          {report.fatal && <p className="type-mono text-red-lit">{report.fatal}</p>}
+          {report.fatal && <p className="type-read text-red-lit">{report.fatal}</p>}
           {report.rejected.slice(0, 4).map((r, i) => (
-            <p key={i} className="type-mono text-red-lit/80">
+            <p key={i} className="type-read text-red-lit/80">
               {r.entry} — {r.reason}
             </p>
           ))}
           {report.warnings.slice(0, 2).map((w, i) => (
-            <p key={i} className="type-mono text-lamp-300/80">
+            <p key={i} className="type-read text-lamp-300/80">
               {w}
             </p>
           ))}
@@ -99,7 +99,7 @@ export const CustomWordList = ({size}: {size: BoardSize}) => {
           onChange={e => setName(e.target.value)}
           maxLength={24}
           placeholder="Name this list"
-          className={`${input} type-mono min-w-0 flex-1 text-xs`}
+          className={`${input} type-read min-w-0 flex-1 text-xs`}
         />
         <Button variant="ghost" size="sm" onClick={save} disabled={!canSave}>
           Save & use

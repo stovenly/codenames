@@ -2,7 +2,7 @@
 
 @import "@fontsource/bungee/latin-400.css";
 @import "@fontsource-variable/big-shoulders-display";
-@import "@fontsource-variable/azeret-mono";
+@import "@fontsource-variable/chivo";
 
 @theme {
   --color-stage-000: #05060B;
@@ -32,10 +32,12 @@
   --color-text: #F5F7FF;
   --color-text-dim: #93A0BF;
 
-  /* Signage, wayfinding, and a readout — three faces built for three jobs. */
+  /* Signage, wayfinding, and text. No monospace anywhere: a fixed-pitch face
+     belongs in a terminal, and using one as a UI font is the giveaway. Numbers
+     get tabular figures from the feature, not from the whole face. */
   --font-marquee: 'Bungee', 'Impact', ui-sans-serif, system-ui, sans-serif;
   --font-plate: 'Big Shoulders Display Variable', 'Haettenschweiler', 'Arial Narrow', sans-serif;
-  --font-mono: 'Azeret Mono Variable', ui-monospace, 'SFMono-Regular', monospace;
+  --font-ui: 'Chivo Variable', 'Helvetica Neue', ui-sans-serif, system-ui, sans-serif;
 
   --radius-xs: 3px;
   --radius-sm: 5px;
@@ -69,7 +71,7 @@ body {
   margin: 0;
   background-color: var(--color-stage-000);
   color: var(--color-text);
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-synthesis-weight: none;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
@@ -194,26 +196,28 @@ button {
   text-transform: uppercase;
 }
 
+/** Anything with a number in it, so digits do not jitter as they count. */
 @utility type-read {
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
+  font-feature-settings: 'tnum' 1;
+  letter-spacing: 0.005em;
 }
 
 @utility type-label {
-  font-family: var(--font-mono);
-  font-weight: 500;
-  font-size: 0.625rem;
-  letter-spacing: 0.16em;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 0.6875rem;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
   color: var(--color-text-dim);
 }
 
 @utility type-body {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  line-height: 1.7;
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  line-height: 1.6;
   color: var(--color-text-dim);
 }
 
