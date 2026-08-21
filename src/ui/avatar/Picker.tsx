@@ -38,7 +38,7 @@ const CustomColour = ({value, onPick}: {value: string; onPick: (hex: string) => 
       <Popover.Trigger asChild>
         <button
           type="button"
-          aria-label="Custom backdrop colour"
+          aria-label="Custom background colour"
           className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-xs border border-stage-600 text-text-dim transition-colors hover:border-gold-500/60 hover:text-lamp-300"
           style={{background: `#${value}`}}
         >
@@ -107,6 +107,33 @@ export const AvatarPicker = ({
 
   return (
     <Panel className="flex flex-col gap-3 p-3">
+      {/* The name reads once, under the picked one; captions here said it twice. */}
+      <div className="flex flex-wrap gap-1.5">
+        {STYLES.map(s => (
+          <button
+            key={s.id}
+            type="button"
+            title={s.note}
+            aria-pressed={value.style === s.id}
+            onClick={() => setStyle(s.id)}
+            aria-label={s.name}
+            className={cx(
+              'cursor-pointer rounded-sm border p-1 transition-colors duration-[120ms]',
+              value.style === s.id
+                ? 'border-lamp-500/70 bg-lamp-500/10'
+                : 'border-stage-600 hover:border-gold-500/50'
+            )}
+          >
+            {/* Its own remembered variant, not the live one. Sharing the seed
+                meant scrubbing or switching anywhere re-rolled every swatch. */}
+            <AvatarView
+              spec={{...value, style: s.id, seed: seeds[s.id] ?? openingVariant(s.id)}}
+              size={40}
+            />
+          </button>
+        ))}
+      </div>
+
       {/* One line: who you are, how to change it, and the dice. */}
       <div className="flex items-center gap-3">
         <span className="shrink-0 rounded-md bg-stage-000 p-1.5 ring-1 ring-gold-500/35">
@@ -137,41 +164,14 @@ export const AvatarPicker = ({
         </IconButton>
       </div>
 
-      {/* Names live above; repeating them under every icon was the same word twice. */}
-      <div className="flex flex-wrap gap-1.5">
-        {STYLES.map(s => (
-          <button
-            key={s.id}
-            type="button"
-            title={s.note}
-            aria-pressed={value.style === s.id}
-            onClick={() => setStyle(s.id)}
-            aria-label={s.name}
-            className={cx(
-              'cursor-pointer rounded-sm border p-1 transition-colors duration-[120ms]',
-              value.style === s.id
-                ? 'border-lamp-500/70 bg-lamp-500/10'
-                : 'border-stage-600 hover:border-gold-500/50'
-            )}
-          >
-            {/* Its own remembered variant, not the live one. Sharing the seed
-                meant scrubbing or switching anywhere re-rolled every swatch. */}
-            <AvatarView
-              spec={{...value, style: s.id, seed: seeds[s.id] ?? openingVariant(s.id)}}
-              size={40}
-            />
-          </button>
-        ))}
-      </div>
-
       <div className="flex flex-wrap items-center gap-2">
-        <Label>Backdrop</Label>
+        <Label>Background</Label>
         <CustomColour value={value.bg} onPick={bg => onChange({...value, bg})} />
         {BACKGROUNDS.map(bg => (
           <button
             key={bg}
             type="button"
-            aria-label={`Backdrop ${bg}`}
+            aria-label={`Background ${bg}`}
             aria-pressed={value.bg === bg}
             onClick={() => onChange({...value, bg})}
             className={cx(

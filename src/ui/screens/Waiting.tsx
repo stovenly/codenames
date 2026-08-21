@@ -32,8 +32,8 @@ const HostNotice = () => {
   })
   if (seen) return null
   return (
-    <div className="flex items-center gap-4 border-l-2 border-lamp-500/60 py-1 pl-4">
-      <p className="type-body flex-1 text-lamp-300/85">
+    <div className="flex w-fit items-center gap-3 rounded-md border border-lamp-500/35 bg-lamp-500/[.07] py-2 pr-2 pl-4">
+      <p className="type-body text-lamp-300/85">
         You&apos;re running the room — keep this tab in front while you play.
       </p>
       <Button
