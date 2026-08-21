@@ -233,7 +233,7 @@ export const HostPanel = () => {
 
                 <div className="flex flex-col gap-2">
                   <Heading>
-                    Password
+                    Lobby password
                     {hasPassword() && <span className="ml-2 text-lamp-500/70">· set</span>}
                   </Heading>
                   <div className="flex gap-2">

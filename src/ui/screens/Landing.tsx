@@ -264,7 +264,7 @@ export const Landing = ({needsPassword: rejected}: {needsPassword: boolean}) => 
 
             {(rejected || !joinedExisting) && (
               <Field
-                label={joinedExisting ? 'Password' : 'Password — optional'}
+                label={joinedExisting ? 'Lobby password' : 'Lobby password (optional)'}
                 hint={
                   rejected ? (
                     <Label className="text-kill-lit">Not accepted. Try again.</Label>
