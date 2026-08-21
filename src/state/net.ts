@@ -87,3 +87,10 @@ export const useNet = () =>
 export const self = playerId
 
 export const publishRoomToHash = () => setRoomHash(roomId)
+
+export const subscribe = (listener: () => void) => {
+  listeners.add(listener)
+  return () => {
+    listeners.delete(listener)
+  }
+}
