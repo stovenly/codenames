@@ -298,6 +298,22 @@ button {
 
 @utility anim-sway { animation: sway linear infinite; }
 
+/** The crowd arrives in its own chunk, so it eases up rather than appearing. */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    translate: 0 14px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@utility anim-fade-up {
+  animation: fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /**
  * Feet dissolve into the floor. A mask actually removes them; an overlay
  * gradient only tints them, which reads as a figure standing behind a pane.

@@ -6,8 +6,13 @@ import {Button, Enter, Field, Item, Label, Panel, Rule, input} from '../atoms'
 import {cx} from '../cx'
 import {useMotion} from '../motion'
 
-/** Traced silhouettes are 16 KB gzipped of pure decoration; they arrive after paint. */
-const Crowd = lazy(() => import('./Silhouettes').then(m => ({default: m.Crowd})))
+/**
+ * Traced silhouettes are decoration and stay out of the entry chunk, but the
+ * request starts here at module scope rather than when React first renders the
+ * component — that is several hundred milliseconds earlier on a cold load.
+ */
+const silhouettes = import('./Silhouettes')
+const Crowd = lazy(() => silhouettes.then(m => ({default: m.Crowd})))
 
 /**
  * The rig. Each light is a lamp head and a conic wedge sharing an apex, on an
