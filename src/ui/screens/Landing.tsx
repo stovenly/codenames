@@ -6,29 +6,77 @@ import {Button, Enter, Field, Item, Label, Panel, Rule, input} from '../atoms'
 import {cx} from '../cx'
 import {useMotion} from '../motion'
 
-const BEAMS = [
-  {tint: 'rgba(255,197,61,.30)', anim: 'anim-swing-a', left: '-4%'},
-  {tint: 'rgba(240,68,56,.24)', anim: 'anim-swing-b', left: '32%'},
-  {tint: 'rgba(46,134,255,.26)', anim: 'anim-swing-c', left: '64%'}
+/**
+ * A rig of three lights. Each is a source point, a beam, and the pool it throws
+ * on the floor, all inside one element that swings about the source — so the
+ * pool travels with its beam, which is the thing that reads as a real light
+ * rather than a gradient someone animated.
+ */
+const RIG = [
+  {tint: '255,197,61', anim: 'anim-swing-a', left: '18%', spread: '34vw'},
+  {tint: '240,68,56', anim: 'anim-swing-b', left: '50%', spread: '30vw'},
+  {tint: '46,134,255', anim: 'anim-swing-c', left: '82%', spread: '32vw'}
 ]
 
 const GLOWS = [
-  {tint: 'rgba(255,197,61,.55)', anim: 'anim-float-a', size: '46vmax', left: '-8%', top: '-14%'},
-  {tint: 'rgba(46,134,255,.45)', anim: 'anim-float-b', size: '40vmax', left: '58%', top: '-6%'},
-  {tint: 'rgba(240,68,56,.42)', anim: 'anim-float-c', size: '38vmax', left: '18%', top: '52%'},
-  {tint: 'rgba(255,226,154,.35)', anim: 'anim-float-b', size: '30vmax', left: '68%', top: '48%'}
+  {tint: 'rgba(255,197,61,.50)', anim: 'anim-float-a', size: '44vmax', left: '-10%', top: '-16%'},
+  {tint: 'rgba(46,134,255,.42)', anim: 'anim-float-b', size: '38vmax', left: '60%', top: '-8%'},
+  {tint: 'rgba(240,68,56,.38)', anim: 'anim-float-c', size: '36vmax', left: '16%', top: '54%'}
 ]
+
+const Spot = ({tint, anim, left, spread}: (typeof RIG)[number]) => {
+  const {reduced} = useMotion()
+  return (
+    <span
+      className={cx('absolute top-0 h-[150vh] w-px', !reduced && anim)}
+      style={{left, transformOrigin: '50% 0'}}
+    >
+      <span
+        className="source"
+        style={{
+          width: 90,
+          height: 90,
+          top: '-2vh',
+          left: '50%',
+          background: `radial-gradient(circle, rgba(255,255,255,.9) 0%, rgba(${tint},.8) 35%, transparent 70%)`
+        }}
+      />
+      <span
+        className="beam"
+        style={{
+          left: '50%',
+          translate: '-50% 0',
+          top: '-4vh',
+          width: spread,
+          ['--beam' as string]: `rgba(${tint},.34)`
+        }}
+      />
+      <span
+        className="pool"
+        style={{
+          bottom: '-6vh',
+          left: '50%',
+          translate: '-50% 0',
+          width: `calc(${spread} * 1.5)`,
+          height: '26vh',
+          background: `radial-gradient(closest-side, rgba(${tint},.42), transparent)`
+        }}
+      />
+    </span>
+  )
+}
 
 const Lighting = () => {
   const {reduced} = useMotion()
 
-  const motes = useMemo(
+  const sparkles = useMemo(
     () =>
-      Array.from({length: 16}, (_, i) => ({
-        left: `${(i * 6.4 + 3) % 96}%`,
-        size: 3 + ((i * 5) % 7),
-        duration: 14 + ((i * 3) % 12),
-        delay: -(i * 2.1)
+      Array.from({length: 22}, (_, i) => ({
+        left: `${(i * 13.7 + 5) % 97}%`,
+        top: `${(i * 21.3 + 7) % 88}%`,
+        size: 16 + ((i * 7) % 26),
+        duration: 5 + ((i * 3) % 7),
+        delay: -(i * 1.37)
       })),
     []
   )
@@ -50,35 +98,33 @@ const Lighting = () => {
         />
       ))}
 
-      {BEAMS.map((b, i) => (
-        <span
-          key={i}
-          className={cx('beam', !reduced && b.anim)}
-          style={{left: b.left, ['--beam' as string]: b.tint}}
-        />
+      {RIG.map((r, i) => (
+        <Spot key={i} {...r} />
       ))}
 
       {!reduced &&
-        motes.map((m, i) => (
+        sparkles.map((s, i) => (
           <span
             key={i}
-            className="mote anim-rise"
+            className="sparkle anim-twinkle"
             style={{
-              left: m.left,
-              bottom: '-6vh',
-              width: m.size,
-              height: m.size,
-              animationDuration: `${m.duration}s`,
-              animationDelay: `${m.delay}s`
+              left: s.left,
+              top: s.top,
+              width: s.size,
+              height: s.size,
+              animationDuration: `${s.duration}s`,
+              animationDelay: `${s.delay}s`
             }}
           />
         ))}
 
-      {/* Footlights: the stage is lit from below as well as above. */}
       <span
-        className={cx('absolute -bottom-[22vh] left-1/2 h-[42vh] w-[130vw] -translate-x-1/2 rounded-[100%] blur-[70px]', !reduced && 'anim-breathe')}
+        className={cx(
+          'absolute -bottom-[24vh] left-1/2 h-[44vh] w-[130vw] -translate-x-1/2 rounded-[100%] blur-[70px]',
+          !reduced && 'anim-breathe'
+        )}
         style={{
-          background: 'radial-gradient(closest-side, rgba(255,197,61,.34), transparent)',
+          background: 'radial-gradient(closest-side, rgba(255,197,61,.30), transparent)',
           mixBlendMode: 'screen'
         }}
       />
@@ -86,51 +132,64 @@ const Lighting = () => {
       <span
         className="absolute inset-0"
         style={{
-          background: 'radial-gradient(125% 105% at 50% 45%, transparent 34%, rgba(5,6,11,.82) 100%)'
+          background: 'radial-gradient(125% 105% at 50% 45%, transparent 34%, rgba(5,6,11,.84) 100%)'
         }}
       />
     </div>
   )
 }
 
-/** Bulb rails on all four sides, chasing continuously the way a real marquee does. */
-const SignFrame = ({children}: {children: React.ReactNode}) => {
+/** Lamps walked round the perimeter in order, so the chase actually travels. */
+const perimeter = (across: number, down: number) => {
+  const points: Array<{x: number; y: number}> = []
+  for (let i = 0; i < across; i++) points.push({x: (i / across) * 100, y: 0})
+  for (let i = 0; i < down; i++) points.push({x: 100, y: (i / down) * 100})
+  for (let i = across; i > 0; i--) points.push({x: (i / across) * 100, y: 100})
+  for (let i = down; i > 0; i--) points.push({x: 0, y: (i / down) * 100})
+  return points
+}
+
+const BulbFrame = () => {
   const {reduced} = useMotion()
+  const lamps = useMemo(() => perimeter(13, 6), [])
   return (
-    <div className="relative px-8 py-7 sm:px-12 sm:py-9">
-      <span
-        aria-hidden
-        className="absolute inset-0 rounded-lg border border-gold-500/45"
-        style={{
-          background: 'linear-gradient(180deg, rgba(38,54,90,.55) 0%, rgba(10,13,24,.8) 100%)',
-          boxShadow:
-            'inset 0 1px 0 rgba(255,255,255,.16), inset 0 -3px 16px rgba(0,0,0,.75), 0 26px 70px -28px rgba(0,0,0,1), 0 0 60px -20px rgba(255,197,61,.35)'
-        }}
-      />
-      <span
-        aria-hidden
-        className={cx('bulbs bulbs-lit absolute inset-x-4 top-2', !reduced && 'bulbs-chase')}
-      />
-      <span
-        aria-hidden
-        className={cx('bulbs bulbs-lit absolute inset-x-4 bottom-2', !reduced && 'bulbs-chase')}
-      />
-      <span
-        aria-hidden
-        className={cx('bulbs-v bulbs-lit absolute inset-y-4 left-2', !reduced && 'bulbs-chase-v')}
-      />
-      <span
-        aria-hidden
-        className={cx('bulbs-v bulbs-lit absolute inset-y-4 right-2', !reduced && 'bulbs-chase-v')}
-      />
-      <div className="relative">{children}</div>
-    </div>
+    <span aria-hidden className="pointer-events-none absolute inset-0">
+      {lamps.map((p, i) => (
+        <span
+          key={i}
+          className={cx('lamp', !reduced && 'lamp-run')}
+          style={{
+            left: `${p.x}%`,
+            top: `${p.y}%`,
+            ['--i' as string]: i,
+            ['--n' as string]: lamps.length,
+            opacity: reduced ? 0.85 : undefined
+          }}
+        />
+      ))}
+    </span>
   )
 }
+
+const SignFrame = ({children}: {children: React.ReactNode}) => (
+  <div className="relative px-10 py-9 sm:px-14 sm:py-11">
+    <span
+      aria-hidden
+      className="absolute inset-4 rounded-md border border-gold-500/45"
+      style={{
+        background: 'linear-gradient(180deg, rgba(38,54,90,.55) 0%, rgba(10,13,24,.82) 100%)',
+        boxShadow:
+          'inset 0 1px 0 rgba(255,255,255,.16), inset 0 -3px 16px rgba(0,0,0,.75), 0 26px 70px -28px rgba(0,0,0,1), 0 0 70px -18px rgba(255,197,61,.4)'
+      }}
+    />
+    <BulbFrame />
+    <div className="relative">{children}</div>
+  </div>
+)
 
 const Wordmark = () => {
   const {reduced} = useMotion()
-  const size = 'text-[clamp(2.4rem,10.5vw,5.5rem)]'
+  const size = 'text-[clamp(2.2rem,9.5vw,5rem)]'
 
   return (
     <span className="relative block">
@@ -180,23 +239,14 @@ export const Landing = ({needsPassword: rejected}: {needsPassword: boolean}) => 
   }
 
   return (
-    <main className="relative grid min-h-full place-items-center overflow-hidden px-5 py-14">
+    <main className="relative grid min-h-full place-items-center overflow-hidden px-5 py-12">
       <Lighting />
 
-      <Enter className="relative flex w-full max-w-md flex-col items-center gap-8 text-center">
+      <Enter className="relative flex w-full max-w-md flex-col items-center gap-7 text-center">
         <Item variant="settle">
           <SignFrame>
             <Wordmark />
-            <p className="type-label mt-3 text-lamp-500/85">Two teams · one assassin</p>
           </SignFrame>
-        </Item>
-
-        <Item>
-          <p className="type-body max-w-sm text-base">
-            {joinedExisting
-              ? 'You have been invited. Take a seat and pick a side.'
-              : 'Give the clue. Take the risk. Say the wrong word and it is over.'}
-          </p>
         </Item>
 
         <Item className="w-full">

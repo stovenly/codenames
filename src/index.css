@@ -212,12 +212,100 @@ button {
   will-change: transform, opacity;
 }
 
-@utility mote {
+/**
+ * One lamp. A real marquee chase is lamps switching on in sequence around the
+ * perimeter, not a gradient sliding under a mask — that version ran each edge
+ * independently and the corners fought each other.
+ *
+ * Position comes from the perimeter walk; --i and --n turn that into a delay,
+ * so the whole frame shares one keyframe and the light travels round.
+ */
+@utility lamp {
   position: absolute;
+  width: 9px;
+  height: 9px;
   border-radius: 9999px;
-  background: radial-gradient(circle, rgba(255, 226, 154, 0.85), transparent 70%);
+  translate: -50% -50%;
+  background: radial-gradient(circle, #fff 0%, var(--color-lamp-300) 32%, var(--color-lamp-500) 62%, transparent 74%);
+  box-shadow: 0 0 10px 2px color-mix(in oklab, var(--color-lamp-500) 60%, transparent);
+  opacity: 0.26;
+  will-change: opacity, transform;
+}
+
+/* Two peaks per lap, so two lights chase each other around the frame. */
+@keyframes lamp-chase {
+  0%,
+  16%,
+  50%,
+  66%,
+  100% {
+    opacity: 0.26;
+    transform: scale(0.82);
+  }
+  5%,
+  55% {
+    opacity: 1;
+    transform: scale(1.35);
+  }
+}
+
+@utility lamp-run {
+  animation: lamp-chase 3.4s linear infinite;
+  animation-delay: calc(var(--i) / var(--n) * -3.4s);
+}
+
+/**
+ * A studio glint: a bright core with tapered arms, which is what a specular
+ * highlight actually looks like through a lens. Round bokeh dots read as
+ * out-of-focus background, not as sparkle.
+ */
+@utility sparkle {
+  position: absolute;
+  translate: -50% -50%;
+  background:
+    radial-gradient(closest-side, rgba(255, 255, 255, 0.95), transparent 68%),
+    linear-gradient(90deg, transparent 44%, rgba(255, 240, 200, 0.9) 50%, transparent 56%),
+    linear-gradient(0deg, transparent 44%, rgba(255, 240, 200, 0.9) 50%, transparent 56%);
+  mask-image: radial-gradient(closest-side, #000 4%, rgba(0, 0, 0, 0.55) 26%, transparent 78%);
   mix-blend-mode: screen;
-  will-change: transform, opacity;
+  will-change: opacity, transform;
+}
+
+@keyframes twinkle {
+  0%,
+  74%,
+  100% {
+    opacity: 0;
+    transform: scale(0.3) rotate(0deg);
+  }
+  8% {
+    opacity: 1;
+    transform: scale(1) rotate(24deg);
+  }
+  22% {
+    opacity: 0.35;
+    transform: scale(0.75) rotate(40deg);
+  }
+  34% {
+    opacity: 0.9;
+    transform: scale(0.92) rotate(56deg);
+  }
+  52% {
+    opacity: 0;
+    transform: scale(0.4) rotate(76deg);
+  }
+}
+
+@utility anim-twinkle {
+  animation: twinkle linear infinite;
+}
+
+/** The pool a beam throws on the floor. Moves with the beam, which is the tell. */
+@utility pool {
+  position: absolute;
+  border-radius: 100%;
+  filter: blur(38px);
+  mix-blend-mode: screen;
 }
 
 @keyframes swing-a {
@@ -375,6 +463,15 @@ button {
 }
 @utility anim-rise {
   animation: rise linear infinite;
+}
+
+/** The rig above: a hot source point where each beam originates. */
+@utility source {
+  position: absolute;
+  border-radius: 9999px;
+  translate: -50% -50%;
+  filter: blur(9px);
+  mix-blend-mode: screen;
 }
 
 /** The glow layer sits behind the type so the flicker animates opacity, not shadow. */
