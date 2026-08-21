@@ -238,11 +238,15 @@ export const HostPanel = () => {
                   </Heading>
                   <div className="flex gap-2">
                     <input
-                      type="password"
+                      type="text"
+                      autoComplete="off"
+                      spellCheck={false}
+                      data-1p-ignore
+                      data-lpignore="true"
                       value={pass}
                       onChange={e => setPass(e.target.value)}
                       placeholder="New password"
-                      className={cx(input, 'min-w-0 flex-1 text-sm')}
+                      className={cx(input, 'text-masked min-w-0 flex-1 text-sm')}
                     />
                     <Button
                       variant="ghost"

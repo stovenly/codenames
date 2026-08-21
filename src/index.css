@@ -201,10 +201,14 @@ button {
 /** A beam is a conic wedge from the lamp, not a rotated rectangle. */
 @utility spotlight {
   position: absolute;
-  width: 300vmax;
-  height: 300vmax;
+  width: 200vmax;
+  height: 200vmax;
   translate: -50% -50%;
   mix-blend-mode: screen;
+  /* Rasterise once, then rotate on the compositor. Without this the browser
+     re-rasters a multi-megapixel gradient on the first animated frame, which is
+     the hitch you see a beat after the page appears. */
+  will-change: transform;
   /* ~64deg of spread with soft shoulders. A narrow wedge reads as a laser. */
   background: conic-gradient(
     from 0deg at 50% 50%,
@@ -219,10 +223,10 @@ button {
   mask-image: radial-gradient(
     closest-side,
     #000 0%,
-    #000 7%,
-    rgba(0, 0, 0, 0.7) 24%,
-    rgba(0, 0, 0, 0.3) 42%,
-    transparent 60%
+    #000 10%,
+    rgba(0, 0, 0, 0.7) 36%,
+    rgba(0, 0, 0, 0.3) 63%,
+    transparent 90%
   );
 }
 
@@ -248,18 +252,19 @@ button {
   inset: -25%;
   mix-blend-mode: screen;
   background-repeat: no-repeat;
+  will-change: transform;
 }
 
 @keyframes ambience-drift {
   0%,
   100% {
-    background-position: 12% 22%, 86% 12%, 42% 86%;
+    transform: translate3d(0, 0, 0) scale(1);
   }
   33% {
-    background-position: 32% 6%, 58% 34%, 14% 68%;
+    transform: translate3d(3%, -2%, 0) scale(1.06);
   }
   66% {
-    background-position: 4% 38%, 96% 20%, 62% 96%;
+    transform: translate3d(-3%, 2%, 0) scale(1.03);
   }
 }
 
@@ -299,7 +304,10 @@ button {
   50% { translate: 9px -4px; }
 }
 
-@utility anim-sway { animation: sway linear infinite; }
+@utility anim-sway {
+  animation: sway linear infinite;
+  will-change: transform;
+}
 
 
 /**
@@ -580,4 +588,13 @@ button {
 :root[data-motion='reduced'] *::after {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
+}
+
+/**
+ * Hides what is typed without telling the browser it is a password, so no
+ * password manager offers to save a throwaway room code.
+ */
+@utility text-masked {
+  -webkit-text-security: disc;
+  text-security: disc;
 }

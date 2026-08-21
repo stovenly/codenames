@@ -278,11 +278,16 @@ export const Landing = ({needsPassword: rejected}: {needsPassword: boolean}) => 
                 }
               >
                 <input
-                  type="password"
+                  type="text"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  data-1p-ignore
+                  data-lpignore="true"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && void go()}
-                  className={input}
+                  className={cx(input, 'text-masked')}
                 />
               </Field>
             )}
