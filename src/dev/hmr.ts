@@ -35,7 +35,17 @@ const build = () => {
   refresh.style.cssText =
     'cursor:pointer;border:1px solid rgba(255,197,61,.55);border-radius:6px;padding:6px 12px;' +
     'background:linear-gradient(#7C5A15,#43300B);color:#FFE29A;font:inherit'
-  refresh.onclick = () => location.reload()
+  /**
+   * Back to the landing screen, not the room. The room died with the reload —
+   * the host was this tab — so returning to `#r=…` only lands on a dead id.
+   *
+   * replaceState then reload, rather than assigning href: a URL that differs
+   * only by its hash is a same-document navigation and would not reload at all.
+   */
+  refresh.onclick = () => {
+    history.replaceState(null, '', import.meta.env.BASE_URL)
+    location.reload()
+  }
 
   const dismiss = document.createElement('button')
   dismiss.textContent = '×'
