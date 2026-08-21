@@ -68,7 +68,7 @@ export const PlayerCard = ({
       {/* The team band. Tall enough for the badge on every card, occupied or not. */}
       <span
         className={cx(
-          'flex h-6 items-center gap-1.5 bg-gradient-to-r px-2.5 text-white/95',
+          'flex h-6 items-center gap-1.5 bg-gradient-to-r px-2.5 pt-[3px] text-white/95',
           BAND[team ?? 'none']
         )}
       >
