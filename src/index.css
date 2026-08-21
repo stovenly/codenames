@@ -205,21 +205,24 @@ button {
   height: 300vmax;
   translate: -50% -50%;
   mix-blend-mode: screen;
+  /* ~64deg of spread with soft shoulders. A narrow wedge reads as a laser. */
   background: conic-gradient(
     from 0deg at 50% 50%,
-    transparent 0deg 164deg,
-    color-mix(in oklab, var(--tint) 18%, transparent) 172deg,
+    transparent 0deg 148deg,
+    color-mix(in oklab, var(--tint) 10%, transparent) 158deg,
+    color-mix(in oklab, var(--tint) 48%, transparent) 169deg,
     var(--tint) 180deg,
-    color-mix(in oklab, var(--tint) 18%, transparent) 188deg,
-    transparent 196deg 360deg
+    color-mix(in oklab, var(--tint) 48%, transparent) 191deg,
+    color-mix(in oklab, var(--tint) 10%, transparent) 202deg,
+    transparent 212deg 360deg
   );
   mask-image: radial-gradient(
     closest-side,
     #000 0%,
-    #000 5%,
-    rgba(0, 0, 0, 0.55) 22%,
-    rgba(0, 0, 0, 0.18) 38%,
-    transparent 54%
+    #000 7%,
+    rgba(0, 0, 0, 0.7) 24%,
+    rgba(0, 0, 0, 0.3) 42%,
+    transparent 60%
   );
 }
 

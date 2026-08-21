@@ -13,9 +13,9 @@ import {Crowd} from './Silhouettes'
  * box can never appear no matter how far it swings.
  */
 const RIG = [
-  {tint: 'rgba(255,197,61,.30)', anim: 'anim-swing-a', x: 18},
-  {tint: 'rgba(240,68,56,.24)', anim: 'anim-swing-b', x: 50},
-  {tint: 'rgba(46,134,255,.26)', anim: 'anim-swing-c', x: 82}
+  {tint: 'rgba(255,197,61,.52)', anim: 'anim-swing-a', x: 16},
+  {tint: 'rgba(240,68,56,.40)', anim: 'anim-swing-b', x: 50},
+  {tint: 'rgba(46,134,255,.46)', anim: 'anim-swing-c', x: 84}
 ]
 
 /** Dim house lamps along the top, so the beams come from somewhere. */
