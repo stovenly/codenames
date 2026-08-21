@@ -5,6 +5,7 @@ import {createRoom, joinRoom, myDisplayName} from '../../state/room'
 import {Button, Enter, Field, Item, Label, Panel, Rule, input} from '../atoms'
 import {cx} from '../cx'
 import {useMotion} from '../motion'
+import {Crowd} from './Silhouettes'
 
 /**
  * The rig. Each light is a lamp head and a conic wedge sharing an apex, on an
@@ -72,6 +73,10 @@ const Lighting = () => {
           backgroundPosition: '12% 22%, 86% 12%, 42% 86%'
         }}
       />
+
+      {/* Behind the beams: a screen-blended spotlight passing over them reads as
+          light through fog, which is the whole effect. */}
+      <Crowd />
 
       {RIG.map((r, i) => (
         <Spot key={i} {...r} />

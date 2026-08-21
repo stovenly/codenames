@@ -290,6 +290,14 @@ button {
 
 @utility anim-truss { animation: truss-pulse 3.6s ease-in-out infinite; }
 
+/** Barely there. Figures standing still read as watching; drifting reads as fog. */
+@keyframes sway {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 9px -4px; }
+}
+
+@utility anim-sway { animation: sway linear infinite; }
+
 @keyframes breathe {
   0%, 100% { opacity: 0.4; }
   50% { opacity: 0.85; }
