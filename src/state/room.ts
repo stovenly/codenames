@@ -8,6 +8,7 @@ import type {ClueCount, Step} from '../game/steps'
 import type {Avatar, Player, Shared, Team} from '../game/types'
 import {AVATAR_VARIANTS, otherTeam} from '../game/types'
 import {joinedExisting, on, openRoom, peers, roomId, self, send, startMesh, subscribe as onNetChange} from './net'
+import {getPrefs, setPrefs} from './prefs'
 import * as words from './words'
 
 export type Role = 'idle' | 'joining' | 'rejected' | 'client' | 'host' | 'electing'
@@ -80,8 +81,13 @@ let shared: Shared | null = null
 let banner: string | null = null
 let bannerTimer: ReturnType<typeof setTimeout> | null = null
 let split = false
-let myName = loadSession()?.name ?? ''
-let myAvatar: Avatar = {style: 'lorelei', seed: String(seedFor(self)), bg: '141C30'}
+let myName = loadSession()?.name || getPrefs().name
+let myAvatar: Avatar = getPrefs().avatar ?? {
+  style: 'lorelei',
+  seed: String(seedFor(self)),
+  bg: '141C30'
+}
+let announcedAvatar = false
 let passwordHash: string | null = null
 let lastHostAt = 0
 let clockOffset = 0
@@ -318,6 +324,11 @@ const adopt = (next: Shared) => {
   if (hostChanged) {
     const name = next.players.find(p => p.id === next.hostId)?.name ?? 'Someone'
     flash(`${name} is hosting now`)
+  }
+  // The host seats a joiner with a default look; this is where we tell it ours.
+  if (!announcedAvatar && next.players.some(p => p.id === self)) {
+    announcedAvatar = true
+    intend({kind: 'setAvatar', avatar: myAvatar})
   }
   requestWordsIfMissing()
   publish()
@@ -775,6 +786,7 @@ export const createRoom = async (name: string, password: string | null) => {
   startMesh()
   myName = name
   saveSession({name, password})
+  setPrefs({name})
   rememberSeat(name)
   passwordHash = await proofFor(password)
   const {hash} = await words.resolve({kind: 'packs', packs: ['original']})
@@ -798,6 +810,7 @@ export const joinRoom = async (name: string, password: string | null) => {
   start()
   myName = name
   saveSession({name, password})
+  setPrefs({name})
   rememberSeat(name)
   role = 'joining'
   publish()
@@ -826,6 +839,7 @@ export const setBoardSize = (size: BoardSize, preset: {teamCards: number; assass
 
 export const setAvatar = (avatar: Avatar) => {
   myAvatar = avatar
+  setPrefs({avatar})
   intend({kind: 'setAvatar', avatar})
 }
 

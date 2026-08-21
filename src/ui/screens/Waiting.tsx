@@ -1,5 +1,5 @@
 import {AnimatePresence, motion} from 'motion/react'
-import {Check, Link2, VenetianMask} from 'lucide-react'
+import {Check, CheckSquare, Link2, Square, VenetianMask} from 'lucide-react'
 import {useEffect, useState} from 'react'
 import {shareLink} from '../../net/identity'
 import {roomId, useNet} from '../../state/net'
@@ -232,11 +232,21 @@ export const Waiting = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* One label, a box that fills. Two labels made it read as two
+                different actions rather than one thing being on or off. */}
             <Button
               variant={mine?.ready ? 'primary' : 'ghost'}
+              role="checkbox"
+              aria-checked={!!mine?.ready}
               onClick={() => intend({kind: 'ready', ready: !mine?.ready})}
+              className="flex items-center gap-2"
             >
-              {mine?.ready ? 'Ready' : 'Ready up'}
+              {mine?.ready ? (
+                <CheckSquare className="size-4" />
+              ) : (
+                <Square className="size-4 opacity-70" />
+              )}
+              Ready
             </Button>
             {isHost && (
               <Button size="lg" onClick={() => intend({kind: 'startGame'})} disabled={blockers.length > 0}>

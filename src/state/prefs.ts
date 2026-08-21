@@ -1,10 +1,13 @@
 import {useSyncExternalStore} from 'react'
+import type {Avatar} from '../game/types'
 
 export type Prefs = {
   motion: 'full' | 'reduced'
   colourblind: boolean
   muted: boolean
+  /** Carried between rooms and between visits, so you are not rebuilt each time. */
   name: string
+  avatar: Avatar | null
 }
 
 const KEY = 'cn.prefs'
@@ -13,7 +16,8 @@ const DEFAULTS: Prefs = {
   motion: 'full',
   colourblind: false,
   muted: false,
-  name: ''
+  name: '',
+  avatar: null
 }
 
 /**
