@@ -1,36 +1,138 @@
-import {motion} from 'motion/react'
-import {useState} from 'react'
+import {useMemo, useState} from 'react'
 import {abandonSeat, offeredSeat, resumedSeat, takeSeat} from '../../net/identity'
 import {joinedExisting} from '../../state/net'
 import {createRoom, joinRoom, myDisplayName} from '../../state/room'
-import {Bulbs, Button, Enter, Field, Item, Label, Panel, Rule, input} from '../atoms'
+import {Button, Enter, Field, Item, Label, Panel, Rule, input} from '../atoms'
+import {cx} from '../cx'
 import {useMotion} from '../motion'
 
-/** Bulbs around the wordmark ignite one at a time, so the page opens like a show does. */
-const Marquee = () => {
+/** Three beams on coprime-ish periods, so they never fall back into step. */
+const BEAMS = [
+  {tint: 'rgba(255,197,61,.20)', anim: 'sweep-a 13s ease-in-out infinite', left: '4%'},
+  {tint: 'rgba(240,68,56,.16)', anim: 'sweep-b 17s ease-in-out infinite', left: '30%'},
+  {tint: 'rgba(46,134,255,.16)', anim: 'sweep-c 21s ease-in-out infinite', left: '58%'}
+]
+
+const Backdrop = () => {
   const {reduced} = useMotion()
-  const lamps = 16
+
+  const motes = useMemo(
+    () =>
+      Array.from({length: 14}, (_, i) => ({
+        left: `${(i * 7.3 + 4) % 96}%`,
+        size: 3 + ((i * 5) % 6),
+        duration: 16 + ((i * 3) % 11),
+        delay: -(i * 2.4)
+      })),
+    []
+  )
+
   return (
-    <span aria-hidden className="pointer-events-none absolute -inset-x-5 -inset-y-4">
-      {Array.from({length: lamps}, (_, i) => {
-        const t = i / lamps
-        const onTop = t < 0.5
-        const x = (onTop ? t : 1 - t) * 2 * 100
-        return (
-          <motion.span
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      <span className="rays absolute top-1/2 left-1/2 size-[150vmax] -translate-x-1/2 -translate-y-1/2" />
+
+      {BEAMS.map((b, i) => (
+        <span
+          key={i}
+          className="beam"
+          style={{
+            left: b.left,
+            background: `linear-gradient(to bottom, ${b.tint} 0%, transparent 68%)`,
+            animation: reduced ? undefined : b.anim
+          }}
+        />
+      ))}
+
+      {!reduced &&
+        motes.map((m, i) => (
+          <span
             key={i}
-            initial={reduced ? {opacity: 1} : {opacity: 0.12, scale: 0.7}}
-            animate={{opacity: 1, scale: 1}}
-            transition={{delay: reduced ? 0 : 0.15 + i * 0.045, duration: 0.28}}
-            className="absolute size-1.5 rounded-full bg-lamp-500"
+            className="mote"
             style={{
-              left: `${x}%`,
-              [onTop ? 'top' : 'bottom']: 0,
-              boxShadow: '0 0 8px rgba(255,197,61,.85)'
+              left: m.left,
+              bottom: '-4vh',
+              width: m.size,
+              height: m.size,
+              animationDuration: `${m.duration}s`,
+              animationDelay: `${m.delay}s`
             }}
           />
-        )
-      })}
+        ))}
+
+      <span
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(58% 46% at 50% 42%, rgba(255,197,61,.10), transparent 70%)',
+          animation: reduced ? undefined : 'breathe 7s ease-in-out infinite'
+        }}
+      />
+
+      <span
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(120% 100% at 50% 45%, transparent 40%, rgba(5,6,11,.75) 100%)'
+        }}
+      />
+    </div>
+  )
+}
+
+/** Bulb rails on all four sides, chasing in a loop the way a real marquee does. */
+const SignFrame = ({children}: {children: React.ReactNode}) => (
+  <div className="relative px-7 py-6 sm:px-10 sm:py-8">
+    <span
+      aria-hidden
+      className="absolute inset-0 rounded-lg border border-gold-500/45"
+      style={{
+        background:
+          'linear-gradient(180deg, rgba(38,54,90,.5) 0%, rgba(10,13,24,.75) 100%)',
+        boxShadow:
+          'inset 0 1px 0 rgba(255,255,255,.14), inset 0 -3px 14px rgba(0,0,0,.7), 0 24px 60px -26px rgba(0,0,0,1)'
+      }}
+    />
+    <span aria-hidden className="bulbs bulbs-lit bulbs-chase absolute inset-x-3 top-1.5" />
+    <span aria-hidden className="bulbs bulbs-lit bulbs-chase absolute inset-x-3 bottom-1.5" />
+    <span aria-hidden className="bulbs-v bulbs-lit bulbs-chase-v absolute inset-y-3 left-1.5" />
+    <span aria-hidden className="bulbs-v bulbs-lit bulbs-chase-v absolute inset-y-3 right-1.5" />
+    <div className="relative">{children}</div>
+  </div>
+)
+
+const Wordmark = () => {
+  const {reduced} = useMotion()
+  const size = 'text-[clamp(2.4rem,10.5vw,5.5rem)]'
+
+  return (
+    <span className="relative block">
+      <span
+        aria-hidden
+        className={cx('type-marquee neon absolute inset-0 text-lamp-300', size)}
+        style={{animation: reduced ? undefined : 'flicker 7s steps(1, end) infinite'}}
+      >
+        Codenames
+      </span>
+
+      <h1 className={cx('type-marquee relative text-lamp-300', size)}>Codenames</h1>
+
+      {!reduced && (
+        <span
+          aria-hidden
+          className={cx('type-marquee absolute inset-0', size)}
+          style={{
+            backgroundImage:
+              'linear-gradient(100deg, transparent 38%, rgba(255,255,255,.85) 50%, transparent 62%)',
+            backgroundSize: '220% 100%',
+            WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
+            color: 'transparent',
+            animation: 'sheen 6.5s ease-in-out infinite'
+          }}
+        >
+          Codenames
+        </span>
+      )}
     </span>
   )
 }
@@ -40,7 +142,6 @@ export const Landing = ({needsPassword: rejected}: {needsPassword: boolean}) => 
   const [name, setName] = useState(myDisplayName())
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
-  const {reduced} = useMotion()
 
   const go = async () => {
     const trimmed = name.trim()
@@ -53,43 +154,28 @@ export const Landing = ({needsPassword: rejected}: {needsPassword: boolean}) => 
   }
 
   return (
-    <main className="relative grid min-h-full place-items-center overflow-hidden px-6 py-14">
-      {!reduced && (
-        <motion.span
-          aria-hidden
-          className="pointer-events-none absolute -top-1/3 left-1/2 h-[160vh] w-[45vw] -translate-x-1/2 opacity-45"
-          style={{
-            background: 'conic-gradient(from 175deg at 50% 0%, transparent, rgba(255,197,61,.14), transparent)'
-          }}
-          initial={{rotate: -14, opacity: 0}}
-          animate={{rotate: 12, opacity: [0, 0.5, 0.22]}}
-          transition={{duration: 2.4, ease: 'easeOut'}}
-        />
-      )}
+    <main className="relative grid min-h-full place-items-center overflow-hidden px-5 py-14">
+      <Backdrop />
 
-      <Enter className="flex w-full max-w-md flex-col items-center gap-9 text-center">
-        <Item variant="settle" className="relative">
-          <Marquee />
-          <h1
-            className="type-marquee text-[clamp(2.6rem,11vw,4.6rem)] text-lamp-300"
-            style={{textShadow: '0 0 26px rgba(255,197,61,.45), 0 3px 0 rgba(0,0,0,.6)'}}
-          >
-            Codenames
-          </h1>
+      <Enter className="relative flex w-full max-w-md flex-col items-center gap-8 text-center">
+        <Item variant="settle">
+          <SignFrame>
+            <Wordmark />
+            <p className="type-label mt-3 text-lamp-500/85">Two teams · one assassin</p>
+          </SignFrame>
         </Item>
 
         <Item>
-          <p className="type-body max-w-xs">
+          <p className="type-body max-w-sm text-base">
             {joinedExisting
               ? 'You have been invited. Take a seat and pick a side.'
-              : 'Two teams. One assassin. Say the wrong word and it is over.'}
+              : 'Give the clue. Take the risk. Say the wrong word and it is over.'}
           </p>
         </Item>
 
         <Item className="w-full">
+          {/* No animation behind the form — the backdrop stays a backdrop. */}
           <Panel level={2} glossy className="flex flex-col gap-5 p-6 text-left">
-            <Bulbs className="-mt-1" />
-
             <Field label="Your name">
               <input
                 autoFocus

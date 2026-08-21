@@ -63,7 +63,7 @@ export const PlayerCard = ({
 
       <div className="flex items-center gap-3 p-2.5">
         <span className="relative shrink-0 rounded-sm bg-stage-000 p-[3px] ring-1 ring-gold-500/30">
-          <AvatarView spec={player.avatar} size={40} />
+          <AvatarView spec={player.avatar} size={46} />
           <span
             aria-hidden
             className="pointer-events-none absolute inset-0 rounded-sm"
@@ -75,7 +75,7 @@ export const PlayerCard = ({
 
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="flex items-baseline gap-1.5">
-            <span className="type-plate truncate text-base text-text">{player.name}</span>
+            <span className="type-plate truncate text-xl text-text">{player.name}</span>
             {isMe && <Label className="shrink-0">you</Label>}
           </span>
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -120,7 +120,7 @@ export const PlayerCard = ({
               aria-pressed={team === value}
               onClick={() => intend({kind: 'setTeam', target: player.id, team: value})}
               className={cx(
-                'type-label h-7 flex-1 cursor-pointer rounded-sm border transition-colors duration-[120ms]',
+                'type-label h-8 flex-1 cursor-pointer rounded-sm border transition-colors duration-[120ms]',
                 team === value
                   ? value === 'red'
                     ? 'border-red-500/60 bg-red-500/15 text-red-lit'
@@ -137,7 +137,7 @@ export const PlayerCard = ({
             label={player.spymaster ? 'Remove as spymaster' : 'Make spymaster'}
             active={player.spymaster}
             disabled={!team}
-            className="size-7"
+            className="size-8"
             onClick={() =>
               intend({kind: 'setSpymaster', target: player.id, spymaster: !player.spymaster})
             }
@@ -148,7 +148,7 @@ export const PlayerCard = ({
           {!player.connected && !isMe && (
             <IconButton
               label={`Give up ${player.name}'s seat`}
-              className="size-7 hover:border-kill-lit/60 hover:text-kill-lit"
+              className="size-8 hover:border-kill-lit/60 hover:text-kill-lit"
               onClick={() => intend({kind: 'removePlayer', target: player.id})}
             >
               <UserMinus className="size-3.5" />

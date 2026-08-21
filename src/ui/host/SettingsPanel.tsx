@@ -29,7 +29,7 @@ const Row = ({label, children}: {label: string; children: React.ReactNode}) => (
 const Readout = ({label, value}: {label: string; value: string}) => (
   <div className="flex items-baseline justify-between gap-3 py-1.5">
     <Label>{label}</Label>
-    <span className="type-read text-xs text-text">{value}</span>
+    <span className="type-read text-sm text-text">{value}</span>
   </div>
 )
 
@@ -84,7 +84,7 @@ const Picker = <T extends string>({
         key={o.value}
         value={o.value}
         className={cx(
-          'type-read cursor-pointer rounded-sm border px-2.5 py-1.5 text-[11px] transition-colors duration-[120ms]',
+          'type-read cursor-pointer rounded-sm border px-3 py-2 text-sm transition-colors duration-[120ms]',
           'border-stage-600 text-text-dim hover:border-gold-500/50 hover:text-text',
           'data-[state=on]:border-lamp-500/70 data-[state=on]:bg-lamp-500/12 data-[state=on]:text-lamp-300'
         )}

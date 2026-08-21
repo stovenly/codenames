@@ -25,7 +25,7 @@ const Item = ({
       animate={invalid && !reduced ? {x: [0, -5, 5, -3, 3, 0]} : {x: 0}}
       transition={{duration: 0.35}}
       className={cx(
-        'inline-flex items-center gap-1.5 rounded-sm border px-2 py-1 text-[11px]',
+        'inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-sm',
         invalid ? 'border-kill-lit bg-kill-lit/12 text-kill-lit' : tone
       )}
     >

@@ -64,11 +64,11 @@ export const CustomWordList = ({size}: {size: BoardSize}) => {
         onChange={e => setText(e.target.value)}
         rows={6}
         placeholder={`One word per line, up to ${MAX_CUSTOM_ENTRIES}`}
-        className={`${input} type-read resize-y text-xs`}
+        className={`${input} type-read resize-y text-sm`}
       />
 
       {text.trim() && (
-        <div className="flex flex-col gap-1 text-[11px]">
+        <div className="flex flex-col gap-1 text-sm">
           <p className="type-read text-text-dim">
             {report.accepted.length} accepted
             {report.droppedDuplicate > 0 && `, ${report.droppedDuplicate} duplicate`}
@@ -99,7 +99,7 @@ export const CustomWordList = ({size}: {size: BoardSize}) => {
           onChange={e => setName(e.target.value)}
           maxLength={24}
           placeholder="Name this list"
-          className={`${input} type-read min-w-0 flex-1 text-xs`}
+          className={`${input} type-read min-w-0 flex-1 text-sm`}
         />
         <Button variant="ghost" size="sm" onClick={save} disabled={!canSave}>
           Save & use

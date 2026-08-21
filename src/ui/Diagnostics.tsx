@@ -96,7 +96,7 @@ export const Diagnostics = () => {
             <Panel level={2} className="max-h-[70vh] overflow-y-auto p-4 backdrop-blur">
               <div className="flex items-center justify-between gap-3">
                 <Heading>Connection</Heading>
-                <IconButton label="Close" onClick={() => setOpen(false)} className="size-7">
+                <IconButton label="Close" onClick={() => setOpen(false)} className="size-8">
                   <X className="size-3.5" />
                 </IconButton>
               </div>
@@ -131,7 +131,7 @@ export const Diagnostics = () => {
                 ) : (
                   report.peers.map(p => (
                     <div key={p.playerId} className="flex items-center justify-between gap-2">
-                      <span className="type-read text-[11px] text-text">{p.playerId.slice(0, 6)}</span>
+                      <span className="type-read text-sm text-text">{p.playerId.slice(0, 6)}</span>
                       <Label>
                         {p.ice}
                         {p.relayed ? ' · relayed' : ''}

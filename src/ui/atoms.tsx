@@ -73,7 +73,7 @@ export const Label = ({children, className}: {children: ReactNode; className?: s
 )
 
 export const Heading = ({children, className}: {children: ReactNode; className?: string}) => (
-  <h2 className={cx('type-marquee text-[11px] tracking-[0.14em] text-gold-200', className)}>
+  <h2 className={cx('type-marquee text-sm tracking-[0.12em] text-gold-200', className)}>
     {children}
   </h2>
 )
@@ -94,9 +94,9 @@ const button = cva(
         quiet: 'border-transparent text-text-dim hover:text-gold-200 disabled:text-text-dim/40'
       },
       size: {
-        sm: 'px-3 py-1.5 text-[10px]',
-        md: 'px-5 py-2.5 text-[11px]',
-        lg: 'px-7 py-3.5 text-sm'
+        sm: 'px-3.5 py-2 text-xs',
+        md: 'px-5 py-2.5 text-sm',
+        lg: 'px-8 py-4 text-base'
       }
     },
     defaultVariants: {variant: 'primary', size: 'md'}
@@ -128,7 +128,7 @@ export const Button = ({
 }
 
 const chip = cva(
-  'type-read cursor-pointer rounded-sm border px-2.5 py-1.5 text-[11px] transition-colors duration-[120ms]',
+  'type-read cursor-pointer rounded-sm border px-3 py-2 text-sm transition-colors duration-[120ms]',
   {
     variants: {
       active: {
@@ -192,7 +192,7 @@ export const IconButton = ({
           whileTap={reduced || rest.disabled ? undefined : {scale: 0.92}}
           transition={spring.firm}
           className={cx(
-            'grid size-9 shrink-0 cursor-pointer place-items-center rounded-md border transition-colors duration-[120ms] disabled:cursor-not-allowed disabled:opacity-40',
+            'grid size-10 shrink-0 cursor-pointer place-items-center rounded-md border transition-colors duration-[120ms] disabled:cursor-not-allowed disabled:opacity-40',
             active
               ? 'border-lamp-500/70 bg-lamp-500/12 text-lamp-300'
               : 'border-stage-600 bg-stage-800/80 text-text-dim hover:border-gold-500/60 hover:text-gold-200',
@@ -207,7 +207,7 @@ export const IconButton = ({
         <Tooltip.Content
           side="top"
           sideOffset={8}
-          className="type-label z-50 rounded-sm border border-stage-600 bg-stage-900 px-2 py-1 text-text shadow-3"
+          className="type-label z-50 rounded-sm border border-stage-600 bg-stage-900 px-2.5 py-1.5 text-text shadow-3"
         >
           {label}
         </Tooltip.Content>
@@ -235,7 +235,7 @@ export const Field = ({
 )
 
 export const input =
-  'type-read w-full rounded-md border border-stage-600 bg-stage-000/70 px-3 py-2.5 text-sm text-text transition-colors placeholder:text-text-dim/45 focus:border-lamp-500/60'
+  'type-read w-full rounded-md border border-stage-600 bg-stage-000/70 px-3.5 py-3 text-base text-text transition-colors placeholder:text-text-dim/45 focus:border-lamp-500/60'
 
 /* ----------------------------------------------------------------- glyphs */
 

@@ -115,7 +115,7 @@ export const HostPanel = () => {
             </ToggleGroup.Root>
 
             <Dialog.Close asChild>
-              <IconButton label="Close" className="size-7">
+              <IconButton label="Close" className="size-8">
                 <X className="size-3.5" />
               </IconButton>
             </Dialog.Close>
@@ -160,7 +160,7 @@ export const HostPanel = () => {
                           type="button"
                           onClick={() => intend({kind: 'jump', cursor: row.index + 1})}
                           className={cx(
-                            'type-read flex w-full cursor-pointer items-baseline justify-between gap-2 rounded-sm px-2 py-1 text-left text-[11px] transition-colors duration-[120ms] hover:bg-stage-700/60',
+                            'type-read flex w-full cursor-pointer items-baseline justify-between gap-2 rounded-sm px-2 py-1.5 text-left text-sm transition-colors duration-[120ms] hover:bg-stage-700/60',
                             row.index < shared.cursor ? 'text-text' : 'text-text-dim/40',
                             row.index + 1 === shared.cursor && 'bg-lamp-500/10 text-lamp-300'
                           )}
@@ -211,14 +211,14 @@ export const HostPanel = () => {
                           key={p.id}
                           className="flex items-center justify-between gap-2 rounded-sm border border-dashed border-stage-600 px-2.5 py-1.5"
                         >
-                          <span className="type-read truncate text-xs text-text-dim">
+                          <span className="type-read truncate text-sm text-text-dim">
                             {p.name}
                             {p.team && <span className="ml-2 opacity-60">{p.team}</span>}
                             {p.spymaster && <span className="ml-1.5 opacity-60">spymaster</span>}
                           </span>
                           <IconButton
                             label={`Give up ${p.name}'s seat`}
-                            className="size-7 hover:border-kill-lit/60 hover:text-kill-lit"
+                            className="size-8 hover:border-kill-lit/60 hover:text-kill-lit"
                             onClick={() => intend({kind: 'removePlayer', target: p.id})}
                           >
                             <UserMinus className="size-3.5" />
@@ -242,7 +242,7 @@ export const HostPanel = () => {
                       value={pass}
                       onChange={e => setPass(e.target.value)}
                       placeholder="New password"
-                      className={cx(input, 'min-w-0 flex-1 text-xs')}
+                      className={cx(input, 'min-w-0 flex-1 text-sm')}
                     />
                     <Button
                       variant="ghost"

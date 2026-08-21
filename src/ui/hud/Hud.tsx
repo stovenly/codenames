@@ -29,7 +29,7 @@ const Score = ({team, left, active}: {team: Team; left: number; active: boolean}
     </span>
     <NumberFlow
       value={left}
-      className={cx('type-marquee text-3xl leading-none', team === 'red' ? 'text-red-lit' : 'text-blue-lit')}
+      className={cx('type-marquee text-4xl leading-none', team === 'red' ? 'text-red-lit' : 'text-blue-lit')}
       style={{
         textShadow:
           team === 'red' ? '0 0 18px rgba(255,122,92,.5)' : '0 0 18px rgba(111,182,255,.5)'
@@ -68,14 +68,14 @@ const ClueComposer = ({size}: {size: number}) => {
         maxLength={40}
         className={cx(
           input,
-          'min-w-32 flex-1 border-lamp-500/40 text-base tracking-[0.14em] uppercase placeholder:text-xs placeholder:tracking-normal placeholder:normal-case'
+          'min-w-32 flex-1 border-lamp-500/40 text-lg tracking-[0.12em] uppercase placeholder:text-sm placeholder:tracking-normal placeholder:normal-case'
         )}
       />
       <div className="flex items-center gap-1">
         <Button variant="ghost" size="sm" aria-label="Fewer" onClick={() => step(-1)}>
           <Minus className="size-3.5" />
         </Button>
-        <span className="type-marquee w-9 text-center text-lg text-lamp-300">
+        <span className="type-marquee w-10 text-center text-xl text-lamp-300">
           {count === 'unlimited' ? '∞' : count}
         </span>
         <Button variant="ghost" size="sm" aria-label="More" onClick={() => step(1)}>
@@ -124,7 +124,7 @@ export const Hud = ({
               initial={reduced ? {opacity: 0} : {opacity: 0, y: 8}}
               animate={{opacity: 1, y: 0}}
               transition={spring.firm}
-              className="type-marquee text-xl leading-tight text-text sm:text-2xl"
+              className="type-marquee text-2xl leading-tight text-text sm:text-3xl"
               style={{textShadow: '0 0 20px rgba(255,197,61,.28)'}}
             >
               {view.clue.word}
