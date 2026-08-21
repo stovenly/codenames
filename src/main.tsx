@@ -1,10 +1,12 @@
 import {StrictMode} from 'react'
 import {createRoot} from 'react-dom/client'
-import {Placeholder} from './ui/screens/Placeholder'
+import {Diagnostics} from './ui/Diagnostics'
+import {Echo} from './ui/screens/Echo'
 import './index.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Placeholder />
+    <Echo />
+    <Diagnostics />
   </StrictMode>
 )
