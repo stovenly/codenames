@@ -732,3 +732,12 @@ export const useRoom = () =>
     () => snapshot,
     () => snapshot
   )
+
+export const getRoom = () => snapshot
+
+export const subscribeRoom = (listener: () => void) => {
+  listeners.add(listener)
+  return () => {
+    listeners.delete(listener)
+  }
+}

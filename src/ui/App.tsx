@@ -7,6 +7,7 @@ import * as words from '../state/words'
 import {Diagnostics} from './Diagnostics'
 import {Panel} from './atoms'
 import {spring} from './motion'
+import {Game} from './screens/Game'
 import {Landing} from './screens/Landing'
 import {Waiting} from './screens/Waiting'
 
@@ -63,9 +64,7 @@ export const App = () => {
           <p className="type-mono animate-pulse text-sm text-text-dim">Connecting…</p>
         </main>
       ) : view && view.phase !== 'setup' ? (
-        <main className="flex min-h-full items-center justify-center">
-          <p className="type-mono text-sm text-text-dim">Game in progress…</p>
-        </main>
+        <Game />
       ) : (
         <Waiting />
       )}
