@@ -1,13 +1,11 @@
 import * as Popover from '@radix-ui/react-popover'
 import * as Slider from '@radix-ui/react-slider'
-import {motion} from 'motion/react'
 import {Dices, Pipette} from 'lucide-react'
-import {useEffect, useRef, useState} from 'react'
+import {useEffect, useState} from 'react'
 import {HexColorPicker} from 'react-colorful'
 import type {Avatar as AvatarSpec} from '../../game/types'
 import {IconButton, Label, Panel, input} from '../atoms'
 import {cx} from '../cx'
-import {useMotion} from '../motion'
 import {AvatarView} from './Avatar'
 import {BACKGROUNDS, STYLES, VARIANTS} from './styles'
 
@@ -78,53 +76,21 @@ export const AvatarPicker = ({
   value: AvatarSpec
   onChange: (next: AvatarSpec) => void
 }) => {
-  const [spinning, setSpinning] = useState(false)
-  const [preview, setPreview] = useState(value)
-  const timers = useRef<ReturnType<typeof setTimeout>[]>([])
-  const {reduced} = useMotion()
-
   const style = STYLES[styleIndex(value.style)]!
   const variant = variantIndex(value.seed)
 
-  useEffect(() => setPreview(value), [value])
-  useEffect(() => () => timers.current.forEach(clearTimeout), [])
-
-  /** The reroll is the fun part, so it lands rather than snapping. */
+  /** Never lands on the one already showing, which reads as a broken button. */
   const roll = () => {
-    const landing = {...value, seed: String(Math.floor(Math.random() * VARIANTS))}
-    if (reduced) {
-      onChange(landing)
-      return
-    }
-    setSpinning(true)
-    timers.current.forEach(clearTimeout)
-    timers.current = []
-
-    const gaps = [0, 90, 200, 340, 500]
-    gaps.forEach((gap, i) => {
-      timers.current.push(
-        setTimeout(() => {
-          if (i === gaps.length - 1) {
-            setSpinning(false)
-            onChange(landing)
-          } else {
-            setPreview({...value, seed: String(Math.floor(Math.random() * VARIANTS))})
-          }
-        }, gap)
-      )
-    })
+    const next = (variant + 1 + Math.floor(Math.random() * (VARIANTS - 1))) % VARIANTS
+    onChange({...value, seed: String(next)})
   }
 
   return (
     <Panel className="flex flex-col gap-5 p-4">
       <div className="flex items-center gap-4">
-        <motion.div
-          animate={spinning && !reduced ? {rotate: [0, -4, 4, 0], scale: [1, 1.06, 1]} : {}}
-          transition={{duration: 0.18, repeat: spinning ? Infinity : 0}}
-          className="shrink-0 rounded-md bg-stage-000 p-1.5 ring-1 ring-gold-500/35"
-        >
-          <AvatarView spec={spinning ? preview : value} size={84} />
-        </motion.div>
+        <span className="shrink-0 rounded-md bg-stage-000 p-1.5 ring-1 ring-gold-500/35">
+          <AvatarView spec={value} size={84} />
+        </span>
 
         <div className="flex flex-1 flex-col gap-2.5">
           <div className="flex items-center justify-between gap-3">
