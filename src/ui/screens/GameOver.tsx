@@ -3,7 +3,7 @@ import {useEffect, useRef} from 'react'
 import type {View} from '../../game/reducer'
 import type {Player, Team} from '../../game/types'
 import {intend} from '../../state/room'
-import {Button, Panel} from '../atoms'
+import {Button, Label, Panel, Rule} from '../atoms'
 import {spring, useReducedMotion} from '../motion'
 import {sfx} from '../sound/audio'
 
@@ -76,7 +76,7 @@ export const GameOver = ({
         }}
       />
 
-      <Panel className="relative z-20 flex max-w-md flex-col items-center gap-6 px-8 py-10 text-center">
+      <Panel level={2} marks className="relative z-20 flex max-w-md flex-col items-center gap-6 px-10 py-12 text-center">
         <motion.span
           initial={reduced ? {opacity: 0} : {scale: 0.4, opacity: 0, rotate: -8}}
           animate={{scale: 1, opacity: 1, rotate: 0}}
@@ -95,12 +95,14 @@ export const GameOver = ({
           initial={{opacity: 0, y: 8}}
           animate={{opacity: 1, y: 0}}
           transition={{delay: reduced ? 0 : 0.35, ...spring.soft}}
-          className="text-sm text-text-dim"
+          className="type-body"
         >
           {view.endReason === 'assassin'
             ? 'The other team found the assassin.'
             : 'Every agent accounted for.'}
         </motion.p>
+
+        <Rule className="max-w-40" />
 
         <motion.div
           initial={{opacity: 0}}
@@ -108,7 +110,7 @@ export const GameOver = ({
           transition={{delay: reduced ? 0 : 0.6}}
           className="flex items-center gap-4"
         >
-          <span className="type-mono text-xs text-text-dim">
+          <span className="type-read text-xs text-text-dim">
             <span className="text-red-glow">{view.totals.red - view.remaining.red}</span>
             {' / '}
             <span className="text-red-glow/60">{view.totals.red}</span>
@@ -122,7 +124,7 @@ export const GameOver = ({
         {isHost ? (
           <Button onClick={() => intend({kind: 'endGame'})}>Back to the waiting room</Button>
         ) : (
-          <p className="type-mono text-[11px] text-text-dim">Waiting on the host to start another…</p>
+          <Label>Waiting on the host to start another…</Label>
         )}
       </Panel>
     </main>

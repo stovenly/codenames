@@ -5,7 +5,7 @@ import type {Step} from '../../game/steps'
 import {validate} from '../../game/settings'
 import {hasPassword, intend, setPassword, useRoom} from '../../state/room'
 import * as words from '../../state/words'
-import {Button, BrassRule, Panel, Pill} from '../atoms'
+import {Button, Chip, Heading, Label, Panel, Rule, input} from '../atoms'
 import {spring, useReducedMotion} from '../motion'
 import {SettingsPanel} from './SettingsPanel'
 
@@ -42,8 +42,8 @@ const Tab = ({
   <button
     type="button"
     onClick={onClick}
-    className={`type-mono cursor-pointer rounded-md px-2.5 py-1.5 text-[11px] transition-colors ${
-      active ? 'bg-brass-400/15 text-brass-200' : 'text-text-dim hover:text-brass-200'
+    className={`type-label cursor-pointer rounded-sm px-2.5 py-1.5 transition-colors duration-[120ms] ${
+      active ? 'bg-brass-400/12 text-brass-200' : 'hover:text-brass-200'
     }`}
   >
     {children}
@@ -88,9 +88,10 @@ export const HostPanel = () => {
         type="button"
         onClick={() => setOpen(v => !v)}
         aria-expanded={open}
-        className="type-mono fixed right-3 bottom-3 z-40 cursor-pointer rounded-full border border-brass-400/50 bg-ink-800/90 px-3 py-1.5 text-[11px] text-brass-200 backdrop-blur hover:bg-ink-700"
+        className="type-label surface-1 fixed right-3 bottom-3 z-40 flex cursor-pointer items-center gap-2 rounded-full border border-brass-400/45 px-3 py-1.5 text-brass-200 shadow-2 backdrop-blur transition-colors duration-[120ms] hover:border-brass-400"
       >
-        host {rewound ? '· rewound' : ''}
+        <span aria-hidden className="size-1.5 rounded-full bg-brass-400" />
+        host{rewound ? ' · rewound' : ''}
       </button>
 
       <AnimatePresence>
@@ -102,7 +103,7 @@ export const HostPanel = () => {
             transition={spring.firm}
             className="fixed right-0 bottom-0 z-40 max-h-[85vh] w-full sm:top-0 sm:right-3 sm:bottom-3 sm:max-h-none sm:w-96"
           >
-            <Panel className="flex h-full flex-col overflow-hidden border-brass-400/40 backdrop-blur sm:my-3">
+            <Panel level={2} className="flex h-full flex-col overflow-hidden border border-brass-400/30 backdrop-blur sm:my-3">
               <div className="flex items-center justify-between gap-2 p-3">
                 <div className="flex gap-1">
                   <Tab active={tab === 'history'} onClick={() => setTab('history')}>
@@ -115,16 +116,12 @@ export const HostPanel = () => {
                     Board
                   </Tab>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="type-mono cursor-pointer px-2 text-text-dim hover:text-brass-200"
-                >
-                  ×
-                </button>
+                <Button variant="quiet" size="sm" aria-label="Close" onClick={() => setOpen(false)}>
+                  Close
+                </Button>
               </div>
 
-              <BrassRule />
+              <Rule />
 
               <div className="flex-1 overflow-y-auto p-3">
                 {tab === 'history' && (
@@ -144,13 +141,13 @@ export const HostPanel = () => {
                       >
                         Redo
                       </Button>
-                      <span className="type-mono ml-auto text-[10px] text-text-dim">
-                        {shared.cursor}/{shared.steps.length}
-                      </span>
+                      <Label className="ml-auto">
+                        {shared.cursor} / {shared.steps.length}
+                      </Label>
                     </div>
 
                     {rows.length === 0 ? (
-                      <p className="text-xs text-text-dim">No steps yet.</p>
+                      <p className="type-body">No steps yet.</p>
                     ) : (
                       <ol className="flex flex-col border-l border-ink-600 pl-3">
                         {rows.map(row => {
@@ -160,7 +157,7 @@ export const HostPanel = () => {
                               <button
                                 type="button"
                                 onClick={() => intend({kind: 'jump', cursor: row.index + 1})}
-                                className={`type-mono flex w-full cursor-pointer items-baseline justify-between gap-2 rounded px-2 py-1 text-left text-[11px] transition-colors hover:bg-ink-700/60 ${
+                                className={`type-mono flex w-full cursor-pointer items-baseline justify-between gap-2 rounded-sm px-2 py-1 text-left text-[11px] transition-colors duration-[120ms] hover:bg-ink-700/60 ${
                                   applied ? 'text-text' : 'text-text-dim/45'
                                 } ${row.index + 1 === shared.cursor ? 'bg-brass-400/10 text-brass-200' : ''}`}
                               >
@@ -181,38 +178,34 @@ export const HostPanel = () => {
                 {tab === 'room' && (
                   <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-2">
-                      <span className="type-mono text-[11px] text-text-dim">Transfer host</span>
+                      <Heading>Transfer host</Heading>
                       {others.length === 0 ? (
-                        <p className="text-xs text-text-dim">Nobody else is connected.</p>
+                        <p className="type-body">Nobody else is connected.</p>
                       ) : (
                         <div className="flex flex-wrap gap-1">
                           {others.map(p => (
-                            <button
-                              key={p.id}
-                              type="button"
-                              onClick={() => intend({kind: 'transferHost', target: p.id})}
-                              className="type-mono cursor-pointer rounded-md border border-ink-600 px-2.5 py-1.5 text-[11px] text-text-dim hover:border-brass-400/50 hover:text-brass-200"
-                            >
+                            <Chip key={p.id} onClick={() => intend({kind: 'transferHost', target: p.id})}>
                               {p.name}
-                            </button>
+                            </Chip>
                           ))}
                         </div>
                       )}
                     </div>
 
-                    <BrassRule />
+                    <Rule />
 
                     <div className="flex flex-col gap-2">
-                      <span className="type-mono text-[11px] text-text-dim">
-                        Lobby password {hasPassword() && <Pill tone="brass">set</Pill>}
-                      </span>
+                      <Heading>
+                        Lobby password
+                        {hasPassword() && <span className="ml-2 text-brass-400/70">· set</span>}
+                      </Heading>
                       <div className="flex gap-2">
                         <input
                           type="password"
                           value={pass}
                           onChange={e => setPass(e.target.value)}
                           placeholder="New password"
-                          className="type-mono min-w-0 flex-1 rounded-md border border-ink-600 bg-ink-900 px-3 py-2 text-xs text-text placeholder:text-text-dim/50"
+                          className={`${input} type-mono min-w-0 flex-1 text-xs`}
                         />
                         <Button
                           variant="ghost"
@@ -224,16 +217,16 @@ export const HostPanel = () => {
                           {pass.trim() ? 'Set' : 'Clear'}
                         </Button>
                       </div>
-                      <p className="text-[11px] text-text-dim">
+                      <p className="type-body text-[11px]">
                         Applies to new joiners. Nobody in the room is disconnected.
                       </p>
                     </div>
 
-                    <BrassRule />
+                    <Rule />
 
                     {view.phase !== 'setup' && (
                       <div className="flex flex-col gap-2">
-                        <span className="type-mono text-[11px] text-text-dim">End this game</span>
+                        <Heading>End this game</Heading>
                         {confirmEnd ? (
                           <div className="flex gap-2">
                             <Button
@@ -255,7 +248,7 @@ export const HostPanel = () => {
                             End game now
                           </Button>
                         )}
-                        <p className="text-[11px] text-text-dim">
+                        <p className="type-body text-[11px]">
                           Discards the current game and returns everyone to the waiting room with
                           teams and settings intact.
                         </p>
@@ -267,7 +260,7 @@ export const HostPanel = () => {
                 {tab === 'config' && (
                   <div className="flex flex-col gap-3">
                     {view.phase !== 'setup' && view.phase !== 'gameover' && (
-                      <p className="type-mono text-[11px] text-brass-200">
+                      <p className="type-label text-brass-200">
                         Locked mid-game. End the game to change the board.
                       </p>
                     )}
@@ -277,7 +270,7 @@ export const HostPanel = () => {
                       wordCount={list.length}
                     />
                     {problems.map(p => (
-                      <p key={p.field} className="type-mono text-[11px] text-red-glow">
+                      <p key={p.field} className="type-label text-red-glow">
                         {p.message}
                       </p>
                     ))}

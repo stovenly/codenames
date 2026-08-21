@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react'
+import type {Transition, Variants} from 'motion/react'
 import {getPrefs, usePrefs} from '../state/prefs'
 
 export const spring = {
@@ -31,8 +32,48 @@ export const useReducedMotion = () => {
   return motion === 'reduced' || (motion === 'system' && system)
 }
 
-/** Springs become instant, set pieces collapse to a fade. */
-export const useTransition = () => {
+/**
+ * One vocabulary, used everywhere. A duration or easing that appears in exactly
+ * one component file is what makes a UI drift, so components pick a name here
+ * rather than inventing a number.
+ */
+const FULL: Record<'enter' | 'pop' | 'settle', Variants> = {
+  enter: {
+    hidden: {opacity: 0, y: 12},
+    shown: {opacity: 1, y: 0, transition: spring.soft}
+  },
+  pop: {
+    hidden: {opacity: 0, scale: 0.94},
+    shown: {opacity: 1, scale: 1, transition: spring.firm}
+  },
+  settle: {
+    hidden: {opacity: 0, y: 20},
+    shown: {opacity: 1, y: 0, transition: spring.heavy}
+  }
+}
+
+const FLAT: Variants = {
+  hidden: {opacity: 0},
+  shown: {opacity: 1, transition: {duration: duration.feedback}}
+}
+
+/** 40ms between siblings; anything longer and a full roster crawls in. */
+const staggerFor = (reduced: boolean): Variants => ({
+  hidden: {},
+  shown: {
+    transition: reduced ? {} : {staggerChildren: 0.04, delayChildren: 0.02, when: 'beforeChildren'}
+  }
+})
+
+export const useMotion = () => {
   const reduced = useReducedMotion()
-  return reduced ? {duration: duration.feedback} : spring.soft
+  return {
+    reduced,
+    enter: reduced ? FLAT : FULL.enter,
+    pop: reduced ? FLAT : FULL.pop,
+    settle: reduced ? FLAT : FULL.settle,
+    stagger: staggerFor(reduced),
+    /** Springs become instant; anything physical becomes a fade. */
+    transition: (reduced ? {duration: duration.feedback} : spring.soft) as Transition
+  }
 }

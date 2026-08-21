@@ -202,7 +202,7 @@ const CardBase = ({
               ? '0 18px 40px -18px rgba(0,0,0,1), 0 0 0 2px rgba(217,164,65,.85)'
               : '0 10px 26px -16px rgba(0,0,0,.95)'
       }}
-      className={`relative grid aspect-[7/5] w-full place-items-center overflow-hidden rounded-lg border text-center transition-[filter] ${
+      className={`paper relative grid aspect-[7/5] w-full place-items-center overflow-hidden rounded-lg border text-center transition-[filter] ${
         faceUp ? 'border-black/25' : 'border-ink-600'
       } ${interactive ? 'cursor-pointer' : 'cursor-default'} ${
         card.revealed && phase === 'idle' ? 'saturate-[0.72] brightness-90' : ''
@@ -314,15 +314,9 @@ const CardBase = ({
         />
       )}
 
-      <span aria-hidden className="pointer-events-none absolute inset-0 rounded-lg shadow-[inset_0_1px_0_rgba(255,255,255,.07),inset_0_-2px_6px_rgba(0,0,0,.35)]" />
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.055] mix-blend-overlay"
-        style={{
-          backgroundImage:
-            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='60' height='60' filter='url(%23n)'/%3E%3C/svg%3E\")",
-          backgroundSize: '60px 60px'
-        }}
+        className="pointer-events-none absolute inset-0 rounded-lg shadow-[inset_0_1px_0_rgba(255,255,255,.07),inset_0_-2px_6px_rgba(0,0,0,.35)]"
       />
       <span className="sr-only">{index + 1}</span>
     </motion.button>

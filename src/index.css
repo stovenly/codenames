@@ -28,6 +28,17 @@
   --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SFMono-Regular', monospace;
   --font-body: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
 
+  --radius-xs: 3px;
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* Elevation is a scale, not a decoration: 1 flat, 4 mid-interaction. */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-2: 0 8px 22px -14px rgba(0, 0, 0, 0.95);
+  --shadow-3: 0 18px 44px -20px rgba(0, 0, 0, 1);
+  --shadow-4: 0 30px 70px -20px rgba(0, 0, 0, 1);
+
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-heavy: cubic-bezier(0.55, 0, 1, 0.45);
 }
@@ -45,7 +56,6 @@
 
 /* Set by the reduced-motion store; the media query is the floor, this is the override. */
 :root[data-motion='reduced'] {
-  --dur-feedback: 120ms;
   --dur-state: 120ms;
   --dur-set: 120ms;
 }
@@ -70,7 +80,9 @@ body,
 
 body {
   margin: 0;
-  background: var(--color-ink-900);
+  background-color: var(--color-ink-900);
+  background-image: radial-gradient(130% 75% at 50% -15%, #0C1424 0%, transparent 62%);
+  background-attachment: fixed;
   color: var(--color-text);
   font-family: var(--font-body);
   font-synthesis-weight: none;
@@ -83,12 +95,27 @@ body {
 :focus-visible {
   outline: 2px solid var(--color-brass-400);
   outline-offset: 2px;
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
 }
 
 button {
   font: inherit;
   color: inherit;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--color-brass-400) 35%, transparent);
+}
+
+/* ------------------------------------------------------------------ type */
+
+@utility type-title {
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 0.92;
+  text-transform: uppercase;
 }
 
 @utility type-display {
@@ -99,32 +126,111 @@ button {
   text-transform: uppercase;
 }
 
+@utility type-heading {
+  font-family: var(--font-display);
+  font-stretch: 118%;
+  font-weight: 700;
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-brass-200);
+}
+
+/** The stencil on a filing box: names a control, never explains it. */
+@utility type-label {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+
 @utility type-mono {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+}
+
+@utility type-read {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+
+@utility type-body {
+  font-size: 0.8125rem;
+  line-height: 1.65;
+  color: var(--color-text-dim);
+}
+
+/* -------------------------------------------------------------- surfaces */
+
+@utility surface-1 {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, transparent 1px),
+    var(--color-ink-800);
+}
+
+@utility surface-2 {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 1px),
+    var(--color-ink-700);
+}
+
+/** Every raised surface shares one grain tile, so nothing looks like a different material. */
+@utility paper {
+  position: relative;
+  isolation: isolate;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='80' height='80' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 80px 80px;
+    border-radius: inherit;
+  }
+}
+
+/* A printed rule fades at both ends; a 1px line edge to edge is a browser default. */
+@utility rule {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--color-ink-600) 90%, transparent) 12%,
+    color-mix(in oklab, var(--color-ink-600) 90%, transparent) 88%,
+    transparent
+  );
+}
+
+@utility rule-brass {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--color-brass-400) 55%, transparent) 15%,
+    color-mix(in oklab, var(--color-brass-400) 55%, transparent) 85%,
+    transparent
+  );
 }
 
 /* Team identity never rides on hue alone: hatch for red, dots for blue. */
 @utility pattern-red {
   background-image: repeating-linear-gradient(
     45deg,
-    color-mix(in oklab, var(--team-red) 55%, transparent) 0 2px,
+    color-mix(in oklab, var(--team-red) 45%, transparent) 0 2px,
     transparent 2px 7px
   );
 }
 
 @utility pattern-blue {
   background-image: radial-gradient(
-    color-mix(in oklab, var(--team-blue) 55%, transparent) 1.2px,
+    color-mix(in oklab, var(--team-blue) 45%, transparent) 1.2px,
     transparent 1.4px
   );
   background-size: 7px 7px;
-}
-
-@utility grain {
-  position: relative;
-}
-
-@utility rule-brass {
-  border-color: color-mix(in oklab, var(--color-brass-400) 45%, transparent);
 }

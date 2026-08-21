@@ -2,7 +2,7 @@ import {AnimatePresence, motion} from 'motion/react'
 import {useEffect, useState} from 'react'
 import {refreshStats, roomId, self, useNet} from '../state/net'
 import {setPrefs, usePrefs} from '../state/prefs'
-import {Button, BrassRule, Panel, Pill} from './atoms'
+import {Button, Heading, Label, Panel, Pill, Rule} from './atoms'
 import {spring, useReducedMotion} from './motion'
 
 const Toggle = ({
@@ -19,9 +19,9 @@ const Toggle = ({
     role="switch"
     aria-checked={on}
     onClick={onClick}
-    className="flex cursor-pointer items-center justify-between gap-3 rounded-md border border-ink-600 px-3 py-2 text-left transition-colors hover:border-brass-400/50"
+    className="flex cursor-pointer items-center justify-between gap-3 rounded-sm border border-ink-600 px-3 py-2 text-left transition-colors duration-[120ms] hover:border-brass-400/45"
   >
-    <span className="type-mono text-[11px] text-text-dim">{label}</span>
+    <Label>{label}</Label>
     <span
       className={`relative h-4 w-8 shrink-0 rounded-full transition-colors ${
         on ? 'bg-brass-400' : 'bg-ink-600'
@@ -126,37 +126,37 @@ export const Diagnostics = () => {
             transition={spring.firm}
             className="fixed bottom-14 left-3 z-40 w-[min(92vw,26rem)]"
           >
-            <Panel className="max-h-[70vh] overflow-y-auto p-4 backdrop-blur">
+            <Panel level={2} className="max-h-[70vh] overflow-y-auto p-4 backdrop-blur">
               <div className="flex items-baseline justify-between gap-3">
-                <h2 className="type-display text-sm text-brass-200">Diagnostics</h2>
-                <span className="type-mono text-[11px] text-text-dim">
+                <Heading>Diagnostics</Heading>
+                <Label>
                   {roomId} · {self.slice(0, 6)}
-                </span>
+                </Label>
               </div>
 
-              <BrassRule className="my-3" />
+              <Rule className="my-3" />
 
               <section className="flex flex-col gap-2">
                 {report.transports.map(t => (
                   <div key={t.name} className="flex items-center justify-between gap-2">
                     <Pill tone={STATUS_TONE[t.status]}>{t.name}</Pill>
-                    <span className="type-mono text-[11px] text-text-dim">
+                    <span className="type-label">
                       {t.error ?? `${t.relaysOpen}/${t.relaysTotal} relays · ${t.peers} links`}
                     </span>
                   </div>
                 ))}
               </section>
 
-              <BrassRule className="my-3" />
+              <Rule className="my-3" />
 
               <section className="flex flex-col gap-2">
                 {report.peers.length === 0 ? (
-                  <p className="text-xs text-text-dim">No peers yet.</p>
+                  <p className="type-body">No peers yet.</p>
                 ) : (
                   report.peers.map(p => (
                     <div key={p.playerId} className="flex items-center justify-between gap-2">
                       <span className="type-mono text-[11px] text-text">{p.playerId.slice(0, 6)}</span>
-                      <span className="type-mono text-[11px] text-text-dim">
+                      <span className="type-label">
                         {p.ice}
                         {p.relayed ? ' · TURN' : ''}
                         {p.rttMs === null ? '' : ` · ${Math.round(p.rttMs)}ms`} · {p.transports.join('+')}
@@ -166,19 +166,19 @@ export const Diagnostics = () => {
                 )}
               </section>
 
-              <BrassRule className="my-3" />
+              <Rule className="my-3" />
 
-              <p className="type-mono text-[11px] text-text-dim">
+              <p className="type-label">
                 direct {report.router.directPeers} · sent {report.router.sent} · recv{' '}
                 {report.router.received} · fwd {report.router.forwarded} · dup {report.router.dropped}
               </p>
 
-              <p className="mt-3 text-xs leading-relaxed text-text-dim">{advice(report)}</p>
+              <p className="type-body mt-3">{advice(report)}</p>
 
-              <BrassRule className="my-3" />
+              <Rule className="my-3" />
 
               <section className="flex flex-col gap-1.5">
-                <h3 className="type-display text-[11px] text-brass-200">Display</h3>
+                <Heading>Display</Heading>
                 <Toggle
                   label="Reduce motion"
                   on={reduced}
@@ -193,7 +193,7 @@ export const Diagnostics = () => {
               </section>
 
               <div className="mt-4">
-                <Button variant="ghost" onClick={copy} className="w-full">
+                <Button variant="ghost" size="sm" onClick={copy} className="w-full">
                   {copied ? 'Copied' : 'Copy diagnostics'}
                 </Button>
               </div>

@@ -5,37 +5,43 @@ import type {Player, Team} from '../../game/types'
 import {myMark} from '../../state/presence'
 import {getPrefs, setPrefs, usePrefs} from '../../state/prefs'
 import {intend} from '../../state/room'
-import {Button, Glyph, Panel} from '../atoms'
-import {spring, useReducedMotion} from '../motion'
+import {Button, Glyph, Label, Panel, input} from '../atoms'
+import {spring, useMotion} from '../motion'
 import {sfx} from '../sound/audio'
 import {TimerArc} from './TimerArc'
 
 const Score = ({team, left, total, active}: {team: Team; left: number; total: number; active: boolean}) => {
-  const reduced = useReducedMotion()
+  const {reduced} = useMotion()
   return (
     <motion.div
-      animate={{opacity: active ? 1 : 0.55, scale: active && !reduced ? 1.04 : 1}}
+      animate={{opacity: active ? 1 : 0.4}}
       transition={spring.firm}
-      className={`flex items-center gap-2 rounded-md border px-3 py-1.5 ${
-        team === 'red' ? 'pattern-red border-red-500/45' : 'pattern-blue border-blue-500/45'
-      }`}
+      className="flex shrink-0 items-center gap-2"
     >
-      <span className={team === 'red' ? 'text-red-glow' : 'text-blue-glow'}>
+      <span
+        className={`grid size-7 place-items-center rounded-sm ${
+          team === 'red' ? 'pattern-red text-red-glow' : 'pattern-blue text-blue-glow'
+        }`}
+      >
         <Glyph team={team} />
       </span>
-      <AnimatePresence mode="popLayout" initial={false}>
-        <motion.span
-          key={left}
-          initial={reduced ? {opacity: 0} : {y: 12, opacity: 0}}
-          animate={{y: 0, opacity: 1}}
-          exit={reduced ? {opacity: 0} : {y: -12, opacity: 0}}
-          transition={spring.firm}
-          className={`type-display text-xl ${team === 'red' ? 'text-red-glow' : 'text-blue-glow'}`}
-        >
-          {left}
-        </motion.span>
-      </AnimatePresence>
-      <span className="type-mono text-[10px] text-text-dim">/ {total}</span>
+      <span className="flex items-baseline gap-1">
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.span
+            key={left}
+            initial={reduced ? {opacity: 0} : {y: 14, opacity: 0}}
+            animate={{y: 0, opacity: 1}}
+            exit={reduced ? {opacity: 0} : {y: -14, opacity: 0}}
+            transition={spring.firm}
+            className={`type-display text-2xl leading-none ${
+              team === 'red' ? 'text-red-glow' : 'text-blue-glow'
+            }`}
+          >
+            {left}
+          </motion.span>
+        </AnimatePresence>
+        <Label>/{total}</Label>
+      </span>
     </motion.div>
   )
 }
@@ -53,34 +59,32 @@ const ClueComposer = ({size}: {size: number}) => {
     setCount(1)
   }
 
+  const step = (delta: 1 | -1) =>
+    setCount(c => {
+      if (delta === -1) return c === 'unlimited' ? max : Math.max(0, Number(c) - 1)
+      return c === 'unlimited' || Number(c) + 1 > max ? 'unlimited' : Number(c) + 1
+    })
+
   return (
-    <div className="flex flex-1 flex-wrap items-center gap-2">
+    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-1">
       <input
         value={word}
         onChange={e => setWord(e.target.value)}
         onKeyDown={e => e.key === 'Enter' && submit()}
         placeholder="Your clue"
         maxLength={40}
-        className="type-mono min-w-32 flex-1 rounded-md border border-brass-400/40 bg-ink-900 px-3 py-2 text-sm tracking-wider text-text uppercase placeholder:normal-case placeholder:text-text-dim/50"
+        className={`${input} type-read min-w-32 flex-1 border-brass-400/30 text-base tracking-[0.12em] uppercase placeholder:text-xs placeholder:tracking-normal placeholder:normal-case`}
       />
       <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={() => setCount(c => (c === 'unlimited' ? max : Math.max(0, Number(c) - 1)))}
-          className="type-mono size-8 cursor-pointer rounded-md border border-ink-600 text-text-dim hover:border-brass-400/50"
-        >
+        <Button variant="ghost" size="sm" aria-label="Fewer" onClick={() => step(-1)}>
           −
-        </button>
-        <span className="type-mono w-8 text-center text-sm text-brass-200">
+        </Button>
+        <span className="type-display w-9 text-center text-lg text-brass-200">
           {count === 'unlimited' ? '∞' : count}
         </span>
-        <button
-          type="button"
-          onClick={() => setCount(c => (c === 'unlimited' ? 'unlimited' : Number(c) + 1 > max ? 'unlimited' : Number(c) + 1))}
-          className="type-mono size-8 cursor-pointer rounded-md border border-ink-600 text-text-dim hover:border-brass-400/50"
-        >
+        <Button variant="ghost" size="sm" aria-label="More" onClick={() => step(1)}>
           +
-        </button>
+        </Button>
       </div>
       <Button onClick={submit} disabled={!word.trim()}>
         Give clue
@@ -88,6 +92,8 @@ const ClueComposer = ({size}: {size: number}) => {
     </div>
   )
 }
+
+const Divider = () => <span aria-hidden className="hidden h-8 w-px bg-ink-600 sm:block" />
 
 export const Hud = ({
   view,
@@ -113,40 +119,40 @@ export const Hud = ({
   const canAct = myTurn && !amSpymaster && view.phase === 'guess' && !busy
 
   return (
-    <Panel className="flex flex-wrap items-center gap-3 p-3">
+    <Panel level={2} className="flex flex-wrap items-center gap-x-5 gap-y-3 px-4 py-3">
       <Score team="red" left={view.remaining.red} total={view.totals.red} active={view.turn === 'red'} />
-      <Score team="blue" left={view.remaining.blue} total={view.totals.blue} active={view.turn === 'blue'} />
 
-      {deadline !== null && timerTotal > 0 && <TimerArc deadline={deadline} total={timerTotal} />}
+      <Divider />
 
-      <div className="flex min-w-40 flex-1 flex-col">
+      <div className="flex min-w-44 flex-1 flex-col justify-center">
         {view.clue ? (
           <>
-            <span className="type-mono text-base tracking-widest text-text">
-              {view.clue.word}{' '}
-              <span className="text-brass-200">
+            <span className="type-read text-xl leading-tight text-text">
+              {view.clue.word}
+              <span className="ml-2 text-brass-200">
                 {view.clue.count === 'unlimited' || view.clue.count === 0 ? '∞' : view.clue.count}
               </span>
             </span>
-            <span className="type-mono text-[10px] text-text-dim">
+            <Label>
               {view.unlimited
                 ? 'unlimited guesses'
                 : `${Math.max(0, view.guessesLeft)} guess${view.guessesLeft === 1 ? '' : 'es'} left`}
-            </span>
+            </Label>
           </>
         ) : (
-          <span
-            className="type-mono text-xs text-text-dim"
-            aria-live="polite"
-          >
-            {view.phase === 'clue'
-              ? `Waiting on the ${view.turn} spymaster`
-              : view.phase === 'gameover'
-                ? 'Game over'
-                : ''}
-          </span>
+          <Label>
+            <span aria-live="polite">
+              {view.phase === 'clue'
+                ? `Waiting on the ${view.turn} spymaster`
+                : view.phase === 'gameover'
+                  ? 'Game over'
+                  : ''}
+            </span>
+          </Label>
         )}
       </div>
+
+      {deadline !== null && timerTotal > 0 && <TimerArc deadline={deadline} total={timerTotal} />}
 
       {canClue && <ClueComposer size={size} />}
 
@@ -155,9 +161,9 @@ export const Hud = ({
           <AnimatePresence>
             {armed !== null && (
               <motion.div
-                initial={{opacity: 0, scale: 0.9}}
+                initial={{opacity: 0, scale: 0.92}}
                 animate={{opacity: 1, scale: 1}}
-                exit={{opacity: 0, scale: 0.9}}
+                exit={{opacity: 0, scale: 0.92}}
                 transition={spring.firm}
               >
                 <Button onClick={() => intend({kind: 'guess', card: armed})}>
@@ -177,17 +183,21 @@ export const Hud = ({
         </div>
       )}
 
-      <button
-        type="button"
+      <Divider />
+
+      <Score team="blue" left={view.remaining.blue} total={view.totals.blue} active={view.turn === 'blue'} />
+
+      <Button
+        variant="quiet"
+        size="sm"
         aria-label={muted ? 'Unmute' : 'Mute'}
         onClick={() => {
           setPrefs({muted: !getPrefs().muted})
           if (muted) sfx.arm()
         }}
-        className="type-mono ml-auto cursor-pointer rounded-md border border-ink-600 px-2.5 py-1.5 text-[11px] text-text-dim hover:border-brass-400/50 hover:text-brass-200"
       >
-        {muted ? 'muted' : 'sound'}
-      </button>
+        {muted ? 'Muted' : 'Sound'}
+      </Button>
     </Panel>
   )
 }

@@ -1,15 +1,12 @@
-import {motion} from 'motion/react'
 import {useState} from 'react'
 import {joinedExisting} from '../../state/net'
 import {createRoom, joinRoom, myDisplayName} from '../../state/room'
-import {Button, BrassRule, Panel, Pill} from '../atoms'
-import {spring, useReducedMotion} from '../motion'
+import {Button, Field, Item, Label, Panel, Rule, Stack, input} from '../atoms'
 
-export const Landing = ({needsPassword}: {needsPassword: boolean}) => {
+export const Landing = ({needsPassword: rejected}: {needsPassword: boolean}) => {
   const [name, setName] = useState(myDisplayName())
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
-  const reduced = useReducedMotion()
 
   const go = async () => {
     const trimmed = name.trim()
@@ -22,62 +19,70 @@ export const Landing = ({needsPassword}: {needsPassword: boolean}) => {
   }
 
   return (
-    <main className="mx-auto flex min-h-full max-w-lg flex-col justify-center gap-7 px-6 py-16">
-      <motion.header
-        initial={reduced ? {opacity: 0} : {opacity: 0, y: 18}}
-        animate={{opacity: 1, y: 0}}
-        transition={spring.soft}
-        className="flex flex-col gap-3"
-      >
-        <Pill tone="brass">Briefing room</Pill>
-        <h1 className="type-display text-5xl leading-none text-brass-200">Codenames</h1>
-        <p className="text-sm text-text-dim">
-          {joinedExisting
-            ? 'You have been invited to a room. Pick a name to take a seat.'
-            : 'Peer to peer, no server, no accounts. Create a room and share the link.'}
-        </p>
-      </motion.header>
+    <main className="mx-auto flex min-h-full w-full max-w-5xl flex-col justify-center px-6 py-16">
+      <Stack className="flex flex-col gap-10 sm:gap-14">
+        <Item variant="settle" className="flex flex-col gap-4">
+          <Label className="text-brass-400/70">Briefing room · classified</Label>
+          <h1 className="type-title text-[clamp(3.5rem,13vw,9rem)] text-brass-200">
+            Code
+            <span className="text-text">names</span>
+          </h1>
+          <div className="max-w-lg">
+            <Rule />
+          </div>
+          <p className="type-body max-w-sm">
+            {joinedExisting
+              ? 'Someone has sent you a room. Take a seat, pick a side, and wait for the briefing.'
+              : 'Peer to peer, no server, no accounts. Create a room and send the link to whoever should be in it.'}
+          </p>
+        </Item>
 
-      <BrassRule />
+        <Item className="w-full max-w-sm">
+          <Panel className="flex flex-col gap-5 p-6" marks>
+            <Field label="Display name">
+              <input
+                autoFocus
+                value={name}
+                maxLength={24}
+                onChange={e => setName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && void go()}
+                placeholder="Agent"
+                className={input}
+              />
+            </Field>
 
-      <Panel className="flex flex-col gap-4 p-5">
-        <label className="flex flex-col gap-2">
-          <span className="type-mono text-[11px] tracking-wide text-text-dim">Display name</span>
-          <input
-            autoFocus
-            value={name}
-            maxLength={24}
-            onChange={e => setName(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && void go()}
-            placeholder="Agent"
-            className="rounded-md border border-ink-600 bg-ink-900 px-4 py-3 text-sm text-text placeholder:text-text-dim/50"
-          />
-        </label>
-
-        {(needsPassword || !joinedExisting) && (
-          <label className="flex flex-col gap-2">
-            <span className="type-mono text-[11px] tracking-wide text-text-dim">
-              {joinedExisting ? 'Room password' : 'Room password (optional)'}
-            </span>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && void go()}
-              className="rounded-md border border-ink-600 bg-ink-900 px-4 py-3 text-sm text-text"
-            />
-            {needsPassword && (
-              <span className="type-mono text-[11px] text-red-glow">
-                That password was not accepted. Try again.
-              </span>
+            {(rejected || !joinedExisting) && (
+              <Field
+                label={joinedExisting ? 'Room password' : 'Room password — optional'}
+                hint={
+                  rejected ? (
+                    <span className="type-label text-red-glow">Not accepted. Try again.</span>
+                  ) : undefined
+                }
+              >
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && void go()}
+                  className={input}
+                />
+              </Field>
             )}
-          </label>
-        )}
 
-        <Button onClick={() => void go()} disabled={!name.trim() || busy}>
-          {joinedExisting ? 'Take a seat' : 'Create a game'}
-        </Button>
-      </Panel>
+            <Button onClick={() => void go()} disabled={!name.trim() || busy} className="mt-1">
+              {joinedExisting ? 'Take a seat' : 'Create a game'}
+            </Button>
+          </Panel>
+        </Item>
+
+        <Item>
+          <p className="type-label max-w-md leading-loose">
+            Nothing is stored. The game lives in the browsers playing it and is gone when the last
+            one closes.
+          </p>
+        </Item>
+      </Stack>
     </main>
   )
 }

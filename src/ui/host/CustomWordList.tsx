@@ -3,7 +3,7 @@ import {cardCount, type BoardSize} from '../../game/settings'
 import {MAX_CUSTOM_ENTRIES, validateCustom} from '../../game/wordlist'
 import {setWordSource} from '../../state/room'
 import * as words from '../../state/words'
-import {Button, BrassRule} from '../atoms'
+import {Button, Chip, Label, Rule, input} from '../atoms'
 
 export const CustomWordList = ({size}: {size: BoardSize}) => {
   const [text, setText] = useState('')
@@ -25,15 +25,14 @@ export const CustomWordList = ({size}: {size: BoardSize}) => {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-md border border-ink-600 bg-ink-900/60 p-3">
+    <div className="flex flex-col gap-3 rounded-md border border-ink-600 bg-ink-900/50 p-3">
       {saved.length > 0 && (
         <div className="flex flex-col gap-1.5">
-          <span className="type-mono text-[11px] text-text-dim">Saved lists</span>
+          <Label>Saved lists</Label>
           <div className="flex flex-wrap gap-1">
             {saved.map(list => (
               <span key={list.name} className="flex items-center gap-1">
-                <button
-                  type="button"
+                <Chip
                   disabled={list.words.length < needed}
                   title={
                     list.words.length < needed
@@ -41,23 +40,22 @@ export const CustomWordList = ({size}: {size: BoardSize}) => {
                       : `${list.words.length} words`
                   }
                   onClick={() => void setWordSource({kind: 'custom', name: list.name}, list.name)}
-                  className="type-mono cursor-pointer rounded-md border border-ink-600 px-2 py-1 text-[11px] text-text-dim hover:border-brass-400/50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {list.name}
-                  <span className="ml-1 opacity-60">{list.words.length}</span>
-                </button>
-                <button
-                  type="button"
+                  <span className="ml-1.5 opacity-50">{list.words.length}</span>
+                </Chip>
+                <Button
+                  variant="quiet"
+                  size="sm"
                   aria-label={`Delete ${list.name}`}
                   onClick={() => words.deleteCustom(list.name)}
-                  className="type-mono cursor-pointer px-1 text-[11px] text-text-dim hover:text-red-glow"
                 >
-                  ×
-                </button>
+                  Delete
+                </Button>
               </span>
             ))}
           </div>
-          <BrassRule className="my-1" />
+          <Rule className="my-1" />
         </div>
       )}
 
@@ -66,7 +64,7 @@ export const CustomWordList = ({size}: {size: BoardSize}) => {
         onChange={e => setText(e.target.value)}
         rows={6}
         placeholder={`One word per line, up to ${MAX_CUSTOM_ENTRIES}`}
-        className="type-mono resize-y rounded-md border border-ink-600 bg-ink-900 px-3 py-2 text-xs text-text placeholder:text-text-dim/50"
+        className={`${input} type-mono resize-y text-xs`}
       />
 
       {text.trim() && (
@@ -101,9 +99,9 @@ export const CustomWordList = ({size}: {size: BoardSize}) => {
           onChange={e => setName(e.target.value)}
           maxLength={24}
           placeholder="Name this list"
-          className="type-mono min-w-0 flex-1 rounded-md border border-ink-600 bg-ink-900 px-3 py-2 text-xs text-text placeholder:text-text-dim/50"
+          className={`${input} type-mono min-w-0 flex-1 text-xs`}
         />
-        <Button variant="ghost" onClick={save} disabled={!canSave}>
+        <Button variant="ghost" size="sm" onClick={save} disabled={!canSave}>
           Save & use
         </Button>
       </div>

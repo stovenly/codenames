@@ -12,49 +12,21 @@ import {
 } from '../../game/settings'
 import {intend, setWordSource} from '../../state/room'
 import * as words from '../../state/words'
-import {BrassRule, Panel} from '../atoms'
+import {Button, Chip, Heading, Label, Panel, Rule} from '../atoms'
 import {CompositionRow} from './Composition'
 import {CustomWordList} from './CustomWordList'
 
 const Row = ({label, children}: {label: string; children: React.ReactNode}) => (
   <div className="flex flex-col gap-2">
-    <span className="type-mono text-[11px] tracking-wide text-text-dim">{label}</span>
+    <Label>{label}</Label>
     {children}
   </div>
 )
 
-const Segmented = <T,>({
-  options,
-  value,
-  format,
-  onPick,
-  editable
-}: {
-  options: readonly T[]
-  value: T
-  format: (v: T) => string
-  onPick: (v: T) => void
-  editable: boolean
-}) => (
-  <div className="flex flex-wrap gap-1">
-    {options.map((option, i) => {
-      const active = option === value
-      return (
-        <button
-          key={i}
-          type="button"
-          disabled={!editable}
-          onClick={() => onPick(option)}
-          className={`type-mono rounded-md border px-2.5 py-1.5 text-[11px] transition-colors ${
-            active
-              ? 'border-brass-400 bg-brass-400/15 text-brass-200'
-              : 'border-ink-600 text-text-dim'
-          } ${editable ? 'cursor-pointer hover:border-brass-400/50' : 'cursor-default'}`}
-        >
-          {format(option)}
-        </button>
-      )
-    })}
+const Readout = ({label, value}: {label: string; value: string}) => (
+  <div className="flex items-baseline justify-between gap-3 py-1.5">
+    <Label>{label}</Label>
+    <span className="type-read text-xs text-text">{value}</span>
   </div>
 )
 
@@ -62,23 +34,20 @@ const Slider = ({
   min,
   max,
   value,
-  onChange,
-  editable
+  onChange
 }: {
   min: number
   max: number
   value: number
   onChange: (v: number) => void
-  editable: boolean
 }) => (
   <input
     type="range"
     min={min}
     max={max}
     value={value}
-    disabled={!editable}
     onChange={e => onChange(Number(e.target.value))}
-    className="w-full accent-[var(--color-brass-400)] disabled:opacity-60"
+    className="w-full accent-[var(--color-brass-400)]"
   />
 )
 
@@ -95,148 +64,144 @@ export const SettingsPanel = ({
   words.useWords()
 
   const remembered = words.lastSource()
-  const selected: PackId[] =
-    remembered?.source.kind === 'packs' ? remembered.source.packs : ['original']
+  const selected: PackId[] = remembered?.source.kind === 'packs' ? remembered.source.packs : ['original']
   const total = cardCount(settings.size)
   const problems = validate(settings, wordCount)
   const maxTeam = Math.floor((total - 1 - settings.assassins) / 2)
+  const c = composition(settings)
 
   const patch = (p: Partial<Settings>) => editable && intend({kind: 'updateSettings', patch: p})
 
-  const pickSize = (size: BoardSize) => patch({size, ...presetFor(size)})
-
   const togglePack = (id: PackId) => {
-    if (!editable) return
     const next = selected.includes(id) ? selected.filter(p => p !== id) : [...selected, id]
     const packs = next.length ? next : (['original'] as PackId[])
-    const label = packs.map(p => PACKS.find(x => x.id === p)?.name ?? p).join(' + ')
-    void setWordSource({kind: 'packs', packs}, label)
+    void setWordSource(
+      {kind: 'packs', packs},
+      packs.map(p => PACKS.find(x => x.id === p)?.name ?? p).join(' + ')
+    )
+  }
+
+  // Non-hosts get a readout, not a set of dead controls.
+  if (!editable) {
+    return (
+      <Panel className="h-fit p-5" tab="Proposed">
+        <Heading>Briefing</Heading>
+        <Rule className="mt-3 mb-1" />
+        <Readout label="Board" value={`${settings.size} × ${settings.size} · ${total} cards`} />
+        <Readout label="Agents" value={`${c.starting} / ${c.second}`} />
+        <Readout label="Assassins" value={String(c.assassins)} />
+        <Readout label="Bystanders" value={String(Math.max(0, c.neutral))} />
+        <Rule className="my-1" />
+        <Readout label="Clue timer" value={settings.clueTimer ? `${settings.clueTimer}s` : 'off'} />
+        <Readout label="Guess timer" value={settings.guessTimer ? `${settings.guessTimer}s` : 'off'} />
+        <Rule className="my-1" />
+        <Readout label="Word list" value={settings.wordListName} />
+        <Readout
+          label="Words"
+          value={wordCount < total ? `${wordCount} — needs ${total}` : String(wordCount)}
+        />
+        <div className="mt-4">
+          <CompositionRow settings={settings} />
+        </div>
+      </Panel>
+    )
   }
 
   return (
-    <Panel className="flex flex-col gap-5 p-4">
-      <div className="flex items-baseline justify-between">
-        <h2 className="type-display text-sm text-brass-200">
-          {editable ? 'Configuration' : 'Proposed'}
-        </h2>
-        {!editable && <span className="type-mono text-[10px] text-text-dim">host decides</span>}
-      </div>
-
-      <Row label={`Board — ${settings.size} × ${settings.size}, ${total} cards`}>
-        <Segmented
-          options={[3, 4, 5, 6, 7] as BoardSize[]}
-          value={settings.size}
-          format={s => `${s}×${s}`}
-          onPick={pickSize}
-          editable={editable}
-        />
-      </Row>
-
+    <Panel className="flex h-fit flex-col gap-6 p-5" tab="Configuration">
       <div className="flex flex-col gap-3">
+        <Row label={`Board — ${settings.size} × ${settings.size}, ${total} cards`}>
+          <div className="flex flex-wrap gap-1.5">
+            {([3, 4, 5, 6, 7] as BoardSize[]).map(size => (
+              <Chip
+                key={size}
+                active={settings.size === size}
+                onClick={() => patch({size, ...presetFor(size)})}
+              >
+                {size}×{size}
+              </Chip>
+            ))}
+          </div>
+        </Row>
+
         <CompositionRow settings={settings} />
-        {editable && (
-          <>
-            <Row label={`Agents per team — ${settings.teamCards}`}>
-              <Slider
-                min={1}
-                max={Math.max(1, maxTeam)}
-                value={settings.teamCards}
-                onChange={teamCards => patch({teamCards})}
-                editable
-              />
-            </Row>
-            <Row label={`Assassins — ${settings.assassins}`}>
-              <Slider
-                min={1}
-                max={Math.max(1, total - 2 * settings.teamCards - 1)}
-                value={settings.assassins}
-                onChange={assassins => patch({assassins})}
-                editable
-              />
-            </Row>
-          </>
-        )}
+
+        <Row label={`Agents per team — ${settings.teamCards}`}>
+          <Slider
+            min={1}
+            max={Math.max(1, maxTeam)}
+            value={settings.teamCards}
+            onChange={teamCards => patch({teamCards})}
+          />
+        </Row>
+
+        <Row label={`Assassins — ${settings.assassins}`}>
+          <Slider
+            min={1}
+            max={Math.max(1, total - 2 * settings.teamCards - 1)}
+            value={settings.assassins}
+            onChange={assassins => patch({assassins})}
+          />
+        </Row>
+
         {problems.map(p => (
-          <p key={p.field} className="type-mono text-[11px] text-red-glow">
+          <p key={p.field} className="type-label text-red-glow">
             {p.message}
           </p>
         ))}
-        {!problems.length && composition(settings).neutral === 0 && (
-          <p className="type-mono text-[11px] text-brass-200">
-            No bystanders at all — playable, but it will be brutal.
-          </p>
+        {!problems.length && c.neutral === 0 && (
+          <p className="type-label text-brass-200">No bystanders — playable, but brutal.</p>
         )}
       </div>
 
-      <BrassRule />
+      <Rule />
 
       <Row label="Clue timer">
-        <Segmented
-          options={CLUE_TIMERS}
-          value={settings.clueTimer}
-          format={v => (v === null ? 'off' : `${v}s`)}
-          onPick={clueTimer => patch({clueTimer})}
-          editable={editable}
-        />
+        <div className="flex flex-wrap gap-1.5">
+          {CLUE_TIMERS.map((v, i) => (
+            <Chip key={i} active={settings.clueTimer === v} onClick={() => patch({clueTimer: v})}>
+              {v === null ? 'off' : `${v}s`}
+            </Chip>
+          ))}
+        </div>
       </Row>
 
       <Row label="Guessing timer">
-        <Segmented
-          options={GUESS_TIMERS}
-          value={settings.guessTimer}
-          format={v => (v === null ? 'off' : `${v}s`)}
-          onPick={guessTimer => patch({guessTimer})}
-          editable={editable}
-        />
+        <div className="flex flex-wrap gap-1.5">
+          {GUESS_TIMERS.map((v, i) => (
+            <Chip key={i} active={settings.guessTimer === v} onClick={() => patch({guessTimer: v})}>
+              {v === null ? 'off' : `${v}s`}
+            </Chip>
+          ))}
+        </div>
       </Row>
 
-      <BrassRule />
+      <Rule />
 
-      <Row label={`Word list — ${settings.wordListName}, ${wordCount} words`}>
-        {editable ? (
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap gap-1">
-              {PACKS.map(pack => {
-                const tooSmall = pack.count < total
-                const active = selected.includes(pack.id)
-                return (
-                  <button
-                    key={pack.id}
-                    type="button"
-                    disabled={tooSmall}
-                    title={
-                      tooSmall
-                        ? `${pack.count} words, ${settings.size}×${settings.size} needs ${total}`
-                        : pack.note
-                    }
-                    onClick={() => togglePack(pack.id)}
-                    className={`type-mono rounded-md border px-2.5 py-1.5 text-[11px] transition-colors ${
-                      active
-                        ? 'border-brass-400 bg-brass-400/15 text-brass-200'
-                        : 'border-ink-600 text-text-dim hover:border-brass-400/50'
-                    } disabled:cursor-not-allowed disabled:border-ink-700 disabled:text-text-dim/40`}
-                  >
-                    {pack.name}
-                    {pack.adult ? ' 18+' : ''}
-                    <span className="ml-1 opacity-60">{pack.count}</span>
-                  </button>
-                )
-              })}
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowCustom(v => !v)}
-              className="type-mono cursor-pointer self-start text-[11px] text-brass-200 underline-offset-4 hover:underline"
+      <Row label={`Word list — ${wordCount} words`}>
+        <div className="flex flex-wrap gap-1.5">
+          {PACKS.map(pack => (
+            <Chip
+              key={pack.id}
+              active={selected.includes(pack.id)}
+              disabled={pack.count < total}
+              title={
+                pack.count < total
+                  ? `${pack.count} words, ${settings.size}×${settings.size} needs ${total}`
+                  : pack.note
+              }
+              onClick={() => togglePack(pack.id)}
             >
-              {showCustom ? 'Close custom list' : 'Custom list…'}
-            </button>
-            {showCustom && <CustomWordList size={settings.size} />}
-          </div>
-        ) : (
-          <p className="type-mono text-[11px] text-text-dim">
-            {wordCount < total ? `Needs ${total} for this board` : 'Ready'}
-          </p>
-        )}
+              {pack.name}
+              {pack.adult ? ' 18+' : ''}
+              <span className="ml-1.5 opacity-50">{pack.count}</span>
+            </Chip>
+          ))}
+        </div>
+        <Button variant="quiet" size="sm" className="self-start" onClick={() => setShowCustom(v => !v)}>
+          {showCustom ? 'Close custom list' : 'Custom list…'}
+        </Button>
+        {showCustom && <CustomWordList size={settings.size} />}
       </Row>
     </Panel>
   )

@@ -83,7 +83,7 @@ export const ClueReveal = ({clue}: {clue: Clue}) => {
           initial={{opacity: 0}}
           animate={{opacity: 1}}
           transition={{delay: reduced ? 0 : 0.5}}
-          className="type-mono text-[11px] text-text-dim"
+          className="type-label"
         >
           {clue.count === 'unlimited' || clue.count === 0
             ? 'unlimited guesses'
