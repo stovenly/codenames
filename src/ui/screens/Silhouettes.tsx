@@ -21,8 +21,8 @@ const FLANK: Array<{
    */
   seal?: number
 }> = [
-  {figure: PAIR, side: 'left', height: 44, opacity: 0.72, sway: 54, flip: false},
-  {figure: AIMING, side: 'right', height: 44, opacity: 0.68, sway: 67, flip: false, seal: 0.6}
+  {figure: PAIR, side: 'left', height: 44, opacity: 0.5, sway: 54, flip: false},
+  {figure: AIMING, side: 'right', height: 44, opacity: 0.46, sway: 67, flip: false, seal: 0.6}
 ]
 
 export const Crowd = () => {
