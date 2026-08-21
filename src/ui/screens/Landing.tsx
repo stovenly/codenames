@@ -1,11 +1,13 @@
-import {useMemo, useState} from 'react'
+import {Suspense, lazy, useMemo, useState} from 'react'
 import {abandonSeat, offeredSeat, resumedSeat, takeSeat} from '../../net/identity'
 import {joinedExisting} from '../../state/net'
 import {createRoom, joinRoom, myDisplayName} from '../../state/room'
 import {Button, Enter, Field, Item, Label, Panel, Rule, input} from '../atoms'
 import {cx} from '../cx'
 import {useMotion} from '../motion'
-import {Crowd} from './Silhouettes'
+
+/** Traced silhouettes are 16 KB gzipped of pure decoration; they arrive after paint. */
+const Crowd = lazy(() => import('./Silhouettes').then(m => ({default: m.Crowd})))
 
 /**
  * The rig. Each light is a lamp head and a conic wedge sharing an apex, on an
@@ -76,7 +78,9 @@ const Lighting = () => {
 
       {/* Behind the beams: a screen-blended spotlight passing over them reads as
           light through fog, which is the whole effect. */}
-      <Crowd />
+      <Suspense fallback={null}>
+        <Crowd />
+      </Suspense>
 
       {RIG.map((r, i) => (
         <Spot key={i} {...r} />
