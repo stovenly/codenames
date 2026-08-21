@@ -3,12 +3,8 @@ import {useMotion} from '../motion'
 import {AIMING, PAIR, type Figure} from './figures'
 
 /**
- * Two figures flanking the centre column, one either side.
- *
- * Placement is measured from the middle rather than in percentages: the column
- * is a fixed 28rem, so `calc(50% ± 18rem)` puts each figure just outside it at
- * any width. The min/max clamp stops them sliding off a narrow screen — on a
- * phone they end up behind the panel, which is what the depth is for.
+ * One figure centred in each half of the screen, so they read as two columns
+ * either side of the menu rather than as two things pushed off it.
  */
 const FLANK: Array<{
   figure: Figure
@@ -29,7 +25,7 @@ const FLANK: Array<{
   {
     figure: PAIR,
     side: 'left',
-    left: 'max(12%, calc(50% - 22rem))',
+    left: '25%',
     height: 44,
     opacity: 0.72,
     sway: 54,
@@ -38,7 +34,7 @@ const FLANK: Array<{
   {
     figure: AIMING,
     side: 'right',
-    left: 'min(88%, calc(50% + 26rem))',
+    left: '75%',
     height: 44,
     opacity: 0.68,
     sway: 67,
