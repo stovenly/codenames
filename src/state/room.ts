@@ -1,8 +1,14 @@
 import {useSyncExternalStore} from 'react'
-import {sha256Hex} from '../net/identity'
+import {newRoomId, sha256Hex} from '../net/identity'
 import type {PlayerId} from '../net/protocol'
+import {derive, type View} from '../game/reducer'
+import {advance} from '../game/reducer'
+import {defaultSettings, validate, type BoardSize, type Settings} from '../game/settings'
+import type {ClueCount, Step} from '../game/steps'
 import type {Avatar, Player, Shared, Team} from '../game/types'
+import {otherTeam} from '../game/types'
 import {on, peers, roomId, self, send, startMesh, subscribe as onNetChange} from './net'
+import * as words from './words'
 
 export type Role = 'idle' | 'joining' | 'rejected' | 'client' | 'host' | 'electing'
 
@@ -12,6 +18,7 @@ export type RoomSnapshot = {
   banner: string | null
   split: boolean
   me: PlayerId
+  wordsReady: boolean
 }
 
 /** Widened while the host advertises a hidden tab, whose timers the browser throttles. */
@@ -40,8 +47,10 @@ const loadSession = (): Session | null => {
 
 const saveSession = (patch: Partial<Session>) => {
   try {
-    const next = {roomId, name: '', password: null, ...loadSession(), ...patch}
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(next))
+    sessionStorage.setItem(
+      SESSION_KEY,
+      JSON.stringify({roomId, name: '', password: null, ...loadSession(), ...patch})
+    )
   } catch {
     /* private mode; reconnect just loses its shortcut */
   }
@@ -50,7 +59,6 @@ const saveSession = (patch: Partial<Session>) => {
 type Claim = {playerId: PlayerId; version: number; visible: boolean; uptime: number}
 
 const bornAt = Date.now()
-
 const listeners = new Set<() => void>()
 
 let role: Role = 'idle'
@@ -62,6 +70,7 @@ let myName = loadSession()?.name ?? ''
 let myAvatar: Avatar = {style: 'shapes', seed: self, bg: 'ink-700'}
 let passwordHash: string | null = null
 let lastHostAt = 0
+let clockOffset = 0
 let claims: Claim[] = []
 let electionTimer: ReturnType<typeof setTimeout> | null = null
 let broadcastTimer: ReturnType<typeof setTimeout> | null = null
@@ -71,10 +80,17 @@ let started = false
 const strangerSince = new Map<PlayerId, number>()
 const rivalHosts = new Map<PlayerId, number>()
 
-let snapshot: RoomSnapshot = {role, shared, banner, split, me: self}
+let snapshot: RoomSnapshot = {role, shared, banner, split, me: self, wordsReady: false}
 
 const publish = () => {
-  snapshot = {role, shared, banner, split, me: self}
+  snapshot = {
+    role,
+    shared,
+    banner,
+    split,
+    me: self,
+    wordsReady: shared ? words.have(shared.settings.wordListHash) : false
+  }
   listeners.forEach(l => l())
 }
 
@@ -90,6 +106,9 @@ const flash = (text: string) => {
 
 const isHost = () => role === 'host'
 
+/** Host wall clock, estimated from sentAt on each broadcast. Sub-second accuracy is enough. */
+export const hostNow = () => Date.now() + clockOffset
+
 const emptyPlayer = (id: PlayerId, name: string): Player => ({
   id,
   name: name || 'Agent',
@@ -100,26 +119,23 @@ const emptyPlayer = (id: PlayerId, name: string): Player => ({
   connected: true
 })
 
+const viewOf = (state: Shared): View =>
+  derive(state.settings, words.get(state.settings.wordListHash), state.steps, state.cursor)
+
 // ---------------------------------------------------------------- host side
 
-const bump = () => {
-  if (!shared) return
-  shared = {...shared, version: shared.version + 1, sentAt: Date.now(), roster: [self, ...peers()]}
-}
-
 const broadcast = () => {
-  if (!isHost()) return
-  if (broadcastTimer) return
+  if (!isHost() || broadcastTimer) return
   broadcastTimer = setTimeout(() => {
     broadcastTimer = null
     if (!isHost() || !shared) return
-    bump()
+    shared = {...shared, version: shared.version + 1, sentAt: Date.now(), roster: [self, ...peers()]}
     send('state', shared)
     publish()
   }, BROADCAST_DEBOUNCE_MS)
 }
 
-export const hostMutate = (fn: (draft: Shared) => Shared | void) => {
+const hostMutate = (fn: (draft: Shared) => Shared | void) => {
   if (!isHost() || !shared) return
   const next = fn(shared)
   if (next) shared = next
@@ -129,10 +145,35 @@ export const hostMutate = (fn: (draft: Shared) => Shared | void) => {
 const upsertPlayer = (id: PlayerId, patch: Partial<Player>, name?: string) => {
   hostMutate(draft => {
     const existing = draft.players.find(p => p.id === id)
-    const players = existing
-      ? draft.players.map(p => (p.id === id ? {...p, ...patch} : p))
-      : [...draft.players, {...emptyPlayer(id, name ?? 'Agent'), ...patch}]
-    return {...draft, players}
+    return {
+      ...draft,
+      players: existing
+        ? draft.players.map(p => (p.id === id ? {...p, ...patch} : p))
+        : [...draft.players, {...emptyPlayer(id, name ?? 'Agent'), ...patch}]
+    }
+  })
+}
+
+/** Wall-clock deadlines are not derivable from steps, so they are recomputed on every phase change. */
+const deadlineFor = (settings: Settings, view: View): number | null => {
+  if (view.phase === 'clue' && settings.clueTimer) return Date.now() + settings.clueTimer * 1000
+  if (view.phase === 'guess' && settings.guessTimer) return Date.now() + settings.guessTimer * 1000
+  return null
+}
+
+const commit = (mutate: (draft: Shared) => Shared) => {
+  hostMutate(draft => {
+    const next = mutate(draft)
+    return {...next, deadline: deadlineFor(next.settings, viewOf(next))}
+  })
+}
+
+const appendStep = (step: Step) => {
+  commit(draft => {
+    const list = words.get(draft.settings.wordListHash)
+    const truncated = draft.steps.slice(0, draft.cursor)
+    const steps = advance(draft.settings, list, truncated, step)
+    return {...draft, steps, cursor: steps.length}
   })
 }
 
@@ -173,18 +214,10 @@ const releaseWakeLock = () => {
   wakeLock = null
 }
 
-const becomeHost = (players: Player[], epoch: number, carry?: Partial<Shared>) => {
+const becomeHost = (state: Shared) => {
   role = 'host'
-  shared = {
-    version: (shared?.version ?? 0) + 1,
-    hostId: self,
-    hostEpoch: epoch,
-    hostHidden: document.hidden,
-    roster: [self, ...peers()],
-    sentAt: Date.now(),
-    players,
-    ...carry
-  }
+  shared = state
+  clockOffset = 0
   lastHostAt = Date.now()
   startBeat()
   takeWakeLock()
@@ -202,27 +235,35 @@ const demote = () => {
 
 // -------------------------------------------------------------- client side
 
-const adopt = (next: Shared, why?: string) => {
+const requestWordsIfMissing = () => {
+  if (!shared) return
+  const hash = shared.settings.wordListHash
+  if (!hash || words.have(hash) || isHost()) return
+  send('resync', {want: 'words', hash}, shared.hostId)
+}
+
+const adopt = (next: Shared) => {
   const current = shared
   const newer =
     !current ||
     next.hostEpoch > current.hostEpoch ||
     (next.hostEpoch === current.hostEpoch && next.version > current.version)
-
   if (!newer) return
 
-  const hostChanged = current?.hostId !== next.hostId
+  const hostChanged = current !== null && current.hostId !== next.hostId
   if (isHost() && next.hostId !== self) demote()
 
   shared = next
+  clockOffset = next.sentAt - Date.now()
   lastHostAt = Date.now()
   if (role === 'joining' || role === 'electing' || role === 'rejected' || role === 'idle') {
     role = next.hostId === self ? 'host' : 'client'
   }
-  if (hostChanged && current) {
+  if (hostChanged) {
     const name = next.players.find(p => p.id === next.hostId)?.name ?? 'Someone'
-    flash(why ?? `${name} is hosting now`)
+    flash(`${name} is hosting now`)
   }
+  requestWordsIfMissing()
   publish()
 }
 
@@ -242,8 +283,24 @@ const myClaim = (): Claim => ({
   uptime: Date.now() - bornAt
 })
 
+const promoteSelf = (epoch: number) => {
+  if (!shared) return
+  const connected = new Set([self, ...peers()])
+  becomeHost({
+    ...shared,
+    version: shared.version + 1,
+    hostId: self,
+    hostEpoch: epoch,
+    hostHidden: document.hidden,
+    roster: [...connected],
+    sentAt: Date.now(),
+    players: shared.players.map(p => ({...p, connected: connected.has(p.id)}))
+  })
+  flash('You are hosting now')
+}
+
 const startElection = () => {
-  if (role === 'electing' || isHost()) return
+  if (role === 'electing' || isHost() || !shared) return
   role = 'electing'
   claims = [myClaim()]
   send('claim', claims[0])
@@ -254,12 +311,9 @@ const startElection = () => {
     electionTimer = null
     if (isHost() || role !== 'electing') return
     const winner = [...claims].sort(scoreClaim)[0]!
-    if (winner.playerId === self) {
-      const players = (shared?.players ?? []).map(p => ({...p, connected: peers().includes(p.id) || p.id === self}))
-      becomeHost(players, (shared?.hostEpoch ?? 0) + 1)
-      flash('You are hosting now')
-    } else {
-      // Wait for the winner's state; if it never lands, the liveness monitor retries.
+    if (winner.playerId === self) promoteSelf((shared?.hostEpoch ?? 0) + 1)
+    else {
+      // Wait for the winner's state; the liveness monitor retries if it never lands.
       role = 'client'
       lastHostAt = Date.now()
       publish()
@@ -267,11 +321,9 @@ const startElection = () => {
   }, CLAIM_WINDOW_MS)
 }
 
-const bestSuccessor = (): PlayerId | null => {
-  const connected = peers()
-  if (!connected.length) return null
-  return [...connected].sort((a, b) => (a < b ? -1 : 1))[0]!
-}
+/** The host cannot see anyone else's visibility or version, so this falls back to the deterministic tiebreak the election ends on. A failed handoff simply times out into a normal election. */
+const bestSuccessor = (): PlayerId | null =>
+  [...peers()].sort((a, b) => (a < b ? -1 : 1))[0] ?? null
 
 // ----------------------------------------------------------------- monitors
 
@@ -282,14 +334,22 @@ const monitor = () => {
 
   if (role === 'client' && shared && now - lastHostAt > missingWindow()) startElection()
 
-  if (isHost()) {
-    const connected = new Set(peers())
-    const players = shared?.players ?? []
-    if (players.some(p => p.connected !== (connected.has(p.id) || p.id === self))) {
+  if (isHost() && shared) {
+    const connected = new Set([self, ...peers()])
+    if (shared.players.some(p => p.connected !== connected.has(p.id))) {
       hostMutate(draft => ({
         ...draft,
-        players: draft.players.map(p => ({...p, connected: connected.has(p.id) || p.id === self}))
+        players: draft.players.map(p => ({...p, connected: connected.has(p.id)}))
       }))
+    }
+
+    if (shared.deadline !== null && now >= shared.deadline) {
+      const view = viewOf(shared)
+      if (view.phase === 'clue' || view.phase === 'guess') {
+        appendStep({t: 'endTurn', team: view.turn, reason: 'timeout'})
+      } else {
+        hostMutate(draft => ({...draft, deadline: null}))
+      }
     }
   }
 
@@ -297,7 +357,7 @@ const monitor = () => {
   let stranded = false
   for (const peer of peers()) {
     if (roster.has(peer)) {
-      strandedClear(peer)
+      strangerSince.delete(peer)
       continue
     }
     const since = strangerSince.get(peer) ?? now
@@ -314,8 +374,6 @@ const monitor = () => {
   }
 }
 
-const strandedClear = (peer: PlayerId) => strangerSince.delete(peer)
-
 // ------------------------------------------------------------------ intents
 
 export type Intent =
@@ -325,28 +383,51 @@ export type Intent =
   | {kind: 'setAvatar'; avatar: Avatar}
   | {kind: 'ready'; ready: boolean}
   | {kind: 'transferHost'; target: PlayerId}
+  | {kind: 'updateSettings'; patch: Partial<Settings>}
+  | {kind: 'startGame'}
+  | {kind: 'endGame'}
+  | {kind: 'clue'; word: string; count: ClueCount}
+  | {kind: 'guess'; card: number}
+  | {kind: 'pass'}
+  | {kind: 'undo'}
+  | {kind: 'redo'}
+  | {kind: 'jump'; cursor: number}
+
+const refuse = (from: PlayerId, why: string) => {
+  if (from === self) flash(why)
+}
 
 const applyIntent = (from: PlayerId, intent: Intent) => {
   if (!isHost() || !shared) return
-  const isHostSender = from === shared.hostId
+  const state = shared
+  const fromHost = from === state.hostId
+  const view = viewOf(state)
+  const player = state.players.find(p => p.id === from)
 
   switch (intent.kind) {
     case 'setName':
       upsertPlayer(from, {name: intent.name.slice(0, 24) || 'Agent'})
       return
+
     case 'setAvatar':
       upsertPlayer(from, {avatar: intent.avatar})
       return
+
     case 'ready':
+      if (view.phase !== 'setup') return
       upsertPlayer(from, {ready: intent.ready})
       return
+
     case 'setTeam':
-      if (intent.target !== from && !isHostSender) return
-      upsertPlayer(intent.target, {team: intent.team})
+      if (view.phase !== 'setup') return
+      if (intent.target !== from && !fromHost) return
+      upsertPlayer(intent.target, {team: intent.team, spymaster: false})
       return
+
     case 'setSpymaster': {
-      if (intent.target !== from && !isHostSender) return
-      const team = shared.players.find(p => p.id === intent.target)?.team
+      if (view.phase !== 'setup') return
+      if (intent.target !== from && !fromHost) return
+      const team = state.players.find(p => p.id === intent.target)?.team
       if (!team) return
       hostMutate(draft => ({
         ...draft,
@@ -360,12 +441,97 @@ const applyIntent = (from: PlayerId, intent: Intent) => {
       }))
       return
     }
+
     case 'transferHost': {
-      if (!isHostSender || !peers().includes(intent.target)) return
-      send('handoff', {to: intent.target, epoch: shared.hostEpoch + 1})
+      if (!fromHost) return
+      if (!peers().includes(intent.target)) return refuse(from, 'That player is not connected')
+      send('handoff', {to: intent.target, epoch: state.hostEpoch + 1})
       demote()
       return
     }
+
+    case 'updateSettings': {
+      if (!fromHost) return
+      if (view.phase !== 'setup' && view.phase !== 'gameover') {
+        return refuse(from, 'Settings are locked mid-game')
+      }
+      commit(draft => ({...draft, settings: {...draft.settings, ...intent.patch}}))
+      return
+    }
+
+    case 'startGame': {
+      if (!fromHost) return
+      const list = words.get(state.settings.wordListHash)
+      const problems = validate(state.settings, list.length)
+      if (problems.length) return refuse(from, problems[0]!.message)
+      const startTeam: Team = Math.random() < 0.5 ? 'red' : 'blue'
+      commit(draft => ({
+        ...draft,
+        players: draft.players.map(p => ({...p, ready: false})),
+        steps: [{t: 'start', seed: newRoomId(), startTeam}],
+        cursor: 1
+      }))
+      return
+    }
+
+    case 'endGame': {
+      if (!fromHost) return
+      if (view.phase === 'setup') return
+      commit(draft => ({
+        ...draft,
+        steps: [],
+        cursor: 0,
+        players: draft.players.map(p => ({...p, ready: false}))
+      }))
+      return
+    }
+
+    case 'clue': {
+      if (view.phase !== 'clue') return
+      if (!player || player.team !== view.turn || !player.spymaster) return
+      const word = intent.word.trim().slice(0, 40)
+      if (!word) return
+      const max = state.settings.size * state.settings.size
+      if (intent.count !== 'unlimited' && (intent.count < 0 || intent.count > max)) return
+      appendStep({t: 'clue', team: view.turn, by: from, word, count: intent.count})
+      return
+    }
+
+    case 'guess': {
+      if (view.phase !== 'guess') return
+      if (!player || player.team !== view.turn || player.spymaster) return
+      if (!view.cards[intent.card] || view.cards[intent.card]!.revealed) return
+      appendStep({t: 'guess', team: view.turn, by: from, card: intent.card})
+      return
+    }
+
+    case 'pass': {
+      if (view.phase !== 'guess') return
+      if (!player || player.team !== view.turn || player.spymaster) return
+      if (view.guessedSinceClue < 1) return
+      appendStep({t: 'endTurn', team: view.turn, reason: 'pass'})
+      return
+    }
+
+    case 'undo':
+      if (!fromHost) return
+      if (state.cursor <= 0) return refuse(from, 'Nothing left to undo')
+      commit(draft => ({...draft, cursor: draft.cursor - 1}))
+      send('presence', {kind: 'rewound'})
+      return
+
+    case 'redo':
+      if (!fromHost) return
+      if (state.cursor >= state.steps.length) return refuse(from, 'Nothing to redo')
+      commit(draft => ({...draft, cursor: draft.cursor + 1}))
+      return
+
+    case 'jump':
+      if (!fromHost) return
+      if (intent.cursor < 0 || intent.cursor > state.steps.length) return
+      commit(draft => ({...draft, cursor: intent.cursor}))
+      send('presence', {kind: 'rewound'})
+      return
   }
 }
 
@@ -393,10 +559,19 @@ export const start = () => {
     }
     upsertPlayer(env.from, {connected: true}, name)
     send('welcome', shared, env.from)
+    send('words', {hash: shared.settings.wordListHash, words: words.get(shared.settings.wordListHash)}, env.from)
   })
 
   on('welcome', body => {
     if (body) adopt(body as Shared)
+  })
+
+  on('words', body => {
+    const {hash, words: list} = (body ?? {}) as {hash?: string; words?: string[]}
+    if (hash && Array.isArray(list)) {
+      words.put(hash, list)
+      publish()
+    }
   })
 
   on('reject', () => {
@@ -410,9 +585,8 @@ export const start = () => {
     const next = body as Shared
     rivalHosts.set(next.hostId, Date.now())
     if (isHost() && next.hostId !== self) {
-      const theyWin =
-        next.hostEpoch > (shared?.hostEpoch ?? 0) ||
-        (next.hostEpoch === (shared?.hostEpoch ?? 0) && next.hostId < self)
+      const mine = shared?.hostEpoch ?? 0
+      const theyWin = next.hostEpoch > mine || (next.hostEpoch === mine && next.hostId < self)
       if (!theyWin) {
         broadcast()
         return
@@ -432,7 +606,7 @@ export const start = () => {
       shared = {...shared, hostHidden: !!beat.hostHidden}
       publish()
     }
-    if ((beat.version ?? 0) > shared.version) send('resync', null, shared.hostId)
+    if ((beat.version ?? 0) > shared.version) send('resync', {want: 'state'}, shared.hostId)
   })
 
   on('claim', body => {
@@ -452,22 +626,24 @@ export const start = () => {
       lastHostAt = 0
       return
     }
-    const players = (shared?.players ?? []).map(p => ({
-      ...p,
-      connected: peers().includes(p.id) || p.id === self
-    }))
-    becomeHost(players, epoch ?? (shared?.hostEpoch ?? 0) + 1)
-    flash('You are hosting now')
+    promoteSelf(epoch ?? (shared?.hostEpoch ?? 0) + 1)
   })
 
   on('intent', (body, env) => applyIntent(env.from, body as Intent))
 
-  on('resync', (_body, env) => {
-    if (isHost() && shared) send('welcome', shared, env.from)
+  on('resync', (body, env) => {
+    if (!isHost() || !shared) return
+    const {want, hash} = (body ?? {}) as {want?: string; hash?: string}
+    if (want === 'words') {
+      const key = hash ?? shared.settings.wordListHash
+      send('words', {hash: key, words: words.get(key)}, env.from)
+      return
+    }
+    send('welcome', shared, env.from)
   })
 
   onNetChange(monitor)
-  setInterval(monitor, 1000)
+  setInterval(monitor, 500)
 
   document.addEventListener('visibilitychange', () => {
     if (!isHost()) return
@@ -489,7 +665,20 @@ export const createRoom = async (name: string, password: string | null) => {
   myName = name
   saveSession({name, password})
   passwordHash = await proofFor(password)
-  becomeHost([{...emptyPlayer(self, name), avatar: myAvatar}], 1)
+  const {hash} = await words.resolve({kind: 'packs', packs: ['original']})
+  becomeHost({
+    version: 1,
+    hostId: self,
+    hostEpoch: 1,
+    hostHidden: document.hidden,
+    roster: [self],
+    sentAt: Date.now(),
+    players: [{...emptyPlayer(self, name), avatar: myAvatar}],
+    settings: defaultSettings(hash),
+    steps: [],
+    cursor: 0,
+    deadline: null
+  })
 }
 
 export const joinRoom = async (name: string, password: string | null) => {
@@ -510,12 +699,28 @@ export const setPassword = async (password: string | null) => {
 
 export const hasPassword = () => passwordHash !== null
 
+export const setWordSource = async (source: words.Source) => {
+  if (!isHost()) return
+  const {hash, words: list} = await words.resolve(source)
+  intend({kind: 'updateSettings', patch: {wordListHash: hash}})
+  send('words', {hash, words: list})
+}
+
+export const setBoardSize = (size: BoardSize, preset: {teamCards: number; assassins: number}) =>
+  intend({kind: 'updateSettings', patch: {size, ...preset}})
+
 export const setAvatar = (avatar: Avatar) => {
   myAvatar = avatar
   intend({kind: 'setAvatar', avatar})
 }
 
 export const myDisplayName = () => myName
+
+export const myPlayer = () => shared?.players.find(p => p.id === self) ?? null
+
+export const currentView = (): View | null => (shared ? viewOf(shared) : null)
+
+export const opposing = otherTeam
 
 export const useRoom = () =>
   useSyncExternalStore(

@@ -1,4 +1,6 @@
 import type {PlayerId} from '../net/protocol'
+import type {Settings} from './settings'
+import type {Step} from './steps'
 
 export type {PlayerId}
 
@@ -20,7 +22,7 @@ export type Player = {
   connected: boolean
 }
 
-/** Broadcast on every change. `players` and the 04 game payload ride along. */
+/** Broadcast on every change. The board is not here: it derives from steps. */
 export type Shared = {
   version: number
   hostId: PlayerId
@@ -29,6 +31,12 @@ export type Shared = {
   roster: PlayerId[]
   sentAt: number
   players: Player[]
+  settings: Settings
+  steps: Step[]
+  /** steps[0..cursor) are applied. */
+  cursor: number
+  /** Host wall-clock ms, not derivable from steps. */
+  deadline: number | null
 }
 
 export const otherTeam = (team: Team): Team => (team === 'red' ? 'blue' : 'red')
