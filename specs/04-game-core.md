@@ -67,6 +67,7 @@ type Settings = {
   teamCards: number        // per team; starting team gets one more
   assassins: number
   wordListHash: string
+  wordListName: string        // label only, so clients can name a deck they do not hold
   clueTimer: number | null    // seconds
   guessTimer: number | null   // seconds
 }
@@ -132,8 +133,9 @@ controls as a courtesy; the host is the judge.
 | `updateSettings` | host | phase not `setup` or `gameover` |
 
 Rejections are silent by default; the client simply never sees its intent take
-effect. **OPEN:** whether to surface a toast for rejected intents. Leaning yes
-for host actions, no for gameplay.
+effect. **RESOLVED:** host actions surface a banner, gameplay stays silent. A
+host who presses a control needs to know why nothing happened; a player whose
+guess was already too late does not need a second message telling them so.
 
 ## Timers
 

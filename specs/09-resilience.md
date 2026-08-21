@@ -35,9 +35,9 @@ return. It never fires mid-reveal; it waits for a settled phase.
 The proactive version of this notice, shown once in the waiting room before any
 of it can happen, is in [05](05-waiting-room.md#host-tab-notice).
 
-**OPEN:** a Web Notification when the host has been away and degrading. Needs a
-permission prompt, which is a cost most groups will not want. Off unless asked
-for; title and favicon need no permission and cover most of the value.
+**RESOLVED — no Web Notifications.** The permission prompt is a real cost and
+the title and favicon already reach a host who is looking at another tab, which
+is the only case that matters.
 
 ## Broadcast deltas
 

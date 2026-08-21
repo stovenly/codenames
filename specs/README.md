@@ -25,9 +25,11 @@ depends on a later one.
 | [07](07-board-and-play.md) | Board and play | The game, and it feels good |
 | [08](08-host-controls.md) | Host controls | History, undo, transfer, end game |
 | [09](09-resilience.md) | Resilience | Hardened, offline-capable, degrades visibly |
+| [10](10-polish.md) | Polish | Reads as one designed thing, not nine steps stacked up |
 
 Items marked **OPEN** need a decision before that section is built. None of them
-block an earlier step.
+block an earlier step. Resolutions are recorded inline where the item was
+raised, rather than in a separate log.
 
 ## Scope and posture
 

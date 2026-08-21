@@ -1,29 +1,11 @@
-import {copyFile, readdir, readFile, writeFile} from 'node:fs/promises'
-
-const OUT = 'docs'
-
-await copyFile(`${OUT}/index.html`, `${OUT}/404.html`)
-
-const assets = await readdir(`${OUT}/assets`)
-const html = await readFile(`${OUT}/index.html`, 'utf8')
-
-/**
- * Only the shell is precached: index.html plus the entry chunks it references.
- * Lazy chunks (avatar styles, word packs, the mesh) are cached on first use, so
- * a repeat visit opens instantly without a first visit paying for all of them.
- */
-const referenced = [...html.matchAll(/\/codenames\/assets\/([^"']+)/g)].map(m => m[1])
-const shell = ['./', './index.html', ...referenced.map(a => `./assets/${a}`)]
-
-const stamp = referenced.join('|')
-let hash = 0
-for (const ch of stamp) hash = (Math.imul(hash, 31) + ch.charCodeAt(0)) | 0
-const version = `cn-${(hash >>> 0).toString(36)}`
-
-await writeFile(
-  `${OUT}/sw.js`,
-  `const VERSION = '${version}'
-const SHELL = ${JSON.stringify(shell, null, 2)}
+const VERSION = 'cn-18ppg3b'
+const SHELL = [
+  "./",
+  "./index.html",
+  "./assets/index-DwG7YclR.js",
+  "./assets/rolldown-runtime-hePW80VL.js",
+  "./assets/index-mUdsNfYj.css"
+]
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(VERSION).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()))
@@ -64,7 +46,3 @@ self.addEventListener('fetch', event => {
     })
   )
 })
-`
-)
-
-console.log(`postbuild: 404.html + sw.js (${version}, ${shell.length} shell entries)`)

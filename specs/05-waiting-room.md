@@ -54,19 +54,16 @@ shows a filling brass rule around each readied card. The bar reads
 
 ## Ready gate
 
-The host's Start button is disabled until every player is ready and the
-configuration is valid, with the blocking reason spelled out — `Waiting on 2
-players`, `Red team has no spymaster`, `Word list has 47 words, 7x7 needs 49`.
+**RESOLVED — ready is purely advisory.** It is a signal to the room, not a lock
+on the host. The bar reads `4 / 6 ready` and names who is outstanding, and that
+is the whole of its power.
 
-After 10 seconds of waiting on the same players, a **Start anyway** appears for
-the host only, naming who will be dragged in unready. Somebody always wanders
-off; the host should not be held hostage.
+The Start button gates only on problems a game cannot start with, each spelled
+out: `Red team has no players`, `Blue team has no spymaster`, `Word list has 47
+words, 7x7 needs 49`. Those are structural, not social — no override, because
+there is nothing to override.
 
-*Assumed, not confirmed:* ready gates the start with a host override. Say the
-word if you want it purely advisory, or a hard gate with no override.
-
-Readiness is a `presence` message, not a step. It never enters history and clears
-on game start.
+Readiness never enters history and clears on game start.
 
 ## Avatars
 
@@ -77,24 +74,28 @@ works offline.
 
 ### Styles
 
-All CC0 1.0, so there is no attribution obligation, and all lazy-loaded.
+All CC0 1.0 for the artwork and MIT for the code, so there is no attribution
+obligation, and all lazy-loaded.
 
-| Style | JSON | Character |
+| Style | Package | Character |
 |---|---|---|
-| Open Peeps | 253 KB | Hand-drawn half-body people, the widest variety |
-| Lorelei | 118 KB | Illustrated portraits, warm, fits the dossier framing |
-| Clay | 65 KB | Soft 3D-ish figures |
-| Critters | 53 KB | Animals, the comic option |
-| Pixel Art | 45 KB | Retro, reads well at small sizes |
-| Pixelbot | 39 KB | Robots — the mechanical-agent option |
-| Shapes | 12 KB | Abstract, the highest-contrast and most colourblind-safe |
+| Shapes | `@dicebear/shapes` | Abstract, highest contrast, most colourblind-safe |
+| Glass | `@dicebear/glass` | Soft gradients, quiet |
+| Pixel | `@dicebear/pixel-art` | Retro, reads well at small sizes |
+| Thumbs | `@dicebear/thumbs` | Simple figures, the comic option |
+| Lorelei | `@dicebear/lorelei` | Illustrated portraits, fits the dossier framing |
+| Peeps | `@dicebear/open-peeps` | Hand-drawn people, the widest variety |
+| Notionists | `@dicebear/notionists` | Line-drawn characters, the heaviest |
 
-Deliberately excluded: **Notionists** (373 KB, the heaviest by a wide margin) and
-**Bottts** (92 KB and licensed "free for personal and commercial use" rather than
-CC0 — usable, but CC0 keeps the licence story to one line).
+An earlier draft of this table named Clay, Critters and Pixelbot. **No DiceBear
+styles by those names exist** — the seven above are the CC0 styles that do.
 
-**OPEN:** whether to include Notionists despite the weight. It is a good style and
-the cost lands only on players who choose it.
+**Excluded: Bottts.** Licensed "free for personal and commercial use" rather than
+CC0. Usable, but CC0 across the board keeps the licence story to one line, and
+that is worth more than one robot style.
+
+**RESOLVED — Notionists is in.** It is CC0, it is a genuinely distinct style, and
+it is lazy-loaded, so its weight lands only on players who pick it.
 
 ### Customization
 
@@ -118,6 +119,10 @@ Style definitions are lazy `import()`ed and cached. A client loads a style only
 when it first has to render one — its own choice, or another player's. Worst case
 in a full room with seven distinct styles is 585 KB raw, well under half that
 gzipped, and it arrives after first paint.
+
+The picker is the one place that renders all seven at once, so each load is
+deferred to `requestIdleCallback`. Seven style definitions must never contend
+with the transport chunk for the same bandwidth.
 
 While a definition loads, render the Shapes fallback at 12 KB, which is bundled
 eagerly. Nothing in the room ever waits on an avatar.

@@ -16,6 +16,8 @@ placeholder, and the design tokens and motion rules are usable by later steps.
 | Avatars | `@dicebear/core` + per-style JSON | Local SVG generation, no API |
 | Hosting | GitHub Pages | Static, HTTPS (required for WebRTC) |
 
+**Node 20.19+ or 22.12+** — current Vite refuses to install below that line.
+
 No runtime dependency on any service we do not control, except the public relays
 Trystero uses for the initial handshake.
 
@@ -58,7 +60,7 @@ build: {
     main.tsx
     net/          transports, envelope, router, host election, protocol
     game/         types, reducer, prng, board, intents
-    state/        replica store, version handling, resync
+    state/        replica store, version handling, resync, reveal theatre
     ui/
       screens/    landing, waiting room, game, gameover
       board/      Board, Card, reveal choreography

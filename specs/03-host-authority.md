@@ -12,6 +12,7 @@ type Shared = {
   hostId: PlayerId
   hostEpoch: number     // bumped on every change of host
   hostHidden: boolean   // host's tab is backgrounded
+  hostDegraded: boolean // measured: the host's own beat is running late
   roster: PlayerId[]    // peers the host currently sees
   sentAt: number        // host wall-clock ms
   players: Player[]
@@ -44,8 +45,9 @@ invisible rather than told they were wrong, and changing it mid-session would
 disconnect everyone. We leave Trystero's at its default and enforce the lobby
 password here, where the host can change it live and reject with a message.
 
-**OPEN:** rate limiting on repeated `reject`. Probably unnecessary for friends;
-if added, a 2s backoff after 5 failures, host-side.
+**RESOLVED — no rate limiting on `reject`.** A room id is ten random base32
+characters and the group is friends. A backoff would be code defending against
+an attacker who already had to be handed the link.
 
 ## Liveness
 

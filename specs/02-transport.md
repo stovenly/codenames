@@ -39,14 +39,27 @@ We also ship a curated `urls` override per transport in `src/data/relays.ts` —
 8-12 vetted public Nostr relays, MQTT brokers, and WebSocket trackers. Defaults
 drift and die; a list we control is updatable with a commit.
 
+**`urls` and `redundancy` are mutually exclusive in Trystero:** supplying `urls`
+makes it connect to all of them and ignore `redundancy` entirely. So we keep the
+full vetted list in the file and pass only the leading `REDUNDANCY` entries.
+That slice must be identical on every client — no per-room shuffling, or two
+players pick disjoint relays and never discover each other.
+
 `APP_ID` is a constant unique to this project. `roomId` is 10 chars of base32
 from `crypto.getRandomValues`, carried in the URL hash.
 
 **A transport that fails to initialise is logged and ignored.** One working
 network is enough to play; three is redundancy, not a requirement.
 
-**OPEN:** add IPFS as a fourth. Trystero rates it least robust, but it is another
-free network and costs one import. Lean yes, behind a flag.
+**RESOLVED — no IPFS.** It was meant to cost one import. It costs `@waku/sdk`
+and 35 MB of libp2p, which would dominate the bundle budget in
+[09](09-resilience.md#load-and-offline) for a redundancy nice-to-have on the
+network Trystero already rates least robust. Three transports is the design.
+
+**The transport stack is a dynamic import.** Nostr, MQTT and BitTorrent together
+are a third of the shipped JavaScript, so the mesh loads as its own chunk after
+first paint. Prewarm still begins immediately; anything sent before the chunk
+lands waits in an outbox.
 
 ## Merging transports into one mesh
 

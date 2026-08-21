@@ -1,15 +1,23 @@
 import {AnimatePresence, motion} from 'motion/react'
-import {useEffect} from 'react'
+import {Suspense, lazy, useEffect} from 'react'
 import {derive} from '../game/reducer'
 import {publishRoomToHash} from '../state/net'
 import {start, useRoom} from '../state/room'
 import * as words from '../state/words'
+import {AwayWatch, HostAwayPill} from './Away'
 import {Diagnostics} from './Diagnostics'
 import {Panel} from './atoms'
 import {spring} from './motion'
-import {Game} from './screens/Game'
 import {Landing} from './screens/Landing'
-import {Waiting} from './screens/Waiting'
+
+const Waiting = lazy(() => import('./screens/Waiting').then(m => ({default: m.Waiting})))
+const Game = lazy(() => import('./screens/Game').then(m => ({default: m.Game})))
+
+const Loading = ({label}: {label: string}) => (
+  <main className="flex min-h-full items-center justify-center">
+    <p className="type-mono animate-pulse text-sm text-text-dim">{label}</p>
+  </main>
+)
 
 const Banner = ({text, tone}: {text: string; tone: 'brass' | 'danger'}) => (
   <motion.div
@@ -46,6 +54,8 @@ export const App = () => {
 
   return (
     <>
+      <AwayWatch />
+
       <AnimatePresence>
         {split && (
           <Banner
@@ -60,15 +70,18 @@ export const App = () => {
       {role === 'idle' || role === 'rejected' ? (
         <Landing needsPassword={role === 'rejected'} />
       ) : role === 'joining' ? (
-        <main className="flex min-h-full items-center justify-center">
-          <p className="type-mono animate-pulse text-sm text-text-dim">Connecting…</p>
-        </main>
+        <Loading label="Connecting…" />
       ) : view && view.phase !== 'setup' ? (
-        <Game />
+        <Suspense fallback={<Loading label="Dealing the board…" />}>
+          <Game />
+        </Suspense>
       ) : (
-        <Waiting />
+        <Suspense fallback={<Loading label="Opening the room…" />}>
+          <Waiting />
+        </Suspense>
       )}
 
+      <HostAwayPill />
       <Diagnostics />
     </>
   )

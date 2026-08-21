@@ -1,17 +1,20 @@
 import {AnimatePresence} from 'motion/react'
-import {useEffect} from 'react'
+import {Suspense, lazy, useEffect} from 'react'
 import {derive} from '../../game/reducer'
 import {startPresence} from '../../state/presence'
 import {useRoom} from '../../state/room'
 import {useTheatre} from '../../state/theatre'
 import * as words from '../../state/words'
 import {Board} from '../board/Board'
-import {HostPanel} from '../host/HostPanel'
 import {ClueReveal, TurnBand} from '../hud/ClueReveal'
 import {Hud} from '../hud/Hud'
 import {AssassinTakeover, BoardBreath, SpymasterChrome} from '../hud/Overlays'
+
 import {unlockAudio} from '../sound/audio'
 import {GameOver} from './GameOver'
+
+/** Neither is needed on first paint, and the panel is host-only. */
+const HostPanel = lazy(() => import('../host/HostPanel').then(m => ({default: m.HostPanel})))
 
 export const Game = () => {
   const {shared, role, me} = useRoom()
@@ -35,7 +38,11 @@ export const Game = () => {
     return (
       <>
         <GameOver view={view} me={player} isHost={isHost} />
-        {isHost && <HostPanel />}
+        {isHost && (
+          <Suspense fallback={null}>
+            <HostPanel />
+          </Suspense>
+        )}
       </>
     )
   }
@@ -88,7 +95,11 @@ export const Game = () => {
         )}
       </AnimatePresence>
 
-      {isHost && <HostPanel />}
+      {isHost && (
+        <Suspense fallback={null}>
+          <HostPanel />
+        </Suspense>
+      )}
     </>
   )
 }

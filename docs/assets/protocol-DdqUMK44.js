@@ -1,0 +1,1 @@
+var e=`codenames-briefing-room-v1`;export{e as t};

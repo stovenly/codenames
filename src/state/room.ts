@@ -19,6 +19,9 @@ export type RoomSnapshot = {
   split: boolean
   me: PlayerId
   wordsReady: boolean
+  /** Host-local: how long our own tab has been backgrounded, for the title and favicon ladder. */
+  hiddenMs: number
+  degrading: boolean
 }
 
 /** Widened while the host advertises a hidden tab, whose timers the browser throttles. */
@@ -28,6 +31,10 @@ const BEAT_MS = 2_000
 const CLAIM_WINDOW_MS = 1_500
 const BROADCAST_DEBOUNCE_MS = 50
 const SPLIT_GRACE_MS = 10_000
+const BEAT_LATE_MS = 5_000
+export const AWAY_NOTICE_MS = 20_000
+const AWAY_TRANSFER_MS = 60_000
+const SETTLED_MS = 2_500
 const RIVAL_HOST_WINDOW_MS = 5_000
 
 const SESSION_KEY = 'cn.session'
@@ -79,8 +86,21 @@ let wakeLock: WakeLockSentinel | null = null
 let started = false
 const strangerSince = new Map<PlayerId, number>()
 const rivalHosts = new Map<PlayerId, number>()
+let hiddenSince = 0
+let lastBeatAt = 0
+let lastStepAt = 0
+let degrading = false
 
-let snapshot: RoomSnapshot = {role, shared, banner, split, me: self, wordsReady: false}
+let snapshot: RoomSnapshot = {
+  role,
+  shared,
+  banner,
+  split,
+  me: self,
+  wordsReady: false,
+  hiddenMs: 0,
+  degrading: false
+}
 
 const publish = () => {
   snapshot = {
@@ -89,7 +109,9 @@ const publish = () => {
     banner,
     split,
     me: self,
-    wordsReady: shared ? words.have(shared.settings.wordListHash) : false
+    wordsReady: shared ? words.have(shared.settings.wordListHash) : false,
+    hiddenMs: hiddenSince ? Date.now() - hiddenSince : 0,
+    degrading
   }
   listeners.forEach(l => l())
 }
@@ -124,13 +146,32 @@ const viewOf = (state: Shared): View =>
 
 // ---------------------------------------------------------------- host side
 
+/**
+ * Full state on welcome, host change and resync; a delta the rest of the time.
+ * `base` is how many steps the room is assumed to hold, so an undo followed by
+ * a fresh step arrives as a truncate-and-append rather than the whole history.
+ */
+export type StateMsg =
+  | {full: Shared}
+  | {meta: Omit<Shared, 'steps'>; base: number; add: Step[]}
+
+let broadcastBase = 0
+
+const sendFull = (state: Shared, to: PlayerId | '*' = '*') => {
+  send('state', {full: state} satisfies StateMsg, to)
+  broadcastBase = state.steps.length
+}
+
 const broadcast = () => {
   if (!isHost() || broadcastTimer) return
   broadcastTimer = setTimeout(() => {
     broadcastTimer = null
     if (!isHost() || !shared) return
     shared = {...shared, version: shared.version + 1, sentAt: Date.now(), roster: [self, ...peers()]}
-    send('state', shared)
+    const {steps, ...meta} = shared
+    const base = Math.min(broadcastBase, steps.length)
+    send('state', {meta, base, add: steps.slice(base)} satisfies StateMsg)
+    broadcastBase = steps.length
     publish()
   }, BROADCAST_DEBOUNCE_MS)
 }
@@ -169,6 +210,7 @@ const commit = (mutate: (draft: Shared) => Shared) => {
 }
 
 const appendStep = (step: Step) => {
+  lastStepAt = Date.now()
   commit(draft => {
     const list = words.get(draft.settings.wordListHash)
     const truncated = draft.steps.slice(0, draft.cursor)
@@ -182,6 +224,13 @@ const startBeat = () => {
   beatWorker = new Worker(new URL('../net/beat.worker.ts', import.meta.url), {type: 'module'})
   beatWorker.onmessage = () => {
     if (!isHost() || !shared) return
+    const now = Date.now()
+    const late = lastBeatAt > 0 && now - lastBeatAt > BEAT_LATE_MS
+    lastBeatAt = now
+    if (late !== degrading) {
+      degrading = late
+      hostMutate(draft => ({...draft, hostDegraded: late}))
+    }
     send('beat', {
       version: shared.version,
       hostId: shared.hostId,
@@ -221,7 +270,7 @@ const becomeHost = (state: Shared) => {
   lastHostAt = Date.now()
   startBeat()
   takeWakeLock()
-  send('state', shared)
+  sendFull(shared)
   publish()
 }
 
@@ -292,6 +341,7 @@ const promoteSelf = (epoch: number) => {
     hostId: self,
     hostEpoch: epoch,
     hostHidden: document.hidden,
+    hostDegraded: false,
     roster: [...connected],
     sentAt: Date.now(),
     players: shared.players.map(p => ({...p, connected: connected.has(p.id)}))
@@ -341,6 +391,24 @@ const monitor = () => {
         ...draft,
         players: draft.players.map(p => ({...p, connected: connected.has(p.id)}))
       }))
+    }
+
+    // Rung four: hand the room to someone whose tab is actually in front. It is
+    // deliberate but reversible — the original host takes it back on return.
+    if (
+      hiddenSince > 0 &&
+      now - hiddenSince > AWAY_TRANSFER_MS &&
+      degrading &&
+      now - lastStepAt > SETTLED_MS
+    ) {
+      const to = bestSuccessor()
+      if (to) {
+        send('handoff', {to, epoch: shared.hostEpoch + 1})
+        const name = shared.players.find(p => p.id === to)?.name ?? 'someone else'
+        flash(`Handed hosting to ${name} while you were away`)
+        demote()
+        return
+      }
     }
 
     if (shared.deadline !== null && now >= shared.deadline) {
@@ -582,7 +650,21 @@ export const start = () => {
 
   on('state', (body, env) => {
     if (!body) return
-    const next = body as Shared
+    const msg = body as StateMsg
+
+    let next: Shared | null = null
+    if ('full' in msg) {
+      next = msg.full
+    } else {
+      const have = shared?.steps ?? []
+      if (have.length < msg.base) {
+        send('resync', {want: 'state'}, msg.meta.hostId)
+        return
+      }
+      next = {...msg.meta, steps: [...have.slice(0, msg.base), ...msg.add]}
+    }
+    if (!next) return
+
     rivalHosts.set(next.hostId, Date.now())
     if (isHost() && next.hostId !== self) {
       const mine = shared?.hostEpoch ?? 0
@@ -639,15 +721,21 @@ export const start = () => {
       send('words', {hash: key, words: words.get(key)}, env.from)
       return
     }
-    send('welcome', shared, env.from)
+    sendFull(shared, env.from)
   })
 
   onNetChange(monitor)
   setInterval(monitor, 500)
 
   document.addEventListener('visibilitychange', () => {
+    hiddenSince = document.hidden ? Date.now() : 0
+    if (!document.hidden) {
+      degrading = false
+      lastBeatAt = 0
+    }
+    publish()
     if (!isHost()) return
-    hostMutate(draft => ({...draft, hostHidden: document.hidden}))
+    hostMutate(draft => ({...draft, hostHidden: document.hidden, hostDegraded: degrading}))
     if (!document.hidden && !wakeLock) takeWakeLock()
   })
 
@@ -671,6 +759,7 @@ export const createRoom = async (name: string, password: string | null) => {
     hostId: self,
     hostEpoch: 1,
     hostHidden: document.hidden,
+    hostDegraded: false,
     roster: [self],
     sentAt: Date.now(),
     players: [{...emptyPlayer(self, name), avatar: myAvatar}],

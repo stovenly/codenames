@@ -7,6 +7,23 @@ the point of the project.
 Build committed selection and the reveal choreography first — they carry the
 feel. Everything else here decorates them.
 
+## The lagging cursor
+
+Presentation runs on its own cursor, behind the authoritative one. The host
+decides an outcome the moment the intent lands and broadcasts it; a client-side
+theatre store holds `shownCursor` and walks it forward one step at a time,
+playing a sequence per step before letting the next one through. Every client
+plays the same sequence, so the room reacts together.
+
+This is the mechanism the whole feel rests on. It cannot change what happened —
+it only decides how long everyone waits to see it. Two rules keep it honest:
+
+- **It never blocks input the host would accept.** Controls are disabled during
+  a sequence because acting mid-reveal is confusing, not because the host would
+  refuse.
+- **It never replays history.** More than two steps behind — a rejoin, a
+  jump, a burst after a reconnect — and it snaps to the truth with no animation.
+
 ## Card anatomy
 
 Each card is a physical tile: subtle paper grain, inner bevel, a 1px warm rim, a
@@ -34,7 +51,7 @@ The centrepiece interaction. Three stages, not one:
    avatar land on that card immediately.* Any teammate can arm any card; markers
    stack.
 3. **Confirm** — second click on the same card, or the Confirm button in the HUD.
-   A 400ms wind-up, then the reveal fires.
+   The wind-up below fires.
 
 Three jobs at once: it gives the choice weight, it eliminates the misclick that
 ruins online Codenames, and the visible markers restore the social pressure the
@@ -48,21 +65,45 @@ Escape to disarm.
 
 ## Reveal choreography
 
-1. 120ms anticipation, the card scales to 0.96
-2. a colour wash sweeps outward from the click point
-3. a rotated rubber stamp lands with a slight overshoot
+The centrepiece. A confirmed guess is a lever pull on a slot machine, not a
+click on a link, and the room should feel the pause before the payoff. Three
+acts, 1.5s of dread and about 0.5s of resolution.
 
-Then by outcome:
+**Act one — the wind-up, 1500ms.** The lever lands: a low thunk under a
+mechanical clack. The chosen card lifts out of the grid, gains a brass ring and
+a hard drop shadow, and everything behind it drops to 28% saturation and 42%
+brightness with a warm spotlight closing around the card. The card's face then
+*scrubs*: it cycles red, bystander, blue, assassin, faster than the eye can
+settle, with a detent click on each change and a sawtooth riser climbing under
+it through a sweeping lowpass. The cycle decelerates on a `p^2.4` curve — gaps
+grow from 42ms to about 300ms — so the last few colours land one at a time and
+everyone leans in. Nothing about the sequence is random: the outcome was decided
+before it started.
 
-- **Correct** — particle burst in the team colour, the board breathes once, a
-  chime pitched to the team
-- **Neutral or other team** — the card slumps and desaturates, the turn banner
-  queues behind it
-- **Assassin** — a full takeover. Everything desaturates except the card, a red
-  vignette pulses from the edges, siren, a two-second hold before the game-over
-  screen. It should be genuinely alarming
+**Act two — the landing, 520ms.** The reel stops on the truth. A colour wash
+sweeps outward as a circular clip from the centre, the rubber stamp drops in
+rotated with a stiff overshoot, and a filtered noise burst lands with it.
 
-Particles cap at 24 and are skipped entirely under `prefers-reduced-motion`.
+**Act three — the payoff.** By outcome:
+
+- **Correct** — a 24-shard burst in the team colour, a full-screen breath of the
+  same colour behind the board, a four-note rising chime pitched to the team,
+  and the score tile rolls over. 700ms.
+- **Neutral or other team** — the card slumps and desaturates, a dull two-tone
+  thud, and the turn band queues behind it. 950ms, longer than a correct guess
+  because disappointment needs room.
+- **Assassin** — a full takeover. A red vignette pulses from the edges four
+  times over 2.2 seconds, a two-tone siren with a noise bed runs underneath,
+  ASSASSIN slams in oversized and rotated, and it *holds* before the game-over
+  screen. It should be genuinely alarming.
+
+The game-over screen is the jackpot: a continuous confetti fall in the winner's
+colour plus brass, the result stamped in with a spring, and a six-note fanfare
+for the winners or a four-note descent for the losers.
+
+**Under `prefers-reduced-motion` all of it collapses.** No scrub, no particles,
+no confetti, no takeover pulse: every act cuts to 90-400ms and the card simply
+changes colour. The sound stays, because muting is a separate control.
 
 ## Clue delivery
 

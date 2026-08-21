@@ -28,6 +28,8 @@ export type Shared = {
   hostId: PlayerId
   hostEpoch: number
   hostHidden: boolean
+  /** Measured, not assumed: the host's own beat is running late. */
+  hostDegraded: boolean
   roster: PlayerId[]
   sentAt: number
   players: Player[]

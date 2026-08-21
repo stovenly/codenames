@@ -1,8 +1,40 @@
 import {AnimatePresence, motion} from 'motion/react'
 import {useEffect, useState} from 'react'
 import {refreshStats, roomId, self, useNet} from '../state/net'
+import {setPrefs, usePrefs} from '../state/prefs'
 import {Button, BrassRule, Panel, Pill} from './atoms'
 import {spring, useReducedMotion} from './motion'
+
+const Toggle = ({
+  label,
+  on,
+  onClick
+}: {
+  label: string
+  on: boolean
+  onClick: () => void
+}) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={on}
+    onClick={onClick}
+    className="flex cursor-pointer items-center justify-between gap-3 rounded-md border border-ink-600 px-3 py-2 text-left transition-colors hover:border-brass-400/50"
+  >
+    <span className="type-mono text-[11px] text-text-dim">{label}</span>
+    <span
+      className={`relative h-4 w-8 shrink-0 rounded-full transition-colors ${
+        on ? 'bg-brass-400' : 'bg-ink-600'
+      }`}
+    >
+      <span
+        className={`absolute top-0.5 size-3 rounded-full bg-ink-900 transition-[left] ${
+          on ? 'left-4' : 'left-0.5'
+        }`}
+      />
+    </span>
+  </button>
+)
 
 const STATUS_TONE = {
   ready: 'brass',
@@ -27,6 +59,7 @@ export const Diagnostics = () => {
   const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const {report} = useNet()
+  const prefs = usePrefs()
   const reduced = useReducedMotion()
 
   useEffect(() => {
@@ -35,6 +68,23 @@ export const Diagnostics = () => {
     const t = setInterval(() => void refreshStats(), 3000)
     return () => clearInterval(t)
   }, [open])
+
+  const relays = report.transports.reduce((n, t) => n + t.relaysOpen, 0)
+  const health =
+    report.transports.length === 0
+      ? 'idle'
+      : relays === 0
+        ? 'down'
+        : report.router.directPeers === 0
+          ? 'alone'
+          : 'ok'
+
+  const tone = {
+    idle: 'border-ink-600 text-text-dim',
+    down: 'border-void-rim/70 text-red-glow',
+    alone: 'border-brass-400/50 text-brass-200',
+    ok: 'border-ink-600 text-text-dim'
+  }[health]
 
   const copy = async () => {
     const text = JSON.stringify({roomId, self, ...report}, null, 2)
@@ -53,9 +103,18 @@ export const Diagnostics = () => {
         type="button"
         onClick={() => setOpen(v => !v)}
         aria-expanded={open}
-        className="type-mono fixed bottom-3 left-3 z-40 cursor-pointer rounded-full border border-ink-600 bg-ink-800/90 px-3 py-1.5 text-[11px] text-text-dim backdrop-blur transition-colors hover:border-brass-400/50 hover:text-brass-200"
+        className={`type-mono fixed bottom-3 left-3 z-40 flex cursor-pointer items-center gap-2 rounded-full border bg-ink-800/90 px-3 py-1.5 text-[11px] backdrop-blur transition-colors hover:border-brass-400/50 hover:text-brass-200 ${tone}`}
       >
-        {report.router.directPeers} peer{report.router.directPeers === 1 ? '' : 's'} · diagnostics
+        <span
+          aria-hidden
+          className={`size-1.5 rounded-full ${
+            health === 'down' ? 'bg-void-rim' : health === 'alone' ? 'bg-brass-400' : health === 'ok' ? 'bg-brass-400/70' : 'bg-text-dim/50'
+          }`}
+        />
+        {health === 'down'
+          ? 'offline'
+          : `${report.router.directPeers} peer${report.router.directPeers === 1 ? '' : 's'}`}
+        <span className="opacity-50">diagnostics</span>
       </button>
 
       <AnimatePresence>
@@ -115,6 +174,23 @@ export const Diagnostics = () => {
               </p>
 
               <p className="mt-3 text-xs leading-relaxed text-text-dim">{advice(report)}</p>
+
+              <BrassRule className="my-3" />
+
+              <section className="flex flex-col gap-1.5">
+                <h3 className="type-display text-[11px] text-brass-200">Display</h3>
+                <Toggle
+                  label="Reduce motion"
+                  on={reduced}
+                  onClick={() => setPrefs({motion: reduced ? 'full' : 'reduced'})}
+                />
+                <Toggle
+                  label="Colourblind contrast"
+                  on={prefs.colourblind}
+                  onClick={() => setPrefs({colourblind: !prefs.colourblind})}
+                />
+                <Toggle label="Sound" on={!prefs.muted} onClick={() => setPrefs({muted: !prefs.muted})} />
+              </section>
 
               <div className="mt-4">
                 <Button variant="ghost" onClick={copy} className="w-full">
