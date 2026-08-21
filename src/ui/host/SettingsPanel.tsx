@@ -134,7 +134,7 @@ export const SettingsPanel = ({
         <Readout label="Board" value={`${settings.size} × ${settings.size} · ${total} cards`} />
         <Readout label="Agents" value={`${c.perTeam} each`} />
         <Readout label="Assassins" value={String(c.assassins)} />
-        <Readout label="Bystanders" value={String(Math.max(0, c.neutral))} />
+        <Readout label="Neutral cards" value={String(Math.max(0, c.neutral))} />
         <Rule className="my-1" />
         <Readout label="Clue timer" value={settings.clueTimer ? `${settings.clueTimer}s` : 'off'} />
         <Readout label="Guess timer" value={settings.guessTimer ? `${settings.guessTimer}s` : 'off'} />
@@ -189,7 +189,7 @@ export const SettingsPanel = ({
           </p>
         ))}
         {!problems.length && c.neutral === 0 && (
-          <p className="type-label text-lamp-300">No bystanders — playable, but brutal.</p>
+          <p className="type-label text-lamp-300">No neutral cards — playable, but brutal.</p>
         )}
       </div>
 

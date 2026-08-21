@@ -66,7 +66,7 @@ export const CompositionRow = ({
       <Item
         icon={<Blank className="size-3.5 text-text-dim" />}
         value={Math.max(0, c.neutral)}
-        label="bystanders"
+        label="neutral"
         tone="border-stage-600 bg-stage-800 text-text"
         invalid={c.neutral < 0}
       />
