@@ -1,10 +1,10 @@
-const VERSION = 'cn-irucrl'
+const VERSION = 'cn-17w2f91'
 const SHELL = [
   "./",
   "./index.html",
-  "./assets/index-BtOhPluy.js",
+  "./assets/index-CkO15hwU.js",
   "./assets/rolldown-runtime-hePW80VL.js",
-  "./assets/index-QPRcWTCx.css"
+  "./assets/index-B08lN5vS.css"
 ]
 
 self.addEventListener('install', event => {

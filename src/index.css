@@ -403,34 +403,14 @@ button {
   }
 }
 
-/** Rare, shallow dips over a long cycle. A fast one would be a strobe. */
-@keyframes flicker {
-  0%,
-  40%,
-  44%,
-  61%,
-  66%,
-  100% {
-    opacity: 1;
-  }
-  42% {
-    opacity: 0.62;
-  }
-  63% {
-    opacity: 0.45;
-  }
-  64.5% {
-    opacity: 0.85;
-  }
-}
-
 @keyframes sheen {
-  0% {
-    background-position-x: 165%;
+  0%,
+  8% {
+    background-position-x: 170%;
   }
-  55%,
+  46%,
   100% {
-    background-position-x: -65%;
+    background-position-x: -70%;
   }
 }
 
@@ -455,11 +435,8 @@ button {
 @utility anim-breathe {
   animation: breathe 6s ease-in-out infinite;
 }
-@utility anim-flicker {
-  animation: flicker 7s steps(1, end) infinite;
-}
 @utility anim-sheen {
-  animation: sheen 5s ease-in-out infinite;
+  animation: sheen 7s cubic-bezier(0.5, 0, 0.2, 1) infinite;
 }
 @utility anim-rise {
   animation: rise linear infinite;
@@ -477,10 +454,71 @@ button {
 /** The glow layer sits behind the type so the flicker animates opacity, not shadow. */
 @utility neon {
   text-shadow:
-    0 0 4px rgba(255, 226, 154, 0.9),
-    0 0 12px rgba(255, 197, 61, 0.75),
-    0 0 34px rgba(255, 197, 61, 0.55),
-    0 0 72px rgba(255, 149, 0, 0.4);
+    0 0 2px rgba(255, 255, 255, 0.95),
+    0 0 9px rgba(255, 226, 154, 0.95),
+    0 0 22px rgba(255, 197, 61, 0.85),
+    0 0 48px rgba(255, 150, 20, 0.6),
+    0 0 96px rgba(255, 120, 0, 0.45);
+}
+
+/**
+ * The glow is two blurred copies breathing on periods that do not divide into
+ * each other, so their sum never visibly repeats. An earlier version used a
+ * stepped flicker keyframe, which is a stutter rather than a glow — a light
+ * this size does not blink, it swells.
+ */
+@utility halo {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  will-change: opacity, transform;
+}
+
+@keyframes glow-swell {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes glow-drift {
+  0%,
+  100% {
+    opacity: 0.9;
+    transform: scale(1.03);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(0.98);
+  }
+}
+
+@keyframes lift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -3px, 0);
+  }
+}
+
+@utility anim-glow-swell {
+  animation: glow-swell 4.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+@utility anim-glow-drift {
+  animation: glow-drift 7.3s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+@utility anim-lift {
+  animation: lift 6.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 
 /** A lacquered, bevelled plate. The card, the podium and the cabinet share it. */

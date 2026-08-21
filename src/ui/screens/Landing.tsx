@@ -172,7 +172,7 @@ const BulbFrame = () => {
 }
 
 const SignFrame = ({children}: {children: React.ReactNode}) => (
-  <div className="relative px-10 py-9 sm:px-14 sm:py-11">
+  <div className="relative px-10 py-9 select-none sm:px-14 sm:py-11">
     <span
       aria-hidden
       className="absolute inset-4 rounded-md border border-gold-500/45"
@@ -190,17 +190,29 @@ const SignFrame = ({children}: {children: React.ReactNode}) => (
 const Wordmark = () => {
   const {reduced} = useMotion()
   const size = 'text-[clamp(2.2rem,9.5vw,5rem)]'
+  const layer = cx('halo type-marquee', size)
 
   return (
-    <span className="relative block">
+    <span className={cx('relative block select-none', !reduced && 'anim-lift')}>
+      {/* Outer bloom: wide and slow. */}
       <span
         aria-hidden
-        className={cx('type-marquee neon absolute inset-0 text-lamp-300', size, !reduced && 'anim-flicker')}
+        className={cx(layer, !reduced && 'anim-glow-drift')}
+        style={{color: '#FF9A14', filter: 'blur(28px)', opacity: reduced ? 0.55 : undefined}}
       >
         Codenames
       </span>
 
-      <h1 className={cx('type-marquee relative text-lamp-300', size)}>Codenames</h1>
+      {/* Inner bloom: tighter and brighter, on a period that does not divide the outer one. */}
+      <span
+        aria-hidden
+        className={cx(layer, !reduced && 'anim-glow-swell')}
+        style={{color: '#FFD166', filter: 'blur(13px)', opacity: reduced ? 0.8 : undefined}}
+      >
+        Codenames
+      </span>
+
+      <h1 className={cx('type-marquee neon relative text-lamp-300', size)}>Codenames</h1>
 
       {!reduced && (
         <span
