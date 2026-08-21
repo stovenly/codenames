@@ -76,6 +76,15 @@ const Lighting = () => {
         }}
       />
 
+      {/* Footlights first: the crowd needs something lit to stand against. */}
+      <span
+        className={cx('absolute -bottom-[60vmax] left-1/2 size-[120vmax] -translate-x-1/2', !reduced && 'anim-breathe')}
+        style={{
+          background: 'radial-gradient(closest-side, rgba(255,197,61,.26), transparent 70%)',
+          mixBlendMode: 'screen'
+        }}
+      />
+
       {/* Behind the beams: a screen-blended spotlight passing over them reads as
           light through fog, which is the whole effect. */}
       <Suspense fallback={null}>
@@ -115,14 +124,6 @@ const Lighting = () => {
             }}
           />
         ))}
-
-      <span
-        className={cx('absolute -bottom-[60vmax] left-1/2 size-[120vmax] -translate-x-1/2', !reduced && 'anim-breathe')}
-        style={{
-          background: 'radial-gradient(closest-side, rgba(255,197,61,.26), transparent 70%)',
-          mixBlendMode: 'screen'
-        }}
-      />
 
       <span
         className="absolute inset-0"

@@ -17,25 +17,25 @@ const CROWD: Array<{
   sway: number
   flip: boolean
 }> = [
-  {figure: AIMING, x: 7, height: 21, opacity: 0.3, sway: 74, flip: false},
-  {figure: PAIR, x: 24, height: 31, opacity: 0.5, sway: 55, flip: true},
-  {figure: AIMING, x: 41, height: 17, opacity: 0.24, sway: 83, flip: true},
-  {figure: PAIR, x: 62, height: 37, opacity: 0.62, sway: 46, flip: false},
-  {figure: AIMING, x: 80, height: 26, opacity: 0.42, sway: 63, flip: false},
-  {figure: AIMING, x: 95, height: 19, opacity: 0.28, sway: 90, flip: true}
+  {figure: AIMING, x: 7, height: 26, opacity: 0.62, sway: 74, flip: false},
+  {figure: PAIR, x: 24, height: 36, opacity: 0.82, sway: 55, flip: true},
+  {figure: AIMING, x: 41, height: 21, opacity: 0.5, sway: 83, flip: true},
+  {figure: PAIR, x: 63, height: 42, opacity: 0.92, sway: 46, flip: false},
+  {figure: AIMING, x: 81, height: 31, opacity: 0.72, sway: 63, flip: false},
+  {figure: AIMING, x: 95, height: 23, opacity: 0.55, sway: 90, flip: true}
 ]
 
 export const Crowd = () => {
   const {reduced} = useMotion()
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[62vh]">
+    <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[70vh]">
       {CROWD.map(({figure, x, height, opacity, sway, flip}, i) => (
         <svg
           key={i}
           viewBox={figure.viewBox}
           preserveAspectRatio="xMidYMax meet"
           fill="currentColor"
-          className={cx('absolute bottom-[6vh] -translate-x-1/2', !reduced && 'anim-sway')}
+          className={cx('absolute bottom-[13vh] -translate-x-1/2', !reduced && 'anim-sway')}
           style={{
             left: `${x}%`,
             height: `${height}vh`,
@@ -52,12 +52,13 @@ export const Crowd = () => {
         </svg>
       ))}
 
-      {/* Fog: feet dissolve into the floor rather than standing on a hard line. */}
+      {/* Fog, at the feet only. An earlier version ran the gradient to full
+          opacity across the whole band and simply painted the figures out. */}
       <span
-        className="absolute inset-0"
+        className="absolute inset-x-0 bottom-0 h-[26vh]"
         style={{
           background:
-            'linear-gradient(to bottom, rgba(10,13,24,0) 0%, rgba(12,18,34,.42) 44%, rgba(14,22,42,.88) 74%, rgba(16,25,48,1) 100%)'
+            'linear-gradient(to bottom, rgba(12,18,34,0) 0%, rgba(13,20,38,.45) 46%, rgba(14,22,42,.8) 100%)'
         }}
       />
     </div>
