@@ -5,6 +5,8 @@ export type Settings = {
   teamCards: number
   assassins: number
   wordListHash: string
+  /** Label only, so every client can name the proposed deck without holding it. */
+  wordListName: string
   clueTimer: number | null
   guessTimer: number | null
 }
@@ -74,10 +76,15 @@ export const validate = (
 export const isDegenerate = (settings: Pick<Settings, 'size' | 'teamCards' | 'assassins'>) =>
   composition(settings).neutral === 0
 
-export const defaultSettings = (wordListHash: string, size: BoardSize = 5): Settings => ({
+export const defaultSettings = (
+  wordListHash: string,
+  wordListName = 'Original',
+  size: BoardSize = 5
+): Settings => ({
   size,
   ...presetFor(size),
   wordListHash,
+  wordListName,
   clueTimer: null,
   guessTimer: null
 })

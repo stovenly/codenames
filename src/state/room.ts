@@ -699,10 +699,11 @@ export const setPassword = async (password: string | null) => {
 
 export const hasPassword = () => passwordHash !== null
 
-export const setWordSource = async (source: words.Source) => {
+export const setWordSource = async (source: words.Source, label: string) => {
   if (!isHost()) return
   const {hash, words: list} = await words.resolve(source)
-  intend({kind: 'updateSettings', patch: {wordListHash: hash}})
+  words.rememberSource(source, label)
+  intend({kind: 'updateSettings', patch: {wordListHash: hash, wordListName: label}})
   send('words', {hash, words: list})
 }
 

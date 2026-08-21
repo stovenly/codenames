@@ -77,3 +77,23 @@ export const useWords = () =>
     () => revision,
     () => revision
   )
+
+const SOURCE_KEY = 'cn.wordSource'
+
+/** Host-local: which packs or custom list produced the current hash, so the picker reopens where it was. */
+export const rememberSource = (source: Source, label: string) => {
+  try {
+    localStorage.setItem(SOURCE_KEY, JSON.stringify({source, label}))
+  } catch {
+    /* private mode; the picker just starts from the default */
+  }
+}
+
+export const lastSource = (): {source: Source; label: string} | null => {
+  try {
+    const raw = localStorage.getItem(SOURCE_KEY)
+    return raw ? (JSON.parse(raw) as {source: Source; label: string}) : null
+  } catch {
+    return null
+  }
+}
