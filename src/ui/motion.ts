@@ -1,4 +1,3 @@
-import {useEffect, useState} from 'react'
 import type {Transition, Variants} from 'motion/react'
 import {getPrefs, usePrefs} from '../state/prefs'
 
@@ -10,27 +9,14 @@ export const spring = {
 
 export const duration = {feedback: 0.12, state: 0.25, set: 0.7}
 
-const systemReduced = () =>
-  typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+/**
+ * The effects control is the source of truth. The OS preference seeds it on a
+ * first visit and is never consulted again, because a control the OS can veto
+ * is a control that does nothing when you turn it on.
+ */
+export const reducedMotion = () => getPrefs().motion === 'reduced'
 
-export const reducedMotion = () => {
-  const {motion} = getPrefs()
-  return motion === 'reduced' || (motion === 'system' && systemReduced())
-}
-
-export const useReducedMotion = () => {
-  const {motion} = usePrefs()
-  const [system, setSystem] = useState(systemReduced)
-
-  useEffect(() => {
-    const mq = matchMedia('(prefers-reduced-motion: reduce)')
-    const on = () => setSystem(mq.matches)
-    mq.addEventListener('change', on)
-    return () => mq.removeEventListener('change', on)
-  }, [])
-
-  return motion === 'reduced' || (motion === 'system' && system)
-}
+export const useReducedMotion = () => usePrefs().motion === 'reduced'
 
 /**
  * One vocabulary, used everywhere. A duration or easing that appears in exactly

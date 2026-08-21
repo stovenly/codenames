@@ -180,8 +180,15 @@ over easing curves for anything physical.
 
 Established here, obeyed by every later step.
 
-- **`prefers-reduced-motion` is honoured and not negotiable.** Drop tilt,
-  parallax, and particles entirely; keep colour and opacity transitions; cut
+- **The effects control is the source of truth; `prefers-reduced-motion` seeds
+  it.** On a first visit the OS preference picks the starting value, so someone
+  who has asked their machine for less motion gets less motion without doing
+  anything. From the moment a choice is stored, that choice wins and the OS is
+  not consulted again — a control the OS can veto is a control that does nothing
+  when you turn it on. It sits in the corner controls on every screen, never in
+  a menu.
+- **Reduced still means reduced.** With it on, drop tilt, parallax, particles
+  and every looping light entirely; keep colour and opacity transitions; cut
   every duration to 120ms.
 - **Hue is never the only signal.** Red and blue *is* the game mechanic, so team
   identity always carries a glyph (diamond vs circle) and a pattern fill
