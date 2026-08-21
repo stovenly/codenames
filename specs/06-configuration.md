@@ -12,7 +12,7 @@ Sliders for size, team cards, and assassins, over the math in
 [04](04-game-core.md#board-configuration), with a live composition row beneath:
 
 ```
- [9 red agents]  [8 blue agents]  [1 assassin]  [7 bystanders]
+ [8 red agents]  [8 blue agents]  [1 assassin]  [8 neutral]
 ```
 
 Each is a pill with an icon — a red agent silhouette, a blue agent silhouette, a
@@ -25,8 +25,6 @@ Changing `size` re-derives sensible defaults for the other two from the table in
 playable board without further fiddling.
 
 ## Timers
-
-Two segmented controls, both defaulting to off:
 
 One scale for both, off by default: **off, 60s, 120s, 240s**. Two different
 ladders meant the two controls looked like they measured different things.
