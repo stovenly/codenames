@@ -298,6 +298,21 @@ button {
 
 @utility anim-sway { animation: sway linear infinite; }
 
+/**
+ * Feet dissolve into the floor. A mask actually removes them; an overlay
+ * gradient only tints them, which reads as a figure standing behind a pane.
+ */
+@utility fade-feet {
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 52%,
+    rgba(0, 0, 0, 0.62) 74%,
+    rgba(0, 0, 0, 0.22) 90%,
+    transparent 100%
+  );
+}
+
 @keyframes breathe {
   0%, 100% { opacity: 0.4; }
   50% { opacity: 0.85; }

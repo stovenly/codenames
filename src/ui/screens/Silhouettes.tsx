@@ -3,47 +3,73 @@ import {useMotion} from '../motion'
 import {AIMING, PAIR, type Figure} from './figures'
 
 /**
- * Depth is atmospheric, not blurred: further back is smaller, paler and slower,
- * because the background is lit and distance washes a dark shape toward it.
+ * Two figures flanking the centre column, one either side.
  *
- * The pair is wide and the lone figure is narrow, so alternating them and
- * flipping some gives a group that does not read as one shape stamped repeatedly.
+ * Placement is measured from the middle rather than in percentages: the column
+ * is a fixed 28rem, so `calc(50% ± 18rem)` puts each figure just outside it at
+ * any width. The min/max clamp stops them sliding off a narrow screen — on a
+ * phone they end up behind the panel, which is what the depth is for.
  */
-const CROWD: Array<{
+const FLANK: Array<{
   figure: Figure
-  x: number
+  side: 'left' | 'right'
+  left: string
   height: number
   opacity: number
   sway: number
   flip: boolean
+  /**
+   * The lone figure is traced with the suit highlights left as gaps in the fill,
+   * which reads as holes next to the solid pair. A hairline stroke along every
+   * subpath closes them; 0.6 units on a 36-unit figure is enough to seal the
+   * thickest gap and too little to thicken the profile.
+   */
+  seal?: number
 }> = [
-  {figure: AIMING, x: 7, height: 26, opacity: 0.62, sway: 74, flip: false},
-  {figure: PAIR, x: 24, height: 36, opacity: 0.82, sway: 55, flip: true},
-  {figure: AIMING, x: 41, height: 21, opacity: 0.5, sway: 83, flip: true},
-  {figure: PAIR, x: 63, height: 42, opacity: 0.92, sway: 46, flip: false},
-  {figure: AIMING, x: 81, height: 31, opacity: 0.72, sway: 63, flip: false},
-  {figure: AIMING, x: 95, height: 23, opacity: 0.55, sway: 90, flip: true}
+  {
+    figure: PAIR,
+    side: 'left',
+    left: 'max(12%, calc(50% - 22rem))',
+    height: 44,
+    opacity: 0.72,
+    sway: 54,
+    flip: false
+  },
+  {
+    figure: AIMING,
+    side: 'right',
+    left: 'min(88%, calc(50% + 26rem))',
+    height: 44,
+    opacity: 0.68,
+    sway: 67,
+    flip: false,
+    seal: 0.6
+  }
 ]
 
 export const Crowd = () => {
   const {reduced} = useMotion()
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[70vh]">
-      {CROWD.map(({figure, x, height, opacity, sway, flip}, i) => (
+    <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[72vh]">
+      {FLANK.map(({figure, side, left, height, opacity, sway, flip, seal}, i) => (
         <svg
-          key={i}
+          key={side}
           viewBox={figure.viewBox}
           preserveAspectRatio="xMidYMax meet"
           fill="currentColor"
-          className={cx('absolute bottom-[13vh] -translate-x-1/2', !reduced && 'anim-sway')}
+          stroke={seal ? 'currentColor' : undefined}
+          strokeWidth={seal}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          className={cx('fade-feet absolute bottom-[11vh] -translate-x-1/2', !reduced && 'anim-sway')}
           style={{
-            left: `${x}%`,
+            left,
             height: `${height}vh`,
             color: '#05060B',
             opacity,
             transform: flip ? 'scaleX(-1)' : undefined,
             animationDuration: `${sway}s`,
-            animationDelay: `${-i * 9}s`
+            animationDelay: `${-i * 13}s`
           }}
         >
           {figure.paths.map((d, j) => (
@@ -52,13 +78,13 @@ export const Crowd = () => {
         </svg>
       ))}
 
-      {/* Fog, at the feet only. An earlier version ran the gradient to full
-          opacity across the whole band and simply painted the figures out. */}
+      {/* Fog bank in front of them. The per-figure mask does the dissolving; this
+          sits them further back into it. */}
       <span
-        className="absolute inset-x-0 bottom-0 h-[26vh]"
+        className="absolute inset-x-0 bottom-0 h-[46vh]"
         style={{
           background:
-            'linear-gradient(to bottom, rgba(12,18,34,0) 0%, rgba(13,20,38,.45) 46%, rgba(14,22,42,.8) 100%)'
+            'linear-gradient(to bottom, rgba(12,18,34,0) 0%, rgba(13,20,38,.28) 40%, rgba(14,22,42,.62) 72%, rgba(15,24,46,.88) 100%)'
         }}
       />
     </div>
