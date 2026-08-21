@@ -155,7 +155,12 @@ export const AvatarPicker = ({
                 : 'border-stage-600 hover:border-gold-500/50'
             )}
           >
-            <AvatarView spec={{...value, style: s.id}} size={46} />
+            {/* Its own remembered variant, not the live one. Sharing the seed
+                meant scrubbing or switching anywhere re-rolled every swatch. */}
+            <AvatarView
+              spec={{...value, style: s.id, seed: seeds[s.id] ?? openingVariant(s.id)}}
+              size={46}
+            />
             <Label>{s.name}</Label>
           </button>
         ))}

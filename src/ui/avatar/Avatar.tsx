@@ -5,6 +5,27 @@ import {ensureStyle, styleFor} from './styles'
 
 const cache = new Map<string, string>()
 
+let unique = 0
+
+/**
+ * DiceBear names its internal elements with fixed ids — every avatar it
+ * generates contains `id="viewboxMask"`. Inline more than one in a document and
+ * every `url(#viewboxMask)` resolves to the first one, so each style ends up
+ * masked by whichever avatar happens to be earliest in the DOM. Styles whose
+ * viewBox differs from that one get clipped to a speck, or vanish: Pixel Art
+ * draws in a 16-unit box and was being masked by a 980-unit mask.
+ *
+ * Prefixing every id and every reference to it keeps each avatar self-contained.
+ * The result is cached with its prefix, so an avatar stays stable once made.
+ */
+const isolate = (svg: string) => {
+  const p = `db${(unique++).toString(36)}-`
+  return svg
+    .replace(/id="([^"]+)"/g, (_, id: string) => `id="${p}${id}"`)
+    .replace(/url\(#([^)]+)\)/g, (_, id: string) => `url(#${p}${id})`)
+    .replace(/((?:xlink:)?href)="#([^"]+)"/g, (_, attr: string, id: string) => `${attr}="#${p}${id}"`)
+}
+
 const render = (spec: AvatarSpec): string | null => {
   const key = `${spec.style}|${spec.seed}|${spec.bg}`
   const hit = cache.get(key)
@@ -25,8 +46,9 @@ const render = (spec: AvatarSpec): string | null => {
     // repo instead.
     .replace(/<metadata[\s\S]*?<\/metadata>/, '')
 
-  cache.set(key, svg)
-  return svg
+  const isolated = isolate(svg)
+  cache.set(key, isolated)
+  return isolated
 }
 
 /** A style still downloading renders as this, not as another style's avatar. */

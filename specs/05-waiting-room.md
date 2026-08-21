@@ -98,10 +98,23 @@ exist as DiceBear styles. Shapes and Glass were dropped as abstractions.
 Personas and Miniavs were rejected on sight: both draw a hard diagonal across
 the corner that reads as a rendering fault.
 
-**Every style declares its own intrinsic size** — Lorelei 980, Notionists 1744,
-Pixel 16 — so the generated SVG has to be told to fill its box. Left alone it
-renders at its own scale and crops to a speck, which looks like a bug in the
-avatar rather than in the markup around it.
+**Two things about the generated SVG have to be corrected before it is inlined.**
+
+*Size.* Every style declares its own intrinsic dimensions — Lorelei 980,
+Notionists 1744, Pixel 16 — so the SVG has to be told to fill its box, or it
+renders at its own scale and crops.
+
+*Element ids.* DiceBear names its internals with fixed ids: every avatar it
+produces contains `id="viewboxMask"`. Inline more than one and every
+`url(#viewboxMask)` resolves to whichever is first in the DOM, so each avatar is
+masked by a different style's mask. Anything whose viewBox differs from that one
+is clipped to a speck, and Pixel Art — drawing in a 16-unit box against a
+980-unit mask — disappears completely. Prefix every id and every reference to it
+so each avatar is self-contained.
+
+This is why picking one style appeared to corrupt the others: nothing about the
+other avatars changed, they were simply being masked by whichever one had been
+rendered first.
 
 ### Customization
 
