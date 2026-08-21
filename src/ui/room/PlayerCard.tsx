@@ -1,5 +1,5 @@
 import {motion} from 'motion/react'
-import {Crown, VenetianMask} from 'lucide-react'
+import {Crown, UserMinus, VenetianMask} from 'lucide-react'
 import type {Player, Team} from '../../game/types'
 import {intend} from '../../state/room'
 import {AvatarView} from '../avatar/Avatar'
@@ -54,6 +54,8 @@ export const PlayerCard = ({
       onDragStart={onDragStart}
       className={cx(
         'plate gloss overflow-hidden rounded-md',
+        // A ghost is a seat still held, not a player still here.
+        !player.connected && 'border-dashed grayscale-[.55]',
         draggable && 'cursor-grab active:cursor-grabbing'
       )}
     >
@@ -96,7 +98,7 @@ export const PlayerCard = ({
                 <VenetianMask className="size-3" /> spymaster
               </span>
             )}
-            {!player.connected && <Label>away</Label>}
+            {!player.connected && <Label className="text-lamp-500/70">seat held</Label>}
           </span>
         </div>
       </div>
@@ -142,6 +144,16 @@ export const PlayerCard = ({
           >
             <VenetianMask className="size-3.5" />
           </IconButton>
+
+          {!player.connected && !isMe && (
+            <IconButton
+              label={`Give up ${player.name}'s seat`}
+              className="size-7 hover:border-kill-lit/60 hover:text-kill-lit"
+              onClick={() => intend({kind: 'removePlayer', target: player.id})}
+            >
+              <UserMinus className="size-3.5" />
+            </IconButton>
+          )}
         </div>
       )}
 

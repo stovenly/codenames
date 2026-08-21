@@ -2,37 +2,49 @@
  * Overrides, not a replacement.
  *
  * Trystero ships a maintained default list per transport, chosen for relays
- * that actually accept the ephemeral events it publishes. A hand-picked list
- * looks more careful and is usually worse: `relay.damus.io` rate-limits the
- * signalling traffic and `offchain.pub` rejects it outright as a web-of-trust
- * policy violation, which is console noise and two dead relays.
+ * that accept the ephemeral events it publishes. A hand-picked list looks more
+ * careful and is usually worse — two attempts at one shipped relays that were
+ * rate-limiting, refusing on policy, or simply gone.
  *
- * So: use the defaults unless a specific default is observed failing. Anything
- * listed here is a correction with a reason, and `null` means "take the
- * defaults".
+ * **A failed WebSocket is logged by the browser itself.** No library setting
+ * silences it, so the only fix for console noise is to not list an endpoint
+ * that is down. Everything here was probed for a live connection rather than
+ * recalled; anything that failed the probe is listed at the bottom so the next
+ * person does not put it back.
+ *
+ * Nostr keeps the defaults: a relay can accept a socket and still reject the
+ * events, which a connection probe cannot see, and the defaults are picked for
+ * exactly that.
  *
  * Note that supplying `urls` makes Trystero ignore `redundancy` and connect to
- * every entry, so a list here must be short enough to be the whole set. The
- * order must also be identical on every client — no per-room shuffling, or two
- * players pick disjoint relays and never find each other.
+ * every entry, so a list here must be short enough to be the whole set, and
+ * identical on every client — no per-room shuffling, or two players pick
+ * disjoint relays and never find each other.
  */
 
 export const REDUNDANCY = 5
 
 export const NOSTR_RELAYS: string[] | null = null
 
-/** `test.mosquitto.org:8081` refuses the WSS upgrade more often than not. */
 export const MQTT_RELAYS: string[] | null = [
-  'wss://broker.emqx.io:8084/mqtt',
   'wss://broker.hivemq.com:8884/mqtt',
-  'wss://public:public@public.cloud.shiftr.io',
-  'wss://broker-cn.emqx.io:8084/mqtt'
+  'wss://public:public@public.cloud.shiftr.io'
 ]
 
-/** `tracker.btorrent.xyz` has been down long enough to stop counting as flaky. */
 export const TORRENT_RELAYS: string[] | null = [
   'wss://tracker.webtorrent.dev',
   'wss://tracker.openwebtorrent.com',
-  'wss://open.ftorrent.com',
-  'wss://tracker.files.fm:7073/announce'
+  'wss://open.ftorrent.com'
 ]
+
+/**
+ * Probed and dead. Do not re-add without probing again:
+ *
+ *   mqtt     broker.emqx.io:8084, broker-cn.emqx.io:8084,
+ *            test.mosquitto.org:8081, mqtt.eclipseprojects.io
+ *   torrent  tracker.files.fm:7073, tracker.btorrent.xyz, tracker.novage.com.ua
+ *
+ * Reachable but useless for signalling, which is why nostr takes the defaults:
+ *
+ *   nostr    relay.damus.io (rate-limits), offchain.pub (web-of-trust policy)
+ */

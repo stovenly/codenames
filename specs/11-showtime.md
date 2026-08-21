@@ -79,17 +79,19 @@ screen shouts. Three faces, each with a job it is actually built for:
 
 | Role | Face | Package | Used for |
 |---|---|---|---|
-| Marquee | **Bungee** | `@fontsource/bungee` | The wordmark, team names, the turn band, WIN/ASSASSIN. Purpose-built signage type |
-| Plate | **Anton** | `@fontsource/anton` | Card words. Tall, condensed, holds up at 7x7 on a phone |
-| Readout | **JetBrains Mono** | already installed | Clues, timers, counts, labels |
+| Marquee | **Bungee** | `@fontsource/bungee` | The wordmark, team names, the turn band, WINS/ASSASSIN. Signage type, drawn for exactly this |
+| Plate | **Big Shoulders Display** | `@fontsource-variable/big-shoulders-display` | Card words. A wayfinding face: condensed enough to fit 7x7 on a phone and still be read across a room |
+| Readout | **Azeret Mono** | `@fontsource-variable/azeret-mono` | Clues, timers, counts, labels, the little prose there is |
 
-Body copy drops to almost nothing — there is very little prose left in the app,
-and what remains can be set in the readout face. Inter comes out, which pays for
-most of the two new faces.
+**Not JetBrains Mono, and not Anton.** JetBrains Mono is a code editor's font
+and reads as one — it belongs in a terminal, not on a scoreboard. Anton is the
+default answer to "condensed display face" and is on half the web. Neither is
+bad type; both are the obvious pick, and the obvious pick is what makes an
+interface look generated rather than chosen.
 
-`@fontsource/bungee-inline` and `bungee-shade` are the marquee variants; one of
-them earns its place on the wordmark only. Latin subsets only, so the committed
-`docs/` does not grow by every writing system.
+All three are variable or single-weight and subset by unicode-range, so only
+latin is fetched and the committed `docs/` does not grow by every writing
+system.
 
 ## Packages
 

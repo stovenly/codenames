@@ -1,6 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import * as ToggleGroup from '@radix-ui/react-toggle-group'
-import {Redo2, Settings2, Undo2, X} from 'lucide-react'
+import {Redo2, Settings2, Undo2, UserMinus, X} from 'lucide-react'
 import {useMemo, useState} from 'react'
 import {derive} from '../../game/reducer'
 import {validate} from '../../game/settings'
@@ -66,6 +66,7 @@ export const HostPanel = () => {
   const rewound = shared.cursor < shared.steps.length
   const problems = validate(shared.settings, list.length)
   const others = shared.players.filter(p => p.id !== me && p.connected)
+  const ghosts = shared.players.filter(p => !p.connected)
   const editable = view.phase === 'setup' || view.phase === 'gameover'
 
   return (
@@ -196,6 +197,37 @@ export const HostPanel = () => {
                     </div>
                   )}
                 </div>
+
+                {ghosts.length > 0 && (
+                  <>
+                    <Rule />
+                    <div className="flex flex-col gap-2">
+                      <Heading>Seats being held</Heading>
+                      <p className="type-body">
+                        Kept so they get their team back when they return.
+                      </p>
+                      {ghosts.map(p => (
+                        <div
+                          key={p.id}
+                          className="flex items-center justify-between gap-2 rounded-sm border border-dashed border-stage-600 px-2.5 py-1.5"
+                        >
+                          <span className="type-read truncate text-xs text-text-dim">
+                            {p.name}
+                            {p.team && <span className="ml-2 opacity-60">{p.team}</span>}
+                            {p.spymaster && <span className="ml-1.5 opacity-60">spymaster</span>}
+                          </span>
+                          <IconButton
+                            label={`Give up ${p.name}'s seat`}
+                            className="size-7 hover:border-kill-lit/60 hover:text-kill-lit"
+                            onClick={() => intend({kind: 'removePlayer', target: p.id})}
+                          >
+                            <UserMinus className="size-3.5" />
+                          </IconButton>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
 
                 <Rule />
 

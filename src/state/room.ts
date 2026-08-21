@@ -1,5 +1,5 @@
 import {useSyncExternalStore} from 'react'
-import {newRoomId, sha256Hex} from '../net/identity'
+import {newRoomId, rememberSeat, sha256Hex, startSeatClaim} from '../net/identity'
 import type {PlayerId} from '../net/protocol'
 import {derive, type View} from '../game/reducer'
 import {advance} from '../game/reducer'
@@ -451,6 +451,7 @@ export type Intent =
   | {kind: 'setAvatar'; avatar: Avatar}
   | {kind: 'ready'; ready: boolean}
   | {kind: 'transferHost'; target: PlayerId}
+  | {kind: 'removePlayer'; target: PlayerId}
   | {kind: 'updateSettings'; patch: Partial<Settings>}
   | {kind: 'startGame'}
   | {kind: 'endGame'}
@@ -506,6 +507,16 @@ const applyIntent = (from: PlayerId, intent: Intent) => {
               ? {...p, spymaster: false}
               : p
         )
+      }))
+      return
+    }
+
+    case 'removePlayer': {
+      if (!fromHost) return
+      if (intent.target === self) return refuse(from, 'You cannot remove yourself')
+      hostMutate(draft => ({
+        ...draft,
+        players: draft.players.filter(p => p.id !== intent.target)
       }))
       return
     }
@@ -726,6 +737,7 @@ export const start = () => {
 
   onNetChange(monitor)
   setInterval(monitor, 500)
+  startSeatClaim()
 
   document.addEventListener('visibilitychange', () => {
     hiddenSince = document.hidden ? Date.now() : 0
@@ -752,6 +764,7 @@ export const createRoom = async (name: string, password: string | null) => {
   start()
   myName = name
   saveSession({name, password})
+  rememberSeat(name)
   passwordHash = await proofFor(password)
   const {hash} = await words.resolve({kind: 'packs', packs: ['original']})
   becomeHost({
@@ -774,6 +787,7 @@ export const joinRoom = async (name: string, password: string | null) => {
   start()
   myName = name
   saveSession({name, password})
+  rememberSeat(name)
   role = 'joining'
   publish()
   send('hello', {name, proof: await proofFor(password)})

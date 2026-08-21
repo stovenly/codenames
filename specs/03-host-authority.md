@@ -128,15 +128,40 @@ every pair attempts a link. We detect rather than merge:
 
 The banner prompts someone to rejoin. We do not reconcile two divergent games.
 
-## Reconnect
+## Seats and ghosts
 
-On load the client checks `sessionStorage` for a room id and name, renders its
-cached replica behind a "reconnecting" veil, and sends `hello`. The first `state`
-replaces the replica wholesale.
+A player who closes the tab has not left the game — they have stepped out. The
+host keeps them in `players` with `connected: false`, holding their team,
+spymaster role and avatar. Everyone sees the seat as held rather than filled,
+and it is waiting when they come back.
 
-A returning player keeps their seat: the host matches on the persistent
-`playerId`, not Trystero's `selfId`, which changes on every page load. Team,
-spymaster role, and avatar survive a refresh.
+Seats are the host's to manage: `removePlayer` frees one, host only, and never
+the host's own. It is surfaced on held seats specifically, in the roster and in
+the host panel, rather than as a general kick — the case it exists for is
+someone who is not coming back.
+
+## Identity across sessions
+
+`playerId` resolves in this order:
+
+1. **This tab's `sessionStorage` id**, so a refresh never loses the seat.
+2. **The saved seat in `localStorage`** for this room, but only once its claim
+   has gone stale. A tab holding a seat rewrites `claimedAt` every 5s and a
+   claim counts as live for 15s.
+3. **A fresh id.**
+
+The claim window is what stops a second tab adopting the identity of the first,
+which would put one player in the room speaking from two places. A seat whose
+claim is still warm is therefore never taken automatically — it is offered on
+the landing screen as **Rejoin as \<name\>**, and taking it is a deliberate
+choice that reloads the page so the mesh restarts as that player.
+
+The reverse escape matters too: a session that picked up a seat automatically
+shows **Not you?**, which clears both stores and starts fresh. A shared laptop
+should not silently hand someone else's seat over.
+
+The host matches on `playerId`, never on Trystero's `selfId`, which changes on
+every page load.
 
 ## Host visibility to players
 

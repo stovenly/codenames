@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @import "@fontsource/bungee/latin-400.css";
-@import "@fontsource/anton/latin-400.css";
-@import "@fontsource-variable/jetbrains-mono/index.css";
+@import "@fontsource-variable/big-shoulders-display";
+@import "@fontsource-variable/azeret-mono";
 
 @theme {
   --color-stage-000: #05060B;
@@ -32,9 +32,10 @@
   --color-text: #F5F7FF;
   --color-text-dim: #93A0BF;
 
-  --font-marquee: 'Bungee', ui-sans-serif, system-ui, sans-serif;
-  --font-plate: 'Anton', 'Arial Narrow', ui-sans-serif, sans-serif;
-  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SFMono-Regular', monospace;
+  /* Signage, wayfinding, and a readout — three faces built for three jobs. */
+  --font-marquee: 'Bungee', 'Impact', ui-sans-serif, system-ui, sans-serif;
+  --font-plate: 'Big Shoulders Display Variable', 'Haettenschweiler', 'Arial Narrow', sans-serif;
+  --font-mono: 'Azeret Mono Variable', ui-monospace, 'SFMono-Regular', monospace;
 
   --radius-xs: 3px;
   --radius-sm: 5px;
@@ -187,22 +188,24 @@ button {
 
 @utility type-plate {
   font-family: var(--font-plate);
-  font-weight: 400;
-  letter-spacing: 0.02em;
-  line-height: 1.02;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1;
   text-transform: uppercase;
 }
 
 @utility type-read {
   font-family: var(--font-mono);
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
 }
 
 @utility type-label {
   font-family: var(--font-mono);
+  font-weight: 500;
   font-size: 0.625rem;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--color-text-dim);
 }

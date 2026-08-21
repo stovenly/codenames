@@ -1,8 +1,9 @@
 import {motion} from 'motion/react'
 import {useState} from 'react'
+import {abandonSeat, offeredSeat, resumedSeat, takeSeat} from '../../net/identity'
 import {joinedExisting} from '../../state/net'
 import {createRoom, joinRoom, myDisplayName} from '../../state/room'
-import {Bulbs, Button, Enter, Field, Item, Label, Panel, input} from '../atoms'
+import {Bulbs, Button, Enter, Field, Item, Label, Panel, Rule, input} from '../atoms'
 import {useMotion} from '../motion'
 
 /** Bulbs around the wordmark ignite one at a time, so the page opens like a show does. */
@@ -35,6 +36,7 @@ const Marquee = () => {
 }
 
 export const Landing = ({needsPassword: rejected}: {needsPassword: boolean}) => {
+  const seat = offeredSeat()
   const [name, setName] = useState(myDisplayName())
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
@@ -122,6 +124,30 @@ export const Landing = ({needsPassword: rejected}: {needsPassword: boolean}) => 
             <Button size="lg" onClick={() => void go()} disabled={!name.trim() || busy}>
               {joinedExisting ? 'Take a seat' : 'Start a game'}
             </Button>
+
+            {seat && (
+              <>
+                <Rule />
+                <div className="flex flex-col gap-2">
+                  <Label>Been here before?</Label>
+                  <Button variant="ghost" onClick={() => takeSeat(seat)}>
+                    Rejoin as {seat.name}
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {resumedSeat && !seat && (
+              <>
+                <Rule />
+                <div className="flex items-center justify-between gap-3">
+                  <Label>Picking up where you left off</Label>
+                  <Button variant="quiet" size="sm" onClick={abandonSeat}>
+                    Not you?
+                  </Button>
+                </div>
+              </>
+            )}
           </Panel>
         </Item>
       </Enter>
