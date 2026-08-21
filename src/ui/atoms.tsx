@@ -86,7 +86,7 @@ const button = cva(
     variants: {
       variant: {
         primary:
-          'border-lamp-300/40 bg-gradient-to-b from-lamp-300 to-lamp-500 text-stage-000 shadow-[0_8px_20px_-10px_rgba(255,197,61,.75)] hover:from-lamp-300 hover:to-lamp-300 disabled:border-stage-600 disabled:from-stage-700 disabled:to-stage-800 disabled:text-text-dim disabled:shadow-none',
+          'border-lamp-500/55 bg-gradient-to-b from-[#7C5A15] to-[#43300B] text-lamp-300 shadow-[0_10px_26px_-14px_rgba(255,197,61,.55)] hover:border-lamp-500 hover:from-[#8E6817] hover:to-[#523A0D] hover:text-lamp-300 disabled:border-stage-600 disabled:from-stage-700 disabled:to-stage-800 disabled:text-text-dim/60 disabled:shadow-none',
         ghost:
           'border-stage-600 bg-stage-800/80 text-text hover:border-gold-500/60 hover:text-gold-200 disabled:text-text-dim/50',
         danger:
@@ -235,7 +235,7 @@ export const Field = ({
 )
 
 export const input =
-  'type-read w-full rounded-md border border-stage-600 bg-stage-000/70 px-3.5 py-3 text-base text-text transition-colors placeholder:text-text-dim/45 focus:border-lamp-500/60'
+  'type-read w-full rounded-md border border-stage-600 bg-stage-000/70 px-3.5 py-3 text-base text-text transition-colors outline-none placeholder:text-text-dim/45 focus:border-gold-500/70 focus-visible:shadow-[0_0_0_2px_rgba(255,197,61,.16)] focus-visible:outline-none'
 
 /* ----------------------------------------------------------------- glyphs */
 

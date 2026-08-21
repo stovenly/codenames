@@ -79,9 +79,10 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-lamp-500);
-  outline-offset: 3px;
+  outline: 1px solid color-mix(in oklab, var(--color-lamp-500) 70%, transparent);
+  outline-offset: 2px;
   border-radius: var(--radius-xs);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-lamp-500) 14%, transparent);
 }
 
 button {
@@ -170,76 +171,151 @@ button {
 /* ------------------------------------------------------------- stagecraft */
 
 /**
- * Registering the angle is what lets a conic gradient interpolate at all —
- * without @property the browser treats the whole gradient as one unanimatable
- * token.
+ * Everything here animates transform and opacity only. An earlier version drove
+ * a conic gradient through a registered @property and cut beams with clip-path;
+ * it read as geometry rather than light, and any one of those pieces failing
+ * silently leaves a static shape on screen. Blurred gradients moved by transform
+ * cannot fail that way, and soft edges are what make light look like light.
+ *
+ * `screen` blending is the other half of it: overlapping lights add rather than
+ * stack, so two beams crossing get brighter the way real ones do.
  */
-@property --spin {
-  syntax: '<angle>';
-  initial-value: 0deg;
-  inherits: false;
+
+@utility lightbox {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  isolation: isolate;
+  pointer-events: none;
 }
 
-@keyframes rays {
-  to {
-    --spin: 360deg;
-  }
-}
-
-/** A starburst behind the sign, slow enough to read as light rather than motion. */
-@utility rays {
-  background: repeating-conic-gradient(
-    from var(--spin) at 50% 50%,
-    rgba(255, 197, 61, 0.055) 0deg 4deg,
-    transparent 4deg 13deg
-  );
-  mask-image: radial-gradient(closest-side, #000 12%, transparent 76%);
-  animation: rays 90s linear infinite;
-}
-
-/** A beam: a cone widened by clip-path, faded down its length, softened by blur. */
+/** A shaft: soft along its length, soft at the edges, never a polygon. */
 @utility beam {
   position: absolute;
-  top: -12vh;
-  width: 62vw;
-  height: 150vh;
-  transform-origin: 50% 0;
-  clip-path: polygon(47.5% 0, 52.5% 0, 100% 100%, 0 100%);
-  filter: blur(26px);
+  top: -34vh;
+  width: 40vw;
+  height: 175vh;
+  transform-origin: 50% 20%;
+  background: linear-gradient(to bottom, var(--beam) 0%, transparent 68%);
+  mask-image: radial-gradient(64% 92% at 50% 6%, #000 0%, #000 22%, transparent 82%);
+  filter: blur(34px);
+  mix-blend-mode: screen;
   will-change: transform;
 }
 
-@keyframes sweep-a {
+/** A pool of coloured light. Big, very blurred, additive. */
+@utility glow {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(72px);
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+}
+
+@utility mote {
+  position: absolute;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(255, 226, 154, 0.85), transparent 70%);
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+}
+
+@keyframes swing-a {
   0%,
   100% {
-    transform: rotate(-24deg);
+    transform: rotate(-14deg);
   }
   50% {
-    transform: rotate(19deg);
+    transform: rotate(10deg);
   }
 }
 
-@keyframes sweep-b {
+@keyframes swing-b {
   0%,
   100% {
-    transform: rotate(21deg);
+    transform: rotate(11deg);
   }
   50% {
-    transform: rotate(-27deg);
+    transform: rotate(-16deg);
   }
 }
 
-@keyframes sweep-c {
+@keyframes swing-c {
   0%,
   100% {
-    transform: rotate(6deg);
+    transform: rotate(3deg) scaleX(1);
   }
   50% {
-    transform: rotate(-11deg);
+    transform: rotate(-7deg) scaleX(1.25);
   }
 }
 
-/** Deliberately slow and low-contrast: dips are rare, never a strobe. */
+@keyframes float-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translate3d(7vw, -5vh, 0) scale(1.3);
+    opacity: 0.95;
+  }
+}
+
+@keyframes float-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.15);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translate3d(-8vw, 6vh, 0) scale(0.85);
+    opacity: 0.85;
+  }
+}
+
+@keyframes float-c {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(0.9);
+    opacity: 0.45;
+  }
+  50% {
+    transform: translate3d(5vw, 7vh, 0) scale(1.25);
+    opacity: 0.9;
+  }
+}
+
+@keyframes rise {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  14% {
+    opacity: 0.7;
+  }
+  86% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translate3d(3vw, -85vh, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.42;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.08);
+  }
+}
+
+/** Rare, shallow dips over a long cycle. A fast one would be a strobe. */
 @keyframes flicker {
   0%,
   40%,
@@ -262,47 +338,43 @@ button {
 
 @keyframes sheen {
   0% {
-    background-position-x: 160%;
+    background-position-x: 165%;
   }
-  60%,
+  55%,
   100% {
-    background-position-x: -60%;
+    background-position-x: -65%;
   }
 }
 
-@keyframes breathe {
-  0%,
-  100% {
-    opacity: 0.34;
-  }
-  50% {
-    opacity: 0.62;
-  }
+@utility anim-swing-a {
+  animation: swing-a 9s ease-in-out infinite;
 }
-
-@keyframes drift {
-  0% {
-    transform: translate3d(0, 0, 0);
-    opacity: 0;
-  }
-  12% {
-    opacity: 0.55;
-  }
-  88% {
-    opacity: 0.35;
-  }
-  100% {
-    transform: translate3d(14px, -78vh, 0);
-    opacity: 0;
-  }
+@utility anim-swing-b {
+  animation: swing-b 11s ease-in-out infinite;
 }
-
-@utility mote {
-  position: absolute;
-  border-radius: 9999px;
-  background: radial-gradient(circle, rgba(255, 226, 154, 0.9), transparent 70%);
-  animation: drift linear infinite;
-  will-change: transform, opacity;
+@utility anim-swing-c {
+  animation: swing-c 13s ease-in-out infinite;
+}
+@utility anim-float-a {
+  animation: float-a 10s ease-in-out infinite;
+}
+@utility anim-float-b {
+  animation: float-b 13s ease-in-out infinite;
+}
+@utility anim-float-c {
+  animation: float-c 16s ease-in-out infinite;
+}
+@utility anim-breathe {
+  animation: breathe 6s ease-in-out infinite;
+}
+@utility anim-flicker {
+  animation: flicker 7s steps(1, end) infinite;
+}
+@utility anim-sheen {
+  animation: sheen 5s ease-in-out infinite;
+}
+@utility anim-rise {
+  animation: rise linear infinite;
 }
 
 /** The glow layer sits behind the type so the flicker animates opacity, not shadow. */

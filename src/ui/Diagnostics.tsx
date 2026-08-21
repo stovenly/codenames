@@ -4,7 +4,7 @@ import {useEffect, useState} from 'react'
 import {refreshStats, roomId, self, useNet} from '../state/net'
 import {setPrefs, usePrefs} from '../state/prefs'
 import {Button, Heading, IconButton, Label, Panel, Rule} from './atoms'
-import {MuteToggle} from './Controls'
+import {EffectsToggle, MuteToggle} from './Controls'
 import {cx} from './cx'
 import {spring, useMotion} from './motion'
 
@@ -74,6 +74,7 @@ export const Diagnostics = () => {
     <>
       <div className="fixed bottom-4 left-4 z-40 flex items-center gap-2">
         <MuteToggle />
+        <EffectsToggle />
         <IconButton
           label={down ? 'Offline' : `${report.router.directPeers} connected`}
           aria-expanded={open}

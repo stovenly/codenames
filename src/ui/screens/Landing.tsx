@@ -6,40 +6,55 @@ import {Button, Enter, Field, Item, Label, Panel, Rule, input} from '../atoms'
 import {cx} from '../cx'
 import {useMotion} from '../motion'
 
-/** Three beams on coprime-ish periods, so they never fall back into step. */
 const BEAMS = [
-  {tint: 'rgba(255,197,61,.20)', anim: 'sweep-a 13s ease-in-out infinite', left: '4%'},
-  {tint: 'rgba(240,68,56,.16)', anim: 'sweep-b 17s ease-in-out infinite', left: '30%'},
-  {tint: 'rgba(46,134,255,.16)', anim: 'sweep-c 21s ease-in-out infinite', left: '58%'}
+  {tint: 'rgba(255,197,61,.30)', anim: 'anim-swing-a', left: '-4%'},
+  {tint: 'rgba(240,68,56,.24)', anim: 'anim-swing-b', left: '32%'},
+  {tint: 'rgba(46,134,255,.26)', anim: 'anim-swing-c', left: '64%'}
 ]
 
-const Backdrop = () => {
+const GLOWS = [
+  {tint: 'rgba(255,197,61,.55)', anim: 'anim-float-a', size: '46vmax', left: '-8%', top: '-14%'},
+  {tint: 'rgba(46,134,255,.45)', anim: 'anim-float-b', size: '40vmax', left: '58%', top: '-6%'},
+  {tint: 'rgba(240,68,56,.42)', anim: 'anim-float-c', size: '38vmax', left: '18%', top: '52%'},
+  {tint: 'rgba(255,226,154,.35)', anim: 'anim-float-b', size: '30vmax', left: '68%', top: '48%'}
+]
+
+const Lighting = () => {
   const {reduced} = useMotion()
 
   const motes = useMemo(
     () =>
-      Array.from({length: 14}, (_, i) => ({
-        left: `${(i * 7.3 + 4) % 96}%`,
-        size: 3 + ((i * 5) % 6),
-        duration: 16 + ((i * 3) % 11),
-        delay: -(i * 2.4)
+      Array.from({length: 16}, (_, i) => ({
+        left: `${(i * 6.4 + 3) % 96}%`,
+        size: 3 + ((i * 5) % 7),
+        duration: 14 + ((i * 3) % 12),
+        delay: -(i * 2.1)
       })),
     []
   )
 
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-      <span className="rays absolute top-1/2 left-1/2 size-[150vmax] -translate-x-1/2 -translate-y-1/2" />
+    <div aria-hidden className="lightbox">
+      {GLOWS.map((g, i) => (
+        <span
+          key={i}
+          className={cx('glow', !reduced && g.anim)}
+          style={{
+            left: g.left,
+            top: g.top,
+            width: g.size,
+            height: g.size,
+            background: `radial-gradient(circle, ${g.tint} 0%, transparent 68%)`,
+            opacity: reduced ? 0.5 : undefined
+          }}
+        />
+      ))}
 
       {BEAMS.map((b, i) => (
         <span
           key={i}
-          className="beam"
-          style={{
-            left: b.left,
-            background: `linear-gradient(to bottom, ${b.tint} 0%, transparent 68%)`,
-            animation: reduced ? undefined : b.anim
-          }}
+          className={cx('beam', !reduced && b.anim)}
+          style={{left: b.left, ['--beam' as string]: b.tint}}
         />
       ))}
 
@@ -47,10 +62,10 @@ const Backdrop = () => {
         motes.map((m, i) => (
           <span
             key={i}
-            className="mote"
+            className="mote anim-rise"
             style={{
               left: m.left,
-              bottom: '-4vh',
+              bottom: '-6vh',
               width: m.size,
               height: m.size,
               animationDuration: `${m.duration}s`,
@@ -59,46 +74,59 @@ const Backdrop = () => {
           />
         ))}
 
+      {/* Footlights: the stage is lit from below as well as above. */}
       <span
-        className="absolute inset-0"
+        className={cx('absolute -bottom-[22vh] left-1/2 h-[42vh] w-[130vw] -translate-x-1/2 rounded-[100%] blur-[70px]', !reduced && 'anim-breathe')}
         style={{
-          background:
-            'radial-gradient(58% 46% at 50% 42%, rgba(255,197,61,.10), transparent 70%)',
-          animation: reduced ? undefined : 'breathe 7s ease-in-out infinite'
+          background: 'radial-gradient(closest-side, rgba(255,197,61,.34), transparent)',
+          mixBlendMode: 'screen'
         }}
       />
 
       <span
         className="absolute inset-0"
         style={{
-          background:
-            'radial-gradient(120% 100% at 50% 45%, transparent 40%, rgba(5,6,11,.75) 100%)'
+          background: 'radial-gradient(125% 105% at 50% 45%, transparent 34%, rgba(5,6,11,.82) 100%)'
         }}
       />
     </div>
   )
 }
 
-/** Bulb rails on all four sides, chasing in a loop the way a real marquee does. */
-const SignFrame = ({children}: {children: React.ReactNode}) => (
-  <div className="relative px-7 py-6 sm:px-10 sm:py-8">
-    <span
-      aria-hidden
-      className="absolute inset-0 rounded-lg border border-gold-500/45"
-      style={{
-        background:
-          'linear-gradient(180deg, rgba(38,54,90,.5) 0%, rgba(10,13,24,.75) 100%)',
-        boxShadow:
-          'inset 0 1px 0 rgba(255,255,255,.14), inset 0 -3px 14px rgba(0,0,0,.7), 0 24px 60px -26px rgba(0,0,0,1)'
-      }}
-    />
-    <span aria-hidden className="bulbs bulbs-lit bulbs-chase absolute inset-x-3 top-1.5" />
-    <span aria-hidden className="bulbs bulbs-lit bulbs-chase absolute inset-x-3 bottom-1.5" />
-    <span aria-hidden className="bulbs-v bulbs-lit bulbs-chase-v absolute inset-y-3 left-1.5" />
-    <span aria-hidden className="bulbs-v bulbs-lit bulbs-chase-v absolute inset-y-3 right-1.5" />
-    <div className="relative">{children}</div>
-  </div>
-)
+/** Bulb rails on all four sides, chasing continuously the way a real marquee does. */
+const SignFrame = ({children}: {children: React.ReactNode}) => {
+  const {reduced} = useMotion()
+  return (
+    <div className="relative px-8 py-7 sm:px-12 sm:py-9">
+      <span
+        aria-hidden
+        className="absolute inset-0 rounded-lg border border-gold-500/45"
+        style={{
+          background: 'linear-gradient(180deg, rgba(38,54,90,.55) 0%, rgba(10,13,24,.8) 100%)',
+          boxShadow:
+            'inset 0 1px 0 rgba(255,255,255,.16), inset 0 -3px 16px rgba(0,0,0,.75), 0 26px 70px -28px rgba(0,0,0,1), 0 0 60px -20px rgba(255,197,61,.35)'
+        }}
+      />
+      <span
+        aria-hidden
+        className={cx('bulbs bulbs-lit absolute inset-x-4 top-2', !reduced && 'bulbs-chase')}
+      />
+      <span
+        aria-hidden
+        className={cx('bulbs bulbs-lit absolute inset-x-4 bottom-2', !reduced && 'bulbs-chase')}
+      />
+      <span
+        aria-hidden
+        className={cx('bulbs-v bulbs-lit absolute inset-y-4 left-2', !reduced && 'bulbs-chase-v')}
+      />
+      <span
+        aria-hidden
+        className={cx('bulbs-v bulbs-lit absolute inset-y-4 right-2', !reduced && 'bulbs-chase-v')}
+      />
+      <div className="relative">{children}</div>
+    </div>
+  )
+}
 
 const Wordmark = () => {
   const {reduced} = useMotion()
@@ -108,8 +136,7 @@ const Wordmark = () => {
     <span className="relative block">
       <span
         aria-hidden
-        className={cx('type-marquee neon absolute inset-0 text-lamp-300', size)}
-        style={{animation: reduced ? undefined : 'flicker 7s steps(1, end) infinite'}}
+        className={cx('type-marquee neon absolute inset-0 text-lamp-300', size, !reduced && 'anim-flicker')}
       >
         Codenames
       </span>
@@ -119,15 +146,14 @@ const Wordmark = () => {
       {!reduced && (
         <span
           aria-hidden
-          className={cx('type-marquee absolute inset-0', size)}
+          className={cx('type-marquee anim-sheen absolute inset-0', size)}
           style={{
             backgroundImage:
-              'linear-gradient(100deg, transparent 38%, rgba(255,255,255,.85) 50%, transparent 62%)',
+              'linear-gradient(100deg, transparent 38%, rgba(255,255,255,.9) 50%, transparent 62%)',
             backgroundSize: '220% 100%',
             WebkitBackgroundClip: 'text',
             backgroundClip: 'text',
-            color: 'transparent',
-            animation: 'sheen 6.5s ease-in-out infinite'
+            color: 'transparent'
           }}
         >
           Codenames
@@ -155,7 +181,7 @@ export const Landing = ({needsPassword: rejected}: {needsPassword: boolean}) => 
 
   return (
     <main className="relative grid min-h-full place-items-center overflow-hidden px-5 py-14">
-      <Backdrop />
+      <Lighting />
 
       <Enter className="relative flex w-full max-w-md flex-col items-center gap-8 text-center">
         <Item variant="settle">
@@ -174,7 +200,7 @@ export const Landing = ({needsPassword: rejected}: {needsPassword: boolean}) => 
         </Item>
 
         <Item className="w-full">
-          {/* No animation behind the form — the backdrop stays a backdrop. */}
+          {/* Opaque, and nothing animates behind it — the lighting stays a backdrop. */}
           <Panel level={2} glossy className="flex flex-col gap-5 p-6 text-left">
             <Field label="Your name">
               <input
