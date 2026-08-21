@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+@import "@fontsource-variable/archivo/wdth.css";
+@import "@fontsource-variable/inter/index.css";
+@import "@fontsource-variable/jetbrains-mono/index.css";
+
+@theme {
+  --color-ink-900: #070A14;
+  --color-ink-800: #0D1220;
+  --color-ink-700: #161D30;
+  --color-ink-600: #232C44;
+
+  --color-brass-400: #D9A441;
+  --color-brass-200: #F0D18A;
+
+  --color-red-500: #E0503F;
+  --color-red-glow: #FF6B57;
+  --color-blue-500: #3D8BE8;
+  --color-blue-glow: #5FA8FF;
+  --color-bone: #E8E3D6;
+  --color-void: #05060A;
+  --color-void-rim: #C41E1E;
+
+  --color-text: #EDEFF5;
+  --color-text-dim: #8A93AC;
+
+  --font-display: 'Archivo Variable', 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SFMono-Regular', monospace;
+  --font-body: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-heavy: cubic-bezier(0.55, 0, 1, 0.45);
+}
+
+:root {
+  --dur-feedback: 120ms;
+  --dur-state: 250ms;
+  --dur-set: 700ms;
+
+  --team-red: var(--color-red-500);
+  --team-blue: var(--color-blue-500);
+
+  color-scheme: dark;
+}
+
+/* Set by the reduced-motion store; the media query is the floor, this is the override. */
+:root[data-motion='reduced'] {
+  --dur-feedback: 120ms;
+  --dur-state: 120ms;
+  --dur-set: 120ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='full']) {
+    --dur-state: 120ms;
+    --dur-set: 120ms;
+  }
+}
+
+:root[data-cb='on'] {
+  --team-red: #FF7A5C;
+  --team-blue: #6FB6FF;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ink-900);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-synthesis-weight: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brass-400);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+@utility type-display {
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+@utility type-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Team identity never rides on hue alone: hatch for red, dots for blue. */
+@utility pattern-red {
+  background-image: repeating-linear-gradient(
+    45deg,
+    color-mix(in oklab, var(--team-red) 55%, transparent) 0 2px,
+    transparent 2px 7px
+  );
+}
+
+@utility pattern-blue {
+  background-image: radial-gradient(
+    color-mix(in oklab, var(--team-blue) 55%, transparent) 1.2px,
+    transparent 1.4px
+  );
+  background-size: 7px 7px;
+}
+
+@utility grain {
+  position: relative;
+}
+
+@utility rule-brass {
+  border-color: color-mix(in oklab, var(--color-brass-400) 45%, transparent);
+}
