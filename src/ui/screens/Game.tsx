@@ -71,7 +71,7 @@ export const Game = () => {
 
   return (
     <>
-      {player?.spymaster && <SpymasterChrome />}
+      {player?.spymaster && player.team && <SpymasterChrome team={player.team} />}
 
       <main className="mx-auto flex min-h-full max-w-5xl flex-col items-center gap-4 px-3 py-8 sm:px-6">
         <div className="w-full" style={{maxWidth: 'min(94vw, 74vh)'}}>

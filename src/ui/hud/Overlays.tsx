@@ -1,4 +1,7 @@
 import {motion} from 'motion/react'
+import {VenetianMask} from 'lucide-react'
+import type {Team} from '../../game/types'
+import {cx} from '../cx'
 
 /**
  * The assassin kills the stage lights: true black first, then the emergency
@@ -71,33 +74,27 @@ export const BoardBreath = ({team}: {team: 'red' | 'blue'}) => {
 }
 
 /** The spymaster is in the booth: hazard bands, and a watermark a screen-share cannot hide. */
+const BAND: Record<Team, string> = {
+  red: 'from-red-500 to-red-deep',
+  blue: 'from-blue-500 to-blue-deep'
+}
+
 /**
- * You are holding the key. Said with the light the rest of the set is made of —
- * a warm gold edge, as though this one seat has its own lamp — rather than with
- * hazard tape and a watermark, which belong to a different product.
+ * The same band a player card wears, run across the top of the screen: team
+ * gradient, the mask, the word in marquee caps. Saying "spymaster" one way in
+ * the roster and another way here would be two vocabularies for one fact.
  */
-export const SpymasterChrome = () => (
-  <>
-    <motion.span
-      aria-hidden
-      className="pointer-events-none fixed inset-0 z-30"
-      initial={{opacity: 0}}
-      animate={{opacity: [0.55, 0.8, 0.55]}}
-      transition={{duration: 6.5, repeat: Infinity, ease: 'easeInOut'}}
-      style={{
-        boxShadow:
-          'inset 0 0 0 1px rgba(255,197,61,.28), inset 0 0 90px -30px rgba(255,197,61,.75)'
-      }}
-    />
-    <span
-      aria-hidden
-      className="pointer-events-none fixed inset-x-0 top-0 z-30 h-px"
-      style={{background: 'linear-gradient(90deg, transparent, rgba(255,197,61,.75), transparent)'}}
-    />
-    <span
-      aria-hidden
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-30 h-px"
-      style={{background: 'linear-gradient(90deg, transparent, rgba(255,197,61,.75), transparent)'}}
-    />
-  </>
+export const SpymasterChrome = ({team}: {team: Team}) => (
+  <span
+    aria-hidden
+    className={cx(
+      'pointer-events-none fixed inset-x-0 top-0 z-30 flex h-6 items-center justify-center gap-2 bg-gradient-to-r pt-[3px] text-white/95',
+      BAND[team]
+    )}
+  >
+    <VenetianMask className="size-3.5" />
+    <span className="type-marquee text-[10px] tracking-[0.16em] drop-shadow-[0_1px_2px_rgba(0,0,0,.55)]">
+      Spymaster
+    </span>
+  </span>
 )
