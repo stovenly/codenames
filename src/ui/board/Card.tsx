@@ -9,6 +9,14 @@ import {spring} from '../motion'
 import {sfx} from '../sound/audio'
 import {INK, STAMP, SURFACE, Symbol} from './symbols'
 
+/** Read off a near-black stamp rather than off the card, so one set works on all four. */
+const STAMP_INK: Record<Colour, string> = {
+  red: 'var(--color-red-lit)',
+  blue: 'var(--color-blue-lit)',
+  neutral: 'var(--color-bone)',
+  assassin: 'var(--color-kill-lit)'
+}
+
 export type CardPhase = 'idle' | 'windup' | 'landing' | 'aftermath'
 
 /**
@@ -250,6 +258,8 @@ const CardBase = ({
       : null
 
   const faceUp = shown !== null
+  /** Turned over and done with — not the one currently being turned over. */
+  const spent = card.revealed && phase === 'idle'
   const key = spymaster && !faceUp ? card.colour : null
   const plate =
     'linear-gradient(178deg, rgba(255,255,255,.06) 0%, transparent 20%), linear-gradient(180deg, #121A2E 0%, #0A0D18 100%)'
@@ -279,7 +289,10 @@ const CardBase = ({
       onClick={onPick}
       animate={{
         scale: phase === 'windup' ? 1.14 : armed && !faceUp ? 1.035 : 1,
-        opacity: dim ? 0.32 : 1,
+        // Spent cards drop right back so the live board is the only thing with
+        // any presence. Set here rather than as a class: motion writes opacity
+        // inline, and an inline value beats the class every time.
+        opacity: dim ? 0.32 : spent ? 0.25 : 1,
         y: 0
       }}
       whileHover={interactive ? {y: -4} : undefined}
@@ -300,9 +313,6 @@ const CardBase = ({
         'relative grid aspect-[7/5] w-full place-items-center overflow-hidden rounded-md border text-center transition-[filter,border-color] duration-200',
         faceUp ? 'border-black/30' : 'border-gold-500/30 hover:border-gold-500/70',
         interactive ? 'cursor-pointer' : 'cursor-default',
-        // Spent. Greyed and dropped back rather than merely dimmed, so what is
-        // left on the board is the only thing with any colour in it.
-        card.revealed && phase === 'idle' && 'opacity-45 grayscale-[.85] brightness-[.75]'
       )}
     >
       {!faceUp && interactive && sheen && (
@@ -329,22 +339,17 @@ const CardBase = ({
         className={cx(
           'type-plate relative z-20 px-1.5 transition-opacity duration-150',
           !faceUp && 'letterpress',
-          phase === 'windup' && 'opacity-0'
+          // The stamp says what this card is; the word underneath it would only
+          // be a second thing printed in the same place.
+          (phase === 'windup' || phase === 'landing' || phase === 'aftermath') && 'opacity-0'
         )}
         style={{
           // Long words shrink rather than run off the card, which the wider
           // dyslexia-friendly face makes obvious.
           fontSize: `clamp(9px, ${Math.min(15, 78 / Math.max(5, card.word.length))}cqw, 30px)`,
-          // A spent card keeps white type: dark ink on a greyed plate is a
+          // A spent card keeps white type: dark ink on a faded plate is a
           // second thing to read past, not a card that has stopped mattering.
-          color:
-            card.revealed && phase === 'idle'
-              ? 'var(--color-text)'
-              : faceUp
-                ? INK[shown]
-                : key
-                  ? '#F5F1E6'
-                  : 'var(--color-text)'
+          color: spent ? 'var(--color-text)' : faceUp ? INK[shown] : key ? '#F5F1E6' : 'var(--color-text)'
         }}
       >
         {card.word}
@@ -372,12 +377,15 @@ const CardBase = ({
             style={{
               // Everything in card widths: fixed padding pushed the stamp past
               // the edge on a small board, where it was clipped mid-word.
-              fontSize: 'clamp(9px, 11cqw, 26px)',
-              padding: '0.6cqw 2.4cqw',
-              letterSpacing: '0.06em',
-              color: INK[shown],
-              borderColor: INK[shown],
-              background: 'rgba(255,255,255,.22)'
+              fontSize: 'clamp(11px, 17cqw, 34px)',
+              padding: '1cqw 3.5cqw',
+              letterSpacing: '0.04em',
+              // Opaque, so the stamp is one thing rather than two overlapping
+              // ones, and dark whatever the face under it happens to be.
+              color: STAMP_INK[shown],
+              borderColor: STAMP_INK[shown],
+              background: 'rgba(9,11,20,.93)',
+              boxShadow: '0 4px 14px -6px rgba(0,0,0,.9)'
             }}
           >
             {STAMP[shown]}

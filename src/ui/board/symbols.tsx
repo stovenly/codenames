@@ -56,9 +56,10 @@ export const INK: Record<Colour, string> = {
   assassin: 'var(--color-kill-lit)'
 }
 
+/** Short, because this is set in the biggest type a card can carry. */
 export const STAMP: Record<Colour, string> = {
-  red: 'RED AGENT',
-  blue: 'BLUE AGENT',
+  red: 'RED',
+  blue: 'BLUE',
   neutral: 'NEUTRAL',
   assassin: 'ASSASSIN'
 }
