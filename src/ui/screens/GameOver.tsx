@@ -95,7 +95,7 @@ export const GameOver = ({view, me, isHost}: {view: View; me: Player | null; isH
           transition={{type: 'spring', stiffness: 250, damping: 14}}
           className={cx(
             'type-marquee text-4xl sm:text-5xl',
-            winner === 'red' ? 'text-red-name' : 'text-blue-lit'
+            winner === 'red' ? 'text-red-lit' : 'text-blue-lit'
           )}
           style={{
             textShadow: `0 0 44px ${winner === 'red' ? 'var(--glow-red-text)' : 'rgba(111,182,255,.6)'}`

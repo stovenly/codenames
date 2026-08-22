@@ -24,14 +24,12 @@
 
   /* The red card, its ink, the spymaster's key face, and every wash and glow
      that stands for red. Tokens rather than literals so colourblind mode can
-     reach them. --color-red-name is the exception: it spells the word "Red",
-     which stays red however the team is painted. */
+     reach all of them — the team is still called Red, it is simply not red. */
   --card-red-hi: #F04438;
   --card-red-lo: #A32419;
   --card-red-ink: #2B0A06;
   --key-red-hi: #8E2018;
   --key-red-lo: #5E140F;
-  --color-red-name: #FF7A5C;
   --glow-red-wash: rgba(240, 68, 56, 0.18);
   --glow-red-text: rgba(255, 122, 92, 0.5);
   --glow-red-soft: rgba(255, 122, 92, 0.26);
