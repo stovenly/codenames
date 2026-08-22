@@ -7,7 +7,6 @@ import {syncTheatre, useTheatre} from '../../state/theatre'
 import * as words from '../../state/words'
 import {Label} from '../atoms'
 import {Board} from '../board/Board'
-import {Cabinet} from '../board/Cabinet'
 import {ClueReveal, TurnBand} from '../hud/ClueReveal'
 import {Hud} from '../hud/Hud'
 import {AssassinTakeover, BoardBreath, SpymasterChrome} from '../hud/Overlays'
@@ -91,13 +90,6 @@ export const Game = () => {
       </main>
 
       <AnimatePresence>
-        {stage.kind === 'windup' && (
-          <Cabinet
-            key={`cabinet-${stage.card}`}
-            word={view.cards[stage.card]?.word ?? ''}
-            colour={stage.colour}
-          />
-        )}
         {stage.kind === 'clue' && <ClueReveal key="clue" clue={stage.clue} />}
         {stage.kind === 'turn' && <TurnBand key={`turn-${stage.team}`} team={stage.team} />}
         {stage.kind === 'aftermath' && stage.colour === 'assassin' && (

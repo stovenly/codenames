@@ -22,8 +22,8 @@ export type Stage =
   | {kind: 'finish'; winner: Team; reason: 'cards' | 'assassin'}
 
 const FULL = {
-  /** Cabinet rise 400 + three reels settling at 900 / 1350 / 1800. */
-  windup: 2200,
+  /** Symbols churning on the card, decelerating into the flip. */
+  windup: 1900,
   landing: 520,
   correct: 700,
   wrong: 950,
@@ -34,8 +34,13 @@ const FULL = {
 
 const QUICK = {windup: 90, landing: 120, correct: 120, wrong: 120, assassin: 400, clue: 260, turn: 160}
 
-/** More than this far behind and we snap: a rejoin should not replay the game. */
-const CATCH_UP_LIMIT = 2
+/**
+ * How far behind we are willing to catch up by playing, once we are following
+ * along. Generous, because a client is fed whatever one broadcast coalesced —
+ * the host's own theatre is fed a step at a time, so a tight limit here is the
+ * difference between the host seeing the show and nobody else seeing it.
+ */
+const CATCH_UP_LIMIT = 8
 
 const listeners = new Set<() => void>()
 
@@ -132,7 +137,9 @@ const pump = () => {
 
   if (shownCursor === shared.cursor) return
 
-  if (shared.cursor - shownCursor > CATCH_UP_LIMIT) {
+  // Arriving at a game already in progress is not something to replay.
+  const joining = shownCursor === 0 && shared.cursor > 1
+  if (joining || shared.cursor - shownCursor > CATCH_UP_LIMIT) {
     shownCursor = shared.cursor
     stage = {kind: 'idle'}
     publish()
@@ -187,6 +194,8 @@ const pump = () => {
  * and no clue composer for the spymaster.
  */
 export const syncTheatre = () => pump()
+
+export const getTheatre = () => snapshot
 
 export const resetTheatre = () => {
   clearTimers()

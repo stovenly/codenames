@@ -1,4 +1,3 @@
-import {motion} from 'motion/react'
 import {useCallback, useEffect, useState} from 'react'
 import type {View} from '../../game/reducer'
 import type {Avatar as AvatarSpec, Player, PlayerId} from '../../game/types'
@@ -6,7 +5,6 @@ import {armCard, myMark, useMarks} from '../../state/presence'
 import {intend} from '../../state/room'
 import type {Stage} from '../../state/theatre'
 import {Bulbs} from '../atoms'
-import {useMotion} from '../motion'
 import {sfx} from '../sound/audio'
 import {Card, type CardPhase} from './Card'
 
@@ -33,7 +31,6 @@ export const Board = ({
   spymaster: boolean
 }) => {
   const marks = useMarks()
-  const {reduced} = useMotion()
   const [focus, setFocus] = useState(0)
   const armedCard = myMark()
 
@@ -95,9 +92,8 @@ export const Board = ({
     <div className="relative w-full">
       <Bulbs lit={view.phase === 'guess'} chase={view.phase === 'guess'} className="mb-2" />
 
-      <motion.div
-        animate={{opacity: stage.kind === 'windup' && !reduced ? 0.35 : 1}}
-        transition={{duration: reduced ? 0.12 : 0.35}}
+      {/* Overflow visible: the card being guessed grows out of its cell. */}
+      <div
         className="grid w-full gap-1.5 sm:gap-2.5"
         style={{gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`}}
       >
@@ -108,6 +104,8 @@ export const Board = ({
             index={i}
             phase={phaseFor(stage, i)}
             landedColour={stage.kind === 'landing' || stage.kind === 'aftermath' ? stage.colour : null}
+            windupUntil={stage.kind === 'windup' ? stage.until : 0}
+            dim={stage.kind === 'windup' && stage.card !== i}
             spymaster={spymaster}
             interactive={canGuess && !card.revealed && !busy}
             armed={armedCard === i}
@@ -118,7 +116,7 @@ export const Board = ({
             focused={focus === i && canGuess}
           />
         ))}
-      </motion.div>
+      </div>
 
       <Bulbs lit={view.phase === 'guess'} chase={view.phase === 'guess'} className="mt-2" />
     </div>

@@ -1,5 +1,5 @@
 import {AnimatePresence, motion} from 'motion/react'
-import {memo, useRef, useState} from 'react'
+import {memo, useEffect, useRef, useState} from 'react'
 import type {Colour} from '../../game/board'
 import type {Card as CardModel} from '../../game/reducer'
 import type {Avatar as AvatarSpec, PlayerId} from '../../game/types'
@@ -7,7 +7,7 @@ import {AvatarView} from '../avatar/Avatar'
 import {cx} from '../cx'
 import {spring, useMotion} from '../motion'
 import {sfx} from '../sound/audio'
-import {INK, STAMP, SURFACE} from './symbols'
+import {INK, STAMP, SURFACE, Symbol} from './symbols'
 
 export type CardPhase = 'idle' | 'windup' | 'landing' | 'aftermath'
 
@@ -24,6 +24,57 @@ const KEY_TINT: Record<Colour, string> = {
   blue: 'rgba(46,134,255,.30)',
   neutral: 'rgba(241,236,224,.12)',
   assassin: 'rgba(255,45,45,.30)'
+}
+
+const CYCLE: Colour[] = ['red', 'neutral', 'blue', 'assassin', 'neutral', 'red', 'assassin', 'blue']
+
+/**
+ * The tension build, played on the card being guessed rather than in a separate
+ * prop: symbols churn and slow down while a light sweeps the bezel, and the
+ * flip lands on whatever the host already decided. Nothing here knows the
+ * answer — it cannot, or the churn would give it away early.
+ */
+const Windup = ({until}: {until: number}) => {
+  const [i, setI] = useState(0)
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>
+    let n = 0
+    const tick = () => {
+      n++
+      setI(v => v + 1)
+      // Decelerating, so the last few symbols land heavily instead of blurring past.
+      timer = setTimeout(tick, Math.min(240, 45 + n * n * 1.1))
+    }
+    timer = setTimeout(tick, 45)
+    return () => clearTimeout(timer)
+  }, [until])
+
+  return (
+    <>
+      <motion.span
+        aria-hidden
+        className="pointer-events-none absolute -inset-1/2 z-10"
+        style={{
+          background:
+            'conic-gradient(from 0deg, transparent 0deg, rgba(255,197,61,.9) 40deg, transparent 90deg)'
+        }}
+        animate={{rotate: 360}}
+        transition={{repeat: Infinity, duration: 0.62, ease: 'linear'}}
+      />
+      <span aria-hidden className="pointer-events-none absolute inset-[3px] z-10 rounded-sm bg-stage-000" />
+
+      <motion.span
+        key={i}
+        initial={{scale: 0.55, opacity: 0}}
+        animate={{scale: 1, opacity: 1}}
+        transition={{duration: 0.1}}
+        className="pointer-events-none absolute z-20 grid place-items-center"
+      >
+        <Symbol colour={CYCLE[i % CYCLE.length]!} className="size-[34cqw]" />
+      </motion.span>
+    </>
+  )
 }
 
 const Burst = ({colour}: {colour: Colour}) => {
@@ -67,6 +118,8 @@ const CardBase = ({
   index,
   phase,
   landedColour,
+  windupUntil,
+  dim,
   spymaster,
   interactive,
   armed,
@@ -80,6 +133,8 @@ const CardBase = ({
   index: number
   phase: CardPhase
   landedColour: Colour | null
+  windupUntil: number
+  dim: boolean
   spymaster: boolean
   interactive: boolean
   armed: boolean
@@ -120,7 +175,11 @@ const CardBase = ({
       onMouseLeave={() => setSheen({x: 50, y: 50})}
       onMouseEnter={() => interactive && sfx.hover()}
       onClick={() => (armed ? onConfirm() : onArm())}
-      animate={{scale: armed && !faceUp ? 1.035 : 1, y: 0}}
+      animate={{
+        scale: phase === 'windup' && !reduced ? 1.14 : armed && !faceUp ? 1.035 : 1,
+        opacity: dim && !reduced ? 0.32 : 1,
+        y: 0
+      }}
       whileHover={interactive && !reduced ? {y: -4} : undefined}
       transition={spring.firm}
       style={{
@@ -130,10 +189,12 @@ const CardBase = ({
               key ? KEY_TINT[key] : 'rgba(27,39,64,0)'
             } 0%, transparent 62%), linear-gradient(180deg, #121A2E 0%, #0A0D18 100%)`,
         containerType: 'inline-size',
-        zIndex: armed ? 10 : 1,
+        zIndex: phase === 'windup' ? 30 : armed ? 10 : 1,
         boxShadow: faceUp
           ? 'inset 0 1px 0 rgba(255,255,255,.22), 0 2px 5px -3px rgba(0,0,0,.9)'
-          : armed
+          : phase === 'windup'
+            ? '0 0 0 2px rgba(255,197,61,.9), 0 26px 60px -20px rgba(0,0,0,1), 0 0 70px rgba(255,197,61,.45)'
+            : armed
             ? 'inset 0 1px 0 rgba(255,255,255,.14), 0 0 0 2px rgba(255,197,61,.85), 0 16px 34px -18px rgba(0,0,0,1), 0 0 34px rgba(255,197,61,.30)'
             : 'inset 0 1px 0 rgba(255,255,255,.1), inset 0 -2px 8px rgba(0,0,0,.55), 0 10px 26px -16px rgba(0,0,0,.95)'
       }}
@@ -177,7 +238,11 @@ const CardBase = ({
       />
 
       <span
-        className={cx('type-plate relative z-20 px-1.5', !faceUp && 'letterpress')}
+        className={cx(
+          'type-plate relative z-20 px-1.5 transition-opacity duration-150',
+          !faceUp && 'letterpress',
+          phase === 'windup' && !reduced && 'opacity-0'
+        )}
         style={{
           fontSize: 'clamp(10px, 15cqw, 30px)',
           color: faceUp ? INK[shown] : 'var(--color-text)'
@@ -185,6 +250,8 @@ const CardBase = ({
       >
         {card.word}
       </span>
+
+      {phase === 'windup' && !reduced && <Windup until={windupUntil} />}
 
       <AnimatePresence>
         {phase === 'landing' && shown && (
@@ -258,6 +325,8 @@ export const Card = memo(
     a.card.colour === b.card.colour &&
     a.phase === b.phase &&
     a.landedColour === b.landedColour &&
+    a.windupUntil === b.windupUntil &&
+    a.dim === b.dim &&
     a.spymaster === b.spymaster &&
     a.interactive === b.interactive &&
     a.armed === b.armed &&
