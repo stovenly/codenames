@@ -25,7 +25,7 @@ export const AssassinTakeover = () => {
         transition={{duration: 2.2, times: [0, 0.18, 0.42, 0.68, 1]}}
         style={{
           background:
-            'radial-gradient(125% 90% at 50% 50%, transparent 18%, rgba(255,45,45,.42) 70%, rgba(90,0,0,.95) 100%)'
+            'radial-gradient(125% 90% at 50% 50%, transparent 18%, var(--glow-kill) 70%, var(--glow-kill-deep) 100%)'
         }}
       />
       {(
@@ -44,7 +44,7 @@ export const AssassinTakeover = () => {
           {type: 'spring', stiffness: 280, damping: 15, delay: 0.16}
         }
         className="type-marquee absolute inset-x-0 top-[42%] text-center text-4xl tracking-[0.16em] text-kill-lit sm:text-6xl"
-        style={{textShadow: '0 0 46px rgba(255,45,45,.9)'}}
+        style={{textShadow: '0 0 46px var(--glow-kill-hot)'}}
       >
         Assassin
       </motion.span>
@@ -63,7 +63,7 @@ export const BoardBreath = ({team}: {team: 'red' | 'blue'}) => {
       className="pointer-events-none fixed inset-0 z-30"
       style={{
         background: `radial-gradient(70% 55% at 50% 50%, ${
-          team === 'red' ? 'rgba(255,122,92,.26)' : 'rgba(111,182,255,.26)'
+          team === 'red' ? 'var(--glow-red-soft)' : 'rgba(111,182,255,.26)'
         }, transparent 70%)`
       }}
     />

@@ -38,7 +38,7 @@ export const ClueReveal = ({clue}: {clue: Clue}) => {
         className="absolute inset-x-0 h-px"
         style={{
           background: `linear-gradient(90deg, transparent, ${
-            clue.team === 'red' ? '#FF7A5C' : '#6FB6FF'
+            clue.team === 'red' ? 'var(--color-red-lit)' : '#6FB6FF'
           }, transparent)`
         }}
         initial={{top: '50%', opacity: 0}}
@@ -110,7 +110,7 @@ export const TurnBand = ({team}: {team: 'red' | 'blue'}) => {
         style={{
           background:
             team === 'red'
-              ? 'linear-gradient(90deg, rgba(240,68,56,0), #F04438 20%, #7A1A12 80%, rgba(122,26,18,0))'
+              ? 'linear-gradient(90deg, transparent, var(--color-red-500) 20%, var(--color-red-deep) 80%, transparent)'
               : 'linear-gradient(90deg, rgba(46,134,255,0), #2E86FF 20%, #10305E 80%, rgba(16,48,94,0))'
         }}
       >

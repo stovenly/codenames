@@ -16,7 +16,7 @@ import {PlayerCard} from '../room/PlayerCard'
 const HOST_NOTICE_KEY = 'cn.hostNoticeSeen'
 
 const COLUMNS: Array<{team: Team | null; label: string; tint: string; glow: string}> = [
-  {team: 'red', label: 'Red', tint: 'text-red-lit', glow: 'rgba(240,68,56,.18)'},
+  {team: 'red', label: 'Red', tint: 'text-red-name', glow: 'var(--glow-red-wash)'},
   {team: null, label: 'Bench', tint: 'text-text-dim', glow: 'transparent'},
   {team: 'blue', label: 'Blue', tint: 'text-blue-lit', glow: 'rgba(46,134,255,.18)'}
 ]

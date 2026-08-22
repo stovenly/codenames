@@ -13,7 +13,7 @@ import {spring} from '../motion'
 import {TimerArc} from './TimerArc'
 
 const TONE: Record<Team, string> = {
-  red: 'border-red-500/60 bg-red-500/15 text-red-lit',
+  red: 'border-red-500/60 bg-red-500/15 text-red-name',
   blue: 'border-blue-500/60 bg-blue-500/15 text-blue-lit'
 }
 
@@ -48,7 +48,7 @@ const Standing = ({view, me}: {view: View; me: Player | null}) => {
         {line}
       </span>
       {me?.team && (
-        <Label className={me.team === 'red' ? 'text-red-lit/70' : 'text-blue-lit/70'}>
+        <Label className={me.team === 'red' ? 'text-red-name/70' : 'text-blue-lit/70'}>
           you are {me.spymaster ? 'spymaster' : 'a spy'} for {me.team}
         </Label>
       )}
@@ -66,9 +66,7 @@ const Score = ({team, left, active}: {team: Team; left: number; active: boolean}
     <span
       className={cx(
         'flex items-center gap-1.5 rounded-sm px-2 py-0.5',
-        team === 'red'
-          ? 'bg-red-500/15 text-red-lit'
-          : 'bg-blue-500/15 text-blue-lit'
+        team === 'red' ? 'bg-red-500/15 text-red-name' : 'bg-blue-500/15 text-blue-lit'
       )}
     >
       <Glyph team={team} className="size-2.5" />
@@ -79,7 +77,7 @@ const Score = ({team, left, active}: {team: Team; left: number; active: boolean}
       className={cx('type-marquee text-4xl leading-none', team === 'red' ? 'text-red-lit' : 'text-blue-lit')}
       style={{
         textShadow:
-          team === 'red' ? '0 0 18px rgba(255,122,92,.5)' : '0 0 18px rgba(111,182,255,.5)'
+          team === 'red' ? '0 0 18px var(--glow-red-text)' : '0 0 18px rgba(111,182,255,.5)'
       }}
     />
     <Bulbs lit={active} chase={active} className="w-14" />

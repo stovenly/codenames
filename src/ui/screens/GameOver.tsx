@@ -10,9 +10,13 @@ import {cx} from '../cx'
 import {spring} from '../motion'
 import {sfx} from '../sound/audio'
 
-const TINTS: Record<Team, string[]> = {
-  red: ['#FF7A5C', '#F04438', '#FFC53D', '#F2DCA0'],
-  blue: ['#6FB6FF', '#2E86FF', '#FFC53D', '#F2DCA0']
+/** Canvas wants literal colours, so the team's are read back off the document. */
+const tintsFor = (team: Team) => {
+  const css = getComputedStyle(document.documentElement)
+  const token = (name: string) => css.getPropertyValue(name).trim()
+  return team === 'red'
+    ? [token('--color-red-lit'), token('--color-red-500'), '#FFC53D', '#F2DCA0']
+    : [token('--color-blue-lit'), token('--color-blue-500'), '#FFC53D', '#F2DCA0']
 }
 
 /**
@@ -21,7 +25,7 @@ const TINTS: Record<Team, string[]> = {
  * order, so a shared one always rains in front of whatever you are reading.
  */
 const dropConfetti = (team: Team, canvas: HTMLCanvasElement) => {
-  const colors = TINTS[team]
+  const colors = tintsFor(team)
   const fire = confetti.create(canvas, {resize: true, useWorker: true})
   const end = Date.now() + 5200
 
@@ -73,7 +77,7 @@ export const GameOver = ({view, me, isHost}: {view: View; me: Player | null; isH
         transition={{duration: 0.6}}
         style={{
           background: `radial-gradient(60% 50% at 50% 45%, ${
-            winner === 'red' ? 'rgba(240,68,56,.20)' : 'rgba(46,134,255,.20)'
+            winner === 'red' ? 'var(--glow-red-wash)' : 'rgba(46,134,255,.20)'
           }, transparent 70%)`
         }}
       />
@@ -91,10 +95,10 @@ export const GameOver = ({view, me, isHost}: {view: View; me: Player | null; isH
           transition={{type: 'spring', stiffness: 250, damping: 14}}
           className={cx(
             'type-marquee text-4xl sm:text-5xl',
-            winner === 'red' ? 'text-red-lit' : 'text-blue-lit'
+            winner === 'red' ? 'text-red-name' : 'text-blue-lit'
           )}
           style={{
-            textShadow: `0 0 44px ${winner === 'red' ? 'rgba(255,122,92,.6)' : 'rgba(111,182,255,.6)'}`
+            textShadow: `0 0 44px ${winner === 'red' ? 'var(--glow-red-text)' : 'rgba(111,182,255,.6)'}`
           }}
         >
           {winner} wins

@@ -53,7 +53,7 @@ export const INK: Record<Colour, string> = {
   red: 'var(--card-red-ink)',
   blue: '#061C36',
   neutral: '#241F13',
-  assassin: '#FF2D2D'
+  assassin: 'var(--color-kill-lit)'
 }
 
 export const STAMP: Record<Colour, string> = {

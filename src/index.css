@@ -22,13 +22,22 @@
   --color-red-lit: #FF7A5C;
   --color-red-deep: #7A1A12;
 
-  /* The red card, its ink, and the spymaster's key face. Tokens rather than
-     literals so colourblind mode can reach them. */
+  /* The red card, its ink, the spymaster's key face, and every wash and glow
+     that stands for red. Tokens rather than literals so colourblind mode can
+     reach them. --color-red-name is the exception: it spells the word "Red",
+     which stays red however the team is painted. */
   --card-red-hi: #F04438;
   --card-red-lo: #A32419;
   --card-red-ink: #2B0A06;
   --key-red-hi: #8E2018;
   --key-red-lo: #5E140F;
+  --color-red-name: #FF7A5C;
+  --glow-red-wash: rgba(240, 68, 56, 0.18);
+  --glow-red-text: rgba(255, 122, 92, 0.5);
+  --glow-red-soft: rgba(255, 122, 92, 0.26);
+  --glow-kill: rgba(255, 45, 45, 0.42);
+  --glow-kill-hot: rgba(255, 45, 45, 0.9);
+  --glow-kill-deep: rgba(90, 0, 0, 0.95);
   --color-blue-500: #2E86FF;
   --color-blue-lit: #6FB6FF;
   --color-blue-deep: #10305E;
@@ -79,6 +88,15 @@
   --card-red-ink: #2A1F00;
   --key-red-hi: #9A7400;
   --key-red-lo: #6A4F00;
+  --glow-red-wash: rgba(255, 195, 0, 0.2);
+  --glow-red-text: rgba(255, 222, 92, 0.55);
+  --glow-red-soft: rgba(255, 222, 92, 0.3);
+
+  /* The assassin keeps its black card; only the mark on it turns. */
+  --color-kill-lit: #FFC300;
+  --glow-kill: rgba(255, 195, 0, 0.42);
+  --glow-kill-hot: rgba(255, 195, 0, 0.9);
+  --glow-kill-deep: rgba(64, 46, 0, 0.95);
 }
 
 body.is-dyslexic {
