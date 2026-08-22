@@ -53,17 +53,18 @@ export const spymasterOf = (players: Player[], team: Team) =>
 
 /**
  * A side needs someone to give clues and someone to act on them, so a lone
- * spymaster is as unplayable as an empty team. One message per side: naming
- * every fault at once reads as a wall of complaints about the same seat.
+ * spymaster is as unplayable as an empty team. At most one message per side,
+ * red first: naming every fault at once reads as a wall of complaints about
+ * the same seat.
  */
-export const rosterProblems = (players: Player[]): string[] => {
-  const out: string[] = []
+export const rosterProblems = (players: Player[]): Array<{team: Team; message: string}> => {
+  const out: Array<{team: Team; message: string}> = []
   for (const team of ['red', 'blue'] as Team[]) {
     const side = players.filter(p => p.team === team)
     const label = team === 'red' ? 'Red' : 'Blue'
-    if (!side.length) out.push(`${label} has nobody on it`)
-    else if (!side.some(p => p.spymaster)) out.push(`${label} needs a spymaster`)
-    else if (side.every(p => p.spymaster)) out.push(`${label} needs at least one spy`)
+    if (!side.length) out.push({team, message: `${label} has nobody on it`})
+    else if (!side.some(p => p.spymaster)) out.push({team, message: `${label} needs a spymaster`})
+    else if (side.every(p => p.spymaster)) out.push({team, message: `${label} needs at least one spy`})
   }
   return out
 }

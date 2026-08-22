@@ -77,7 +77,18 @@ export const Waiting = () => {
 
   const on = (team: Team | null) => shared.players.filter(p => p.team === team)
 
-  const blockers = [...problems.map(p => p.message), ...rosterProblems(shared.players)]
+  const roster = rosterProblems(shared.players)
+  const blockers = [...problems.map(p => p.message), ...roster.map(r => r.message)]
+
+  /** Each side answers for itself, red above blue, so nobody has to wait their turn to be told. */
+  const faults = [
+    ...problems.map(p => ({key: p.field, message: p.message, tint: 'text-kill-lit'})),
+    ...roster.map(r => ({
+      key: r.team,
+      message: r.message,
+      tint: r.team === 'red' ? 'text-red-lit' : 'text-blue-lit'
+    }))
+  ]
 
   const hostName = shared.players.find(p => p.id === shared.hostId)?.name
   const here = shared.players.filter(p => p.connected).length
@@ -164,16 +175,29 @@ export const Waiting = () => {
                     {readyCount}{' '}
                     <span className="text-text-dim">/ {shared.players.length} ready</span>
                   </span>
-                  <AnimatePresence mode="wait" initial={false}>
-                    <motion.span
-                      key={blockers[0] ?? 'clear'}
-                      initial={reduced ? {opacity: 0} : {opacity: 0, y: 4}}
-                      animate={{opacity: 1, y: 0}}
-                      exit={{opacity: 0}}
-                      className={cx('type-label', blockers.length && 'text-kill-lit')}
-                    >
-                      {blockers[0] ?? 'Everyone is ready'}
-                    </motion.span>
+                  <AnimatePresence initial={false}>
+                    {faults.length === 0 && (
+                      <motion.span
+                        key="clear"
+                        initial={reduced ? {opacity: 0} : {opacity: 0, y: 4}}
+                        animate={{opacity: 1, y: 0}}
+                        exit={{opacity: 0}}
+                        className="type-label"
+                      >
+                        Everyone is ready
+                      </motion.span>
+                    )}
+                    {faults.map(f => (
+                      <motion.span
+                        key={f.key}
+                        initial={reduced ? {opacity: 0} : {opacity: 0, y: 4}}
+                        animate={{opacity: 1, y: 0}}
+                        exit={{opacity: 0}}
+                        className={cx('type-label', f.tint)}
+                      >
+                        {f.message}
+                      </motion.span>
+                    ))}
                   </AnimatePresence>
                 </div>
 

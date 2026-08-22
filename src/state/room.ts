@@ -562,7 +562,7 @@ const applyIntent = (from: PlayerId, intent: Intent) => {
       const problems = validate(state.settings, list.length)
       if (problems.length) return refuse(from, problems[0]!.message)
       const roster = rosterProblems(state.players)
-      if (roster.length) return refuse(from, roster[0]!)
+      if (roster.length) return refuse(from, roster[0]!.message)
       const startTeam: Team = Math.random() < 0.5 ? 'red' : 'blue'
       commit(draft => ({
         ...draft,

@@ -354,15 +354,18 @@ describe('roster', () => {
   })
 
   it('wants a spymaster and a guesser on each side', () => {
-    expect(rosterProblems([])).toEqual(['Red has nobody on it', 'Blue has nobody on it'])
+    expect(rosterProblems([])).toEqual([
+      {team: 'red', message: 'Red has nobody on it'},
+      {team: 'blue', message: 'Blue has nobody on it'}
+    ])
 
     expect(
       rosterProblems([seat('a', 'red', false), seat('b', 'blue', true), seat('c', 'blue', false)])
-    ).toEqual(['Red needs a spymaster'])
+    ).toEqual([{team: 'red', message: 'Red needs a spymaster'}])
 
     expect(
       rosterProblems([seat('a', 'red', true), seat('b', 'blue', true), seat('c', 'blue', false)])
-    ).toEqual(['Red needs at least one spy'])
+    ).toEqual([{team: 'red', message: 'Red needs at least one spy'}])
 
     expect(
       rosterProblems([
