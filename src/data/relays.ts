@@ -17,7 +17,9 @@
  * a bad entry in that pick fails for everyone on every load. The list below is
  * chosen from its defaults — so still relays known to accept the events it
  * publishes — favouring the largest and fastest, because small self-hosted
- * relays are the ones a VPN exit or a corporate resolver tends to block.
+ * relays are the ones that blip. Expect a failure line anyway: public relays go
+ * down for a minute at a time, the browser logs every attempt, and the mesh
+ * carries on over whatever else is up.
  *
  * Note that supplying `urls` makes Trystero ignore `redundancy` and connect to
  * every entry, so a list here must be short enough to be the whole set, and
@@ -55,6 +57,5 @@ export const TORRENT_RELAYS: string[] | null = [
  *
  * Opens a socket but not worth listing:
  *
- *   nostr    relay.damus.io (rate-limits), offchain.pub (web-of-trust policy),
- *            koru.bitcointxoko.org (reachable here, refused from a VPN exit)
+ *   nostr    relay.damus.io (rate-limits), offchain.pub (web-of-trust policy)
  */
