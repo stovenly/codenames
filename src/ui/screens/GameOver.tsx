@@ -25,18 +25,22 @@ const dropConfetti = (team: Team, canvas: HTMLCanvasElement) => {
   const fire = confetti.create(canvas, {resize: true, useWorker: true})
   const end = Date.now() + 5200
 
+  // One particle per call: a single call drops its whole count from one point,
+  // which reads as clumps rather than as confetti.
   const fall = () => {
-    fire({
-      particleCount: 4,
-      startVelocity: 0,
-      ticks: 420,
-      gravity: 0.55,
-      scalar: 1.1,
-      spread: 120,
-      colors,
-      origin: {x: Math.random(), y: -0.1}
-    })
-    if (Date.now() < end) setTimeout(fall, 90)
+    for (let i = 0; i < 4; i++) {
+      fire({
+        particleCount: 1,
+        startVelocity: 0,
+        ticks: 420,
+        gravity: 0.5 + Math.random() * 0.35,
+        scalar: 0.8 + Math.random() * 0.6,
+        spread: 90,
+        colors,
+        origin: {x: Math.random(), y: -0.05 - Math.random() * 0.15}
+      })
+    }
+    if (Date.now() < end) setTimeout(fall, 70)
   }
   fall()
   return () => void fire.reset()

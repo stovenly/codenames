@@ -27,7 +27,7 @@ export type Stage =
 const FULL = {
   /** Symbols churning on the card, decelerating into the flip. */
   windup: 2600,
-  landing: 900,
+  landing: 1200,
   correct: 1500,
   wrong: 1900,
   assassin: 3400,
@@ -87,7 +87,7 @@ const colourAt = (cursorAfterGuess: number): {colour: Colour} | null => {
  */
 let awaiting: {card: number; deadline: number} | null = null
 
-const GIVE_UP_MS = 6_000
+const GIVE_UP_MS = 2_500
 
 export const previewGuess = (card: number) => {
   if (playing || awaiting) return
@@ -111,20 +111,33 @@ export const previewGuess = (card: number) => {
   at(t.windup, settlePreview)
 }
 
-/** The windup is over; land it as soon as the host's version of it arrives. */
+/**
+ * The windup is over; land it as soon as the host's version of it arrives.
+ *
+ * Searching forward rather than checking one slot matters: anything still
+ * queued in front of the guess would otherwise hide it, the preview would time
+ * out, and pump would then play the very same guess again — a second full
+ * windup, which is the guesser sitting through twice what everyone else saw.
+ */
 const settlePreview = () => {
   if (!awaiting) return
   const {shared} = getRoom()
-  const step = shared?.steps[shownCursor]
+  const mine = awaiting.card
 
-  if (shared && step?.t === 'guess' && step.card === awaiting.card) {
-    const card = awaiting.card
-    const team = step.team
+  const found = shared
+    ? shared.steps.findIndex((st, i) => i >= shownCursor && st.t === 'guess' && st.card === mine)
+    : -1
+
+  if (found >= 0 && shared) {
+    const step = shared.steps[found]!
+    if (step.t !== 'guess') return
     awaiting = null
-    land(card, team, colourAt(shownCursor + 1)?.colour ?? 'neutral')
+    shownCursor = found
+    land(step.card, step.team, colourAt(found + 1)?.colour ?? 'neutral')
     return
   }
 
+  // No such step: the host refused it, so there is nothing to play.
   if (Date.now() > awaiting.deadline) {
     awaiting = null
     stage = {kind: 'idle'}

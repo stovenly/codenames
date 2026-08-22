@@ -59,6 +59,6 @@ export const INK: Record<Colour, string> = {
 export const STAMP: Record<Colour, string> = {
   red: 'RED AGENT',
   blue: 'BLUE AGENT',
-  neutral: 'BYSTANDER',
+  neutral: 'NEUTRAL',
   assassin: 'ASSASSIN'
 }

@@ -66,7 +66,7 @@ const seatFor = i =>
 spawn(
   CHROME,
   [
-    ...(HEADLESS ? ['--headless=new'] : []),
+    ...(HEADLESS ? ['--headless=new', '--window-size=1440,960'] : []),
     `--remote-debugging-port=${PORT}`,
     `--user-data-dir=${mkdtempSync(join(tmpdir(), 'codenames-playtest-'))}`,
     '--no-first-run',

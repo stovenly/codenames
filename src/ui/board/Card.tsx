@@ -1,5 +1,5 @@
 import {AnimatePresence, motion} from 'motion/react'
-import {memo, useEffect, useRef, useState} from 'react'
+import {memo, useRef, useState} from 'react'
 import type {Colour} from '../../game/board'
 import type {Card as CardModel} from '../../game/reducer'
 import type {Avatar as AvatarSpec, PlayerId} from '../../game/types'
@@ -23,54 +23,60 @@ const KEY_FACE: Record<Colour, string> = {
   assassin: 'linear-gradient(180deg, #101014 0%, #000 100%)'
 }
 
-const CYCLE: Colour[] = ['red', 'neutral', 'blue', 'assassin', 'neutral', 'red', 'assassin', 'blue']
+const FACES = 30
+/** Faces fall, so the reel runs from the far end of the strip back toward the top. */
+const START = 27
+const SPUN = 6
+/** Where it comes to rest; the faces either side exist only to overshoot into. */
+const LAND = 2
+
+const shuffleFaces = (): Colour[] => {
+  const pool: Colour[] = ['red', 'blue', 'neutral', 'assassin']
+  return Array.from({length: FACES}, () => pool[Math.floor(Math.random() * pool.length)]!)
+}
+
+const Face = ({colour}: {colour: Colour}) => (
+  <span
+    className="relative grid aspect-[7/5] w-full shrink-0 place-items-center"
+    style={{background: SURFACE[colour], boxShadow: 'inset 0 -1px 0 rgba(0,0,0,.55)'}}
+  >
+    <Symbol colour={colour} className="size-[38cqw] drop-shadow-[0_2px_3px_rgba(0,0,0,.45)]" />
+  </span>
+)
 
 /**
- * The tension build, played on the card being guessed rather than in a separate
- * prop: symbols churn and slow down while a light sweeps the bezel, and the
- * flip lands on whatever the host already decided. Nothing here knows the
- * answer — it cannot, or the churn would give it away early.
+ * One reel, the height of the card, spinning through whole card faces. It
+ * decelerates through the windup without settling, because until the host's
+ * step lands there is nothing to settle on — and then it overshoots the answer
+ * by one and ticks back, the way a wheel does.
+ *
+ * The strip is random every time, so the run-up is never the same twice.
  */
-const Windup = ({until}: {until: number}) => {
-  const [i, setI] = useState(0)
+const Reel = ({target, landMs}: {target: Colour | null; landMs: number}) => {
+  const strip = useRef(shuffleFaces()).current
+  /** Chosen once, so a re-render mid-tick cannot flip which way it settles. */
+  const overshoot = useRef(Math.random() < 0.5 ? 1 : -1).current
 
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>
-    let n = 0
-    const tick = () => {
-      n++
-      setI(v => v + 1)
-      // Decelerating, so the last few symbols land heavily instead of blurring past.
-      timer = setTimeout(tick, Math.min(240, 45 + n * n * 1.1))
-    }
-    timer = setTimeout(tick, 45)
-    return () => clearTimeout(timer)
-  }, [until])
+  const faces = target ? strip.map((c, i) => (i === LAND ? target : c)) : strip
+  const at = (i: number) => `${(-i * 100) / FACES}%`
 
   return (
-    <>
+    <span className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
       <motion.span
-        aria-hidden
-        className="pointer-events-none absolute -inset-1/2 z-10"
-        style={{
-          background:
-            'conic-gradient(from 0deg, transparent 0deg, rgba(255,197,61,.9) 40deg, transparent 90deg)'
-        }}
-        animate={{rotate: 360}}
-        transition={{repeat: Infinity, duration: 0.62, ease: 'linear'}}
-      />
-      <span aria-hidden className="pointer-events-none absolute inset-[3px] z-10 rounded-sm bg-stage-000" />
-
-      <motion.span
-        key={i}
-        initial={{scale: 0.55, opacity: 0}}
-        animate={{scale: 1, opacity: 1}}
-        transition={{duration: 0.1}}
-        className="pointer-events-none absolute z-20 grid place-items-center"
+        className="absolute inset-x-0 top-0 flex flex-col"
+        initial={{y: at(START)}}
+        animate={target ? {y: [null, at(LAND + overshoot), at(LAND)]} : {y: at(SPUN)}}
+        transition={
+          target
+            ? {duration: landMs / 1000, times: [0, 0.66, 1], ease: ['easeOut', 'easeInOut']}
+            : {duration: 2.4, ease: [0.12, 0.55, 0.2, 1]}
+        }
       >
-        <Symbol colour={CYCLE[i % CYCLE.length]!} className="size-[34cqw]" />
+        {faces.map((colour, i) => (
+          <Face key={i} colour={colour} />
+        ))}
       </motion.span>
-    </>
+    </span>
   )
 }
 
@@ -219,7 +225,7 @@ const CardBase = ({
         className={cx(
           'type-plate relative z-20 px-1.5 transition-opacity duration-150',
           !faceUp && 'letterpress',
-          phase === 'windup' && 'opacity-0'
+          (phase === 'windup' || phase === 'landing') && 'opacity-0'
         )}
         style={{
           fontSize: 'clamp(10px, 15cqw, 30px)',
@@ -229,21 +235,28 @@ const CardBase = ({
         {card.word}
       </span>
 
-      {phase === 'windup' && <Windup until={windupUntil} />}
+      {(phase === 'windup' || phase === 'landing') && (
+        <Reel target={phase === 'landing' ? shown : null} landMs={windupUntil} />
+      )}
 
       <AnimatePresence>
-        {phase === 'landing' && shown && (
+        {phase === 'aftermath' && shown && (
           <motion.span
             key="stamp"
             initial={{opacity: 0, scale: 2.2, rotate: -20}}
             animate={{opacity: 1, scale: 1, rotate: -10}}
+            exit={{opacity: 0}}
             transition={{type: 'spring', stiffness: 700, damping: 17}}
-            className="type-marquee pointer-events-none absolute z-20 rounded-xs border-2 px-2 py-0.5"
+            className="type-marquee pointer-events-none absolute z-20 rounded-xs border-2 whitespace-nowrap"
             style={{
-              fontSize: 'clamp(5px, 6.5cqw, 12px)',
+              // Everything in card widths: fixed padding pushed the stamp past
+              // the edge on a small board, where it was clipped mid-word.
+              fontSize: 'clamp(9px, 11cqw, 26px)',
+              padding: '0.6cqw 2.4cqw',
+              letterSpacing: '0.06em',
               color: INK[shown],
               borderColor: INK[shown],
-              background: 'rgba(255,255,255,.16)'
+              background: 'rgba(255,255,255,.22)'
             }}
           >
             {STAMP[shown]}
