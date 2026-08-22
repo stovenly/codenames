@@ -69,6 +69,13 @@ const CustomColour = ({value, onPick}: {value: string; onPick: (hex: string) => 
   )
 }
 
+/** Anywhere in the whole space, not one of the swatches. */
+const randomHex = () =>
+  Math.floor(Math.random() * 0x1000000)
+    .toString(16)
+    .padStart(6, '0')
+    .toUpperCase()
+
 /** So two categories do not both open on variant 0. */
 const openingVariant = (id: string) => {
   let h = 0
@@ -167,6 +174,13 @@ export const AvatarPicker = ({
       <div className="flex flex-wrap items-center gap-2">
         <Label>Background</Label>
         <CustomColour value={value.bg} onPick={bg => onChange({...value, bg})} />
+        <IconButton
+          label="Roll a random colour"
+          className="size-7"
+          onClick={() => onChange({...value, bg: randomHex()})}
+        >
+          <Dices className="size-3.5" />
+        </IconButton>
         {BACKGROUNDS.map(bg => (
           <button
             key={bg}

@@ -1,6 +1,6 @@
 import manifest from './manifest.json'
 
-export type PackId = 'original' | 'disney' | 'potter' | 'valorant'
+export type PackId = 'original' | 'disney' | 'potter' | 'valorant' | 'countries'
 
 export type Pack = {id: PackId; name: string; count: number; note: string}
 
@@ -12,7 +12,8 @@ const LOADERS: Record<PackId, () => Promise<{default: string[]}>> = {
   original: () => import('./original.json'),
   disney: () => import('./disney.json'),
   potter: () => import('./potter.json'),
-  valorant: () => import('./valorant.json')
+  valorant: () => import('./valorant.json'),
+  countries: () => import('./countries.json')
 }
 
 /** A saved selection can name a pack that no longer ships. */

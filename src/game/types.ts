@@ -50,3 +50,20 @@ export const teamOf = (players: Player[], id: PlayerId) => players.find(p => p.i
 
 export const spymasterOf = (players: Player[], team: Team) =>
   players.find(p => p.team === team && p.spymaster) ?? null
+
+/**
+ * A side needs someone to give clues and someone to act on them, so a lone
+ * spymaster is as unplayable as an empty team. One message per side: naming
+ * every fault at once reads as a wall of complaints about the same seat.
+ */
+export const rosterProblems = (players: Player[]): string[] => {
+  const out: string[] = []
+  for (const team of ['red', 'blue'] as Team[]) {
+    const side = players.filter(p => p.team === team)
+    const label = team === 'red' ? 'Red' : 'Blue'
+    if (!side.length) out.push(`${label} has nobody on it`)
+    else if (!side.some(p => p.spymaster)) out.push(`${label} needs a spymaster`)
+    else if (side.every(p => p.spymaster)) out.push(`${label} needs at least one spy`)
+  }
+  return out
+}

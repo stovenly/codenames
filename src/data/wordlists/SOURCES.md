@@ -13,6 +13,7 @@ keeping the first occurrence, sort.
 | Disney | `disney.json` | 201 | disney.txt | Themed |
 | Harry Potter | `potter.json` | 200 | potter.txt | Themed |
 | Valorant | `valorant.json` | 264 | written in this script.txt | Agents, maps, guns and comms |
+| Countries | `countries.json` | 100 | written in this script.txt | The hundred most recognisable |
 
 Fetched from [jacksun007/codenames](https://github.com/jacksun007/codenames),
 which carries the widest spread of expansions and themed decks in one place.

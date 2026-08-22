@@ -52,6 +52,30 @@ Battlepass Nulcmd Fragment Zeropoint Flashdrive Suddendeath
   .split(/\s+/)
   .filter(Boolean)
 
+/**
+ * The hundred countries most people could place, not the UN roster: a deck is
+ * only fun if every card is a word both teams recognise. Two-word names are
+ * kept short so they still fit a card.
+ */
+const COUNTRIES = `
+Argentina, Australia, Austria, Bangladesh, Belgium, Bolivia, Brazil, Bulgaria,
+Cambodia, Cameroon, Canada, Chile, China, Colombia, Costa Rica, Croatia, Cuba,
+Czechia, Denmark, Ecuador, Egypt, Ethiopia, Fiji, Finland, France,
+Georgia, Germany, Ghana, Greece, Guatemala, Haiti, Honduras, Hungary, Iceland,
+India, Indonesia, Iran, Iraq, Ireland, Israel, Italy, Jamaica, Japan, Jordan,
+Kazakhstan, Kenya, Kuwait, Laos, Lebanon, Libya, Luxembourg,
+Madagascar, Malaysia, Mexico, Monaco, Mongolia, Morocco, Nepal,
+Netherlands, New Zealand, Nicaragua, Nigeria, Norway, Oman, Pakistan, Panama,
+Paraguay, Peru, Philippines, Poland, Portugal, Qatar, Romania, Russia, Rwanda,
+Saudi Arabia, Senegal, Serbia, Singapore, Somalia,
+South Africa, South Korea, Spain, Sri Lanka, Sudan, Sweden, Switzerland, Syria,
+Taiwan, Tanzania, Thailand, Tunisia, Turkey, Uganda, Ukraine, Uruguay,
+Venezuela, Vietnam, Yemen, Zimbabwe
+`
+  .split(',')
+  .map(name => name.trim())
+  .filter(Boolean)
+
 await mkdir(OUT, {recursive: true})
 
 const rows: string[] = []
@@ -74,6 +98,13 @@ const sources: Source[] = [
     note: 'Agents, maps, guns and comms',
     file: 'written in this script',
     lines: async () => VALORANT
+  },
+  {
+    id: 'countries',
+    name: 'Countries',
+    note: 'The hundred most recognisable',
+    file: 'written in this script',
+    lines: async () => COUNTRIES
   }
 ]
 

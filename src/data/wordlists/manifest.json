@@ -22,5 +22,11 @@
     "name": "Valorant",
     "count": 264,
     "note": "Agents, maps, guns and comms"
+  },
+  {
+    "id": "countries",
+    "name": "Countries",
+    "count": 100,
+    "note": "The hundred most recognisable"
   }
 ]

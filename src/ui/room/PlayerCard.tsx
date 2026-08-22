@@ -3,6 +3,7 @@ import {Crown, UserMinus, VenetianMask} from 'lucide-react'
 import type {Player, Team} from '../../game/types'
 import {intend} from '../../state/room'
 import {AvatarView} from '../avatar/Avatar'
+import {Agent} from '../board/symbols'
 import {IconButton, Label} from '../atoms'
 import {cx} from '../cx'
 import {spring, useMotion} from '../motion'
@@ -72,11 +73,15 @@ export const PlayerCard = ({
           BAND[team ?? 'none']
         )}
       >
-        {player.spymaster && team && (
+        {team && (
           <>
-            <VenetianMask className="size-3.5" />
+            {player.spymaster ? (
+              <VenetianMask className="size-3.5" />
+            ) : (
+              <Agent className="size-3.5" />
+            )}
             <span className="type-marquee text-[10px] tracking-[0.16em] drop-shadow-[0_1px_2px_rgba(0,0,0,.55)]">
-              Spymaster
+              {player.spymaster ? 'Spymaster' : 'Spy'}
             </span>
           </>
         )}

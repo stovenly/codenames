@@ -5,7 +5,7 @@ import {composition, defaultSettings, isDegenerate, presetFor, validate, type Bo
 import {mulberry32, seedFrom, shuffle} from './prng'
 import {hashWords, normalize, validateCustom} from './wordlist'
 import type {Step} from './steps'
-import type {Team} from './types'
+import {rosterProblems, type Player, type Team} from './types'
 
 const WORDS = Array.from({length: 80}, (_, i) => `WORD${String(i).padStart(2, '0')}`)
 const settings = (over: Partial<ReturnType<typeof defaultSettings>> = {}) => ({
@@ -339,5 +339,38 @@ describe('word lists', () => {
 
   it('allows hyphens and apostrophes', () => {
     expect(validateCustom("O'CLOCK\nX-RAY").accepted).toEqual(["O'CLOCK", 'X-RAY'])
+  })
+})
+
+describe('roster', () => {
+  const seat = (id: string, team: Team | null, spymaster: boolean): Player => ({
+    id,
+    name: id,
+    team,
+    spymaster,
+    ready: true,
+    avatar: {style: 'lorelei', seed: '0', bg: '141C30'},
+    connected: true
+  })
+
+  it('wants a spymaster and a guesser on each side', () => {
+    expect(rosterProblems([])).toEqual(['Red has nobody on it', 'Blue has nobody on it'])
+
+    expect(
+      rosterProblems([seat('a', 'red', false), seat('b', 'blue', true), seat('c', 'blue', false)])
+    ).toEqual(['Red needs a spymaster'])
+
+    expect(
+      rosterProblems([seat('a', 'red', true), seat('b', 'blue', true), seat('c', 'blue', false)])
+    ).toEqual(['Red needs at least one spy'])
+
+    expect(
+      rosterProblems([
+        seat('a', 'red', true),
+        seat('b', 'red', false),
+        seat('c', 'blue', true),
+        seat('d', 'blue', false)
+      ])
+    ).toEqual([])
   })
 })

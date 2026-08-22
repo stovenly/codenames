@@ -6,7 +6,7 @@ import {roomId, useNet} from '../../state/net'
 import {intend, setAvatar, useRoom} from '../../state/room'
 import * as words from '../../state/words'
 import {validate} from '../../game/settings'
-import type {Player, Team} from '../../game/types'
+import {rosterProblems, type Player, type Team} from '../../game/types'
 import {AvatarPicker} from '../avatar/Picker'
 import {Bulbs, Button, Enter, Heading, Item, Label, Panel, Rule} from '../atoms'
 import {cx} from '../cx'
@@ -76,21 +76,12 @@ export const Waiting = () => {
   const problems = validate(shared.settings, list.length)
 
   const on = (team: Team | null) => shared.players.filter(p => p.team === team)
-  const emptyTeams = (['red', 'blue'] as Team[]).filter(t => on(t).length === 0)
-  const missingSpymaster = (['red', 'blue'] as Team[]).filter(
-    t => !emptyTeams.includes(t) && !on(t).some(p => p.spymaster)
-  )
 
-  const blockers = [
-    ...problems.map(p => p.message),
-    ...emptyTeams.map(t => `${t === 'red' ? 'Red' : 'Blue'} has nobody on it`),
-    ...missingSpymaster.map(t => `${t === 'red' ? 'Red' : 'Blue'} needs a spymaster`)
-  ]
+  const blockers = [...problems.map(p => p.message), ...rosterProblems(shared.players)]
 
   const hostName = shared.players.find(p => p.id === shared.hostId)?.name
   const here = shared.players.filter(p => p.connected).length
   const readyCount = shared.players.filter(p => p.ready).length
-  const outstanding = shared.players.filter(p => !p.ready).map(p => p.name)
   const rttFor = (id: string) => report.peers.find(p => p.playerId === id)?.rttMs ?? null
 
   return (
@@ -175,16 +166,13 @@ export const Waiting = () => {
                   </span>
                   <AnimatePresence mode="wait" initial={false}>
                     <motion.span
-                      key={blockers[0] ?? outstanding.join()}
+                      key={blockers[0] ?? 'clear'}
                       initial={reduced ? {opacity: 0} : {opacity: 0, y: 4}}
                       animate={{opacity: 1, y: 0}}
                       exit={{opacity: 0}}
                       className={cx('type-label', blockers.length && 'text-kill-lit')}
                     >
-                      {blockers[0] ??
-                        (outstanding.length && outstanding.length <= 3
-                          ? `Waiting on ${outstanding.join(', ')}`
-                          : 'Everyone is ready')}
+                      {blockers[0] ?? 'Everyone is ready'}
                     </motion.span>
                   </AnimatePresence>
                 </div>
@@ -212,7 +200,7 @@ export const Waiting = () => {
                       onClick={() => intend({kind: 'startGame'})}
                       disabled={blockers.length > 0}
                     >
-                      Start
+                      Start game
                     </Button>
                   )}
                 </div>

@@ -6,7 +6,7 @@ import {advance} from '../game/reducer'
 import {defaultSettings, validate, type BoardSize, type Settings} from '../game/settings'
 import type {ClueCount, Step} from '../game/steps'
 import type {Avatar, Player, Shared, Team} from '../game/types'
-import {AVATAR_VARIANTS, otherTeam} from '../game/types'
+import {AVATAR_VARIANTS, otherTeam, rosterProblems} from '../game/types'
 import {joinedExisting, on, openRoom, peers, roomId, self, send, startMesh, subscribe as onNetChange} from './net'
 import {getPrefs, setPrefs} from './prefs'
 import * as words from './words'
@@ -561,6 +561,8 @@ const applyIntent = (from: PlayerId, intent: Intent) => {
       const list = words.get(state.settings.wordListHash)
       const problems = validate(state.settings, list.length)
       if (problems.length) return refuse(from, problems[0]!.message)
+      const roster = rosterProblems(state.players)
+      if (roster.length) return refuse(from, roster[0]!)
       const startTeam: Team = Math.random() < 0.5 ? 'red' : 'blue'
       commit(draft => ({
         ...draft,
