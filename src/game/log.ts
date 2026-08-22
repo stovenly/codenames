@@ -17,6 +17,7 @@ export type Entry =
       /** The pick itself ended the turn, which is the part people forget. */
       ended: boolean
     }
+  | {kind: 'pass'; index: number; team: Team; by: PlayerId}
   | {kind: 'turn'; index: number; team: Team; reason: EndTurnReason}
 
 /**
@@ -59,6 +60,11 @@ export const readLog = (
       continue
     }
     if (step.t === 'endTurn') {
+      // Passing is a decision somebody made, not a turn running out.
+      if (step.reason === 'pass' && step.by) {
+        out.push({kind: 'pass', index: i, team: step.team, by: step.by})
+        continue
+      }
       out.push({kind: 'turn', index: i, team: step.team, reason: step.reason})
     }
   }

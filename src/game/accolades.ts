@@ -2,7 +2,7 @@ import type {Colour} from './board'
 import {derive} from './reducer'
 import type {Settings} from './settings'
 import type {Step} from './steps'
-import type {Player, PlayerId} from './types'
+import type {Player, PlayerId, Team} from './types'
 
 export type Accolade = {
   id: string
@@ -66,7 +66,7 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
  * Weights rank interest, not merit: picking the assassin is the only thing
  * anyone will remember, so it outranks every competent thing that happened.
  */
-export const accolades = (
+export const catalogue = (
   settings: Settings,
   words: string[],
   steps: Step[],
@@ -121,10 +121,10 @@ export const accolades = (
     if (step.t === 'endTurn') {
       settle()
       clueOwner = null
-      if (step.reason === 'pass') {
-        // The turn's own team passed; the spymaster is not the one who lost nerve.
-        const guesser = lastGuesser(steps, i) ?? null
-        if (guesser) of(guesser).passes++
+      if (step.reason === 'pass' && step.by) {
+        const t = of(step.by)
+        t.passes++
+        t.first = Math.min(t.first, i)
       }
       return
     }
@@ -215,22 +215,75 @@ export const accolades = (
   const cold = leader(tallies, t => t.passes)
   add('cold', 'Cold Feet', cold ? plural(cold.n, 'turn') + ' handed back' : '', cold, 33)
 
+  out.push(...teamLeaders(seated, tallies))
+
   const idle = seated
     .filter(p => !p.spymaster && (tallies.get(p.id)?.picks ?? 0) === 0)
     .map(p => ({who: p.id, n: 1, at: Number.MAX_SAFE_INTEGER}))[0]
   add('idle', 'Passenger', 'never touched a card', idle ?? null, 30)
 
-  return pick(out, 4)
+  return out
 }
 
-/** Who was guessing when the turn ended, which is who chose to stop. */
-const lastGuesser = (steps: Step[], before: number): PlayerId | null => {
-  for (let i = before - 1; i >= 0; i--) {
-    const step = steps[i]!
-    if (step.t === 'guess') return step.by
-    if (step.t === 'clue') return null
+/** What the end screen deals: the four most interesting of the above. */
+export const accolades = (
+  settings: Settings,
+  words: string[],
+  steps: Step[],
+  players: Player[]
+): Accolade[] => pick(catalogue(settings, words, steps, players), 4)
+
+/**
+ * Carrying a team, weighted by how much there was to carry.
+ *
+ * Share alone will not do it: on a two-guesser side, 95% is one person being
+ * keen, while on a four-guesser side it is one person running the team. So the
+ * share is measured against what an equal split would have been —
+ * (share - 1/n) / (1 - 1/n) — and then multiplied by (n - 1), the number of
+ * people they are effectively covering for. Two guessers can reach 1; four can
+ * reach 3, which is the "way more leadership" the difference should carry.
+ *
+ * Sides with fewer than three guessers are not eligible at all: with one there
+ * is nothing to lead, and with two it is a coin toss dressed as a trend.
+ */
+const MIN_GUESSERS = 3
+const MIN_ACTIONS = 4
+
+const teamLeaders = (seated: Player[], tallies: Map<PlayerId, Tally>): Accolade[] => {
+  const out: Accolade[] = []
+
+  for (const team of ['red', 'blue'] as Team[]) {
+    const guessers = seated.filter(p => p.team === team && !p.spymaster)
+    if (guessers.length < MIN_GUESSERS) continue
+
+    const acted = (id: PlayerId) => {
+      const t = tallies.get(id)
+      return t ? t.picks + t.passes : 0
+    }
+    const total = guessers.reduce((n, p) => n + acted(p.id), 0)
+    if (total < MIN_ACTIONS) continue
+
+    const top = guessers
+      .map(p => ({who: p.id, n: acted(p.id), at: tallies.get(p.id)?.first ?? 0}))
+      .sort((a, b) => b.n - a.n || a.at - b.at)[0]
+    if (!top || top.n * 2 <= total) continue
+
+    const n = guessers.length
+    const share = top.n / total
+    const lead = (share - 1 / n) / (1 - 1 / n)
+    if (lead <= 0) continue
+
+    out.push({
+      id: `leader-${team}`,
+      title: 'Team Leader',
+      detail: `${Math.round(share * 100)}% of their team's moves`,
+      who: top.who,
+      weight: Math.min(72, 34 + 12 * lead * (n - 1)),
+      at: top.at
+    })
   }
-  return null
+
+  return out
 }
 
 /** Highest weight first, and one card each while there are people left to name. */

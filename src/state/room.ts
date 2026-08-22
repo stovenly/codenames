@@ -666,7 +666,7 @@ const applyIntent = (from: PlayerId, intent: Intent) => {
       if (view.phase !== 'guess') return
       if (!player || player.team !== view.turn || player.spymaster) return
       if (view.guessedSinceClue < 1) return
-      appendStep({t: 'endTurn', team: view.turn, reason: 'pass'})
+      appendStep({t: 'endTurn', team: view.turn, reason: 'pass', by: from})
       return
     }
 

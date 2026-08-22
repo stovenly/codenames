@@ -2,7 +2,7 @@ import {useEffect, useRef} from 'react'
 import type {Entry} from '../../game/log'
 import type {Player, PlayerId} from '../../game/types'
 import {Label} from '../atoms'
-import {VenetianMask} from 'lucide-react'
+import {Hand, VenetianMask} from 'lucide-react'
 import {Agent, Symbol} from '../board/symbols'
 import {cx} from '../cx'
 
@@ -77,6 +77,16 @@ export const History = ({entries, players}: {entries: Entry[]; players: Player[]
                 {entry.word}
               </span>
               {entry.ended && <Label className="text-kill-lit">turn over</Label>}
+            </div>
+          )
+        }
+
+        if (entry.kind === 'pass') {
+          return (
+            <div key={entry.index} className="flex items-center gap-2 pl-2">
+              <Who id={entry.by} team={entry.team} />
+              <Hand className="size-3.5 shrink-0 text-text-dim" />
+              <span className="type-read text-sm text-text-dim">passed</span>
             </div>
           )
         }

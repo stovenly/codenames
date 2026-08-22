@@ -9,5 +9,6 @@ export type Step =
   | {t: 'start'; seed: string; startTeam: Team}
   | {t: 'clue'; team: Team; by: PlayerId; word: string; count: ClueCount}
   | {t: 'guess'; team: Team; by: PlayerId; card: number}
-  | {t: 'endTurn'; team: Team; reason: EndTurnReason}
+  /** `by` only when somebody chose it: a turn that ran out has nobody to name. */
+  | {t: 'endTurn'; team: Team; reason: EndTurnReason; by?: PlayerId}
   | {t: 'end'; winner: Team; reason: 'cards' | 'assassin'}

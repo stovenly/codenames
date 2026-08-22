@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest'
-import {accolades} from './accolades'
+import {accolades, catalogue} from './accolades'
 import {buildBoard} from './board'
 import {defaultSettings} from './settings'
 import type {Step} from './steps'
@@ -87,5 +87,53 @@ describe('accolades', () => {
       {t: 'guess', team: 'red', by: 'rg', card: firstOf('red')}
     ]
     expect(titles(steps).some(t => t.startsWith('Passenger'))).toBe(true)
+  })
+})
+
+describe('team leader', () => {
+  const guessers = (n: number, team: Team): Player[] =>
+    Array.from({length: n}, (_, i) => seat(`${team}${i}`, team))
+
+  const table = (redGuessers: number) => [
+    seat('rs', 'red', true),
+    ...guessers(redGuessers, 'red'),
+    seat('bs', 'blue', true),
+    seat('bg', 'blue')
+  ]
+
+  /** One player takes `mine` of `total` picks; the rest share what is left. */
+  const run = (players: Player[], mine: number, total: number): Step[] => {
+    const steps: Step[] = [START, {t: 'clue', team: 'red', by: 'rs', word: 'ORBIT', count: 9}]
+    const spies = players.filter(p => p.team === 'red' && !p.spymaster)
+    for (let i = 0; i < total; i++) {
+      const by = i < mine ? spies[0]!.id : spies[1 + (i % Math.max(1, spies.length - 1))]!.id
+      steps.push({t: 'guess', team: 'red', by, card: firstOf('red', i % 8)})
+    }
+    return steps
+  }
+
+  // The catalogue rather than the dealt four: two of these compare weights, and
+  // a leader who is also the best guesser loses their card to the better one.
+  const leaderIn = (players: Player[], mine: number, total: number) =>
+    catalogue(settings, WORDS, run(players, mine, total), players).find(a => a.title === 'Team Leader')
+
+  it('says nothing on a side with one or two guessers', () => {
+    expect(leaderIn(table(1), 6, 6)).toBeUndefined()
+    expect(leaderIn(table(2), 6, 6)).toBeUndefined()
+  })
+
+  it('names the leader once a side is big enough to lead', () => {
+    const hit = leaderIn(table(3), 6, 8)
+    expect(hit?.who).toBe('red0')
+  })
+
+  it('weighs the same share more heavily on a bigger side', () => {
+    const small = leaderIn(table(3), 19, 20)!
+    const big = leaderIn(table(5), 19, 20)!
+    expect(big.weight).toBeGreaterThan(small.weight)
+  })
+
+  it('wants an actual majority, not just the most', () => {
+    expect(leaderIn(table(4), 4, 12)).toBeUndefined()
   })
 })
