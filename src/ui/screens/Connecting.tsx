@@ -4,7 +4,7 @@ import {useEffect, useState} from 'react'
 import {useNet} from '../../state/net'
 import {Bulbs, Label, Panel} from '../atoms'
 import {cx} from '../cx'
-import {spring, useMotion} from '../motion'
+import {spring} from '../motion'
 
 /**
  * What a player wants to know while waiting is roughly "is this stuck?", which
@@ -17,8 +17,7 @@ const SLOW_MS = 12_000
 
 export const Connecting = ({title = 'Connecting'}: {title?: string}) => {
   const {report} = useNet()
-  const {reduced} = useMotion()
-  const [slow, setSlow] = useState(false)
+    const [slow, setSlow] = useState(false)
 
   useEffect(() => {
     const t = setTimeout(() => setSlow(true), SLOW_MS)
@@ -32,7 +31,7 @@ export const Connecting = ({title = 'Connecting'}: {title?: string}) => {
   return (
     <main className="grid min-h-full place-items-center px-6 py-16">
       <Panel level={2} glossy className="w-full max-w-sm px-7 py-7">
-        <Bulbs lit chase={!reduced} className="-mt-1 mb-5" />
+        <Bulbs lit chase className="-mt-1 mb-5" />
 
         <h1 className="type-marquee mb-5 text-center text-xl text-lamp-300">{title}</h1>
 
@@ -57,7 +56,7 @@ export const Connecting = ({title = 'Connecting'}: {title?: string}) => {
                   ) : live ? (
                     <motion.span
                       className="size-1.5 rounded-full bg-lamp-300"
-                      animate={reduced ? {} : {opacity: [0.3, 1, 0.3], scale: [0.8, 1.25, 0.8]}}
+                      animate={{opacity: [0.3, 1, 0.3], scale: [0.8, 1.25, 0.8]}}
                       transition={{duration: 1.3, repeat: Infinity, ease: 'easeInOut'}}
                     />
                   ) : (
@@ -83,7 +82,7 @@ export const Connecting = ({title = 'Connecting'}: {title?: string}) => {
             className="block h-full rounded-full bg-gradient-to-r from-gold-500 to-lamp-300"
             initial={false}
             animate={{width: `${((stage + 0.35) / STAGES.length) * 100}%`}}
-            transition={reduced ? {duration: 0.12} : spring.soft}
+            transition={spring.soft}
           />
         </div>
 

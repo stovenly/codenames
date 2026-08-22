@@ -6,7 +6,7 @@ import {AvatarView} from '../avatar/Avatar'
 import {Agent} from '../board/symbols'
 import {IconButton, Label} from '../atoms'
 import {cx} from '../cx'
-import {spring, useMotion} from '../motion'
+import {spring} from '../motion'
 
 const pip = (rtt: number | null, connected: boolean) => {
   if (!connected) return 'bg-text-dim/25'
@@ -47,16 +47,15 @@ export const PlayerCard = ({
   hostControls?: boolean
   onDragStart?: () => void
 }) => {
-  const {reduced} = useMotion()
-  const team: Team | null = player.team
+    const team: Team | null = player.team
 
   return (
     <motion.div
-      layout={reduced ? false : 'position'}
-      layoutId={reduced ? undefined : `player-${player.id}`}
-      initial={reduced ? {opacity: 0} : {opacity: 0, y: 14, scale: 0.97}}
+      layout={'position'}
+      layoutId={`player-${player.id}`}
+      initial={{opacity: 0, y: 14, scale: 0.97}}
       animate={{opacity: player.connected ? 1 : 0.45, y: 0, scale: 1}}
-      exit={reduced ? {opacity: 0} : {opacity: 0, scale: 0.95}}
+      exit={{opacity: 0, scale: 0.95}}
       transition={spring.soft}
       draggable={draggable}
       onDragStart={onDragStart}

@@ -31,7 +31,7 @@ const MISSING_HOST_HIDDEN_MS = 30_000
 const BEAT_MS = 2_000
 const CLAIM_WINDOW_MS = 1_500
 const BROADCAST_DEBOUNCE_MS = 50
-const SPLIT_GRACE_MS = 10_000
+const SPLIT_GRACE_MS = 25_000
 const BEAT_LATE_MS = 5_000
 export const AWAY_NOTICE_MS = 20_000
 const AWAY_TRANSFER_MS = 60_000
@@ -439,7 +439,10 @@ const monitor = () => {
     }
   }
 
-  const roster = new Set(shared?.roster ?? [])
+  const roster = new Set([
+    ...(shared?.roster ?? []),
+    ...(shared?.players ?? []).map(p => p.id)
+  ])
   let stranded = false
   for (const peer of peers()) {
     if (roster.has(peer)) {
@@ -479,6 +482,26 @@ export type Intent =
   | {kind: 'undo'}
   | {kind: 'redo'}
   | {kind: 'jump'; cursor: number}
+
+/** Named so a rewind can be announced as what was taken back, not as a number. */
+const describeStep = (state: Shared, index: number): string => {
+  const step = state.steps[index]
+  if (!step) return 'the last move'
+  switch (step.t) {
+    case 'clue':
+      return `the clue ${step.word} ${step.count === 'unlimited' ? '∞' : step.count}`
+    case 'guess': {
+      const word = viewOf({...state, cursor: index}).cards[step.card]?.word
+      return word ? `the guess ${word}` : 'a guess'
+    }
+    case 'endTurn':
+      return 'the end of the turn'
+    case 'end':
+      return 'the end of the game'
+    case 'start':
+      return 'the deal'
+  }
+}
 
 const refuse = (from: PlayerId, why: string) => {
   if (from === self) flash(why)
@@ -612,12 +635,15 @@ const applyIntent = (from: PlayerId, intent: Intent) => {
       return
     }
 
-    case 'undo':
+    case 'undo': {
       if (!fromHost) return
       if (state.cursor <= 0) return refuse(from, 'Nothing left to undo')
+      const undone = describeStep(state, state.cursor - 1)
       commit(draft => ({...draft, cursor: draft.cursor - 1}))
-      send('presence', {kind: 'rewound'})
+      send('presence', {kind: 'rewound', undone})
+      flash(`The host took back ${undone}`)
       return
+    }
 
     case 'redo':
       if (!fromHost) return
@@ -745,6 +771,12 @@ export const start = () => {
   })
 
   on('intent', (body, env) => applyIntent(env.from, body as Intent))
+
+  on('presence', body => {
+    const msg = (body ?? {}) as {kind?: string; undone?: string}
+    if (msg.kind !== 'rewound' || isHost()) return
+    flash(msg.undone ? `The host took back ${msg.undone}` : 'The host rewound the game')
+  })
 
   on('resync', (body, env) => {
     if (!isHost() || !shared) return

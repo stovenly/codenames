@@ -1,13 +1,13 @@
 import confetti from 'canvas-confetti'
 import {motion} from 'motion/react'
 import NumberFlow from '@number-flow/react'
-import {useEffect} from 'react'
+import {useEffect, useRef} from 'react'
 import type {View} from '../../game/reducer'
 import type {Player, Team} from '../../game/types'
 import {intend} from '../../state/room'
 import {Bulbs, Button, Label, Panel, Rule} from '../atoms'
 import {cx} from '../cx'
-import {spring, useMotion} from '../motion'
+import {spring} from '../motion'
 import {sfx} from '../sound/audio'
 
 const TINTS: Record<Team, string[]> = {
@@ -15,35 +15,52 @@ const TINTS: Record<Team, string[]> = {
   blue: ['#6FB6FF', '#2E86FF', '#FFC53D', '#F2DCA0']
 }
 
-/** Two cannons from the bottom corners, the way a studio actually fires them. */
-const fireCannons = (team: Team) => {
+/**
+ * Falls from the ceiling on its own canvas, which we own and can put behind the
+ * result. The library's default canvas is fixed at the top of the stacking
+ * order, so a shared one always rains in front of whatever you are reading.
+ */
+const dropConfetti = (team: Team, canvas: HTMLCanvasElement) => {
   const colors = TINTS[team]
-  const end = Date.now() + 2600
-  const shot = () => {
-    confetti({particleCount: 5, angle: 62, spread: 60, origin: {x: 0, y: 0.98}, colors, ticks: 260})
-    confetti({particleCount: 5, angle: 118, spread: 60, origin: {x: 1, y: 0.98}, colors, ticks: 260})
-    if (Date.now() < end) requestAnimationFrame(shot)
+  const fire = confetti.create(canvas, {resize: true, useWorker: true})
+  const end = Date.now() + 5200
+
+  const fall = () => {
+    fire({
+      particleCount: 4,
+      startVelocity: 0,
+      ticks: 420,
+      gravity: 0.55,
+      scalar: 1.1,
+      spread: 120,
+      colors,
+      origin: {x: Math.random(), y: -0.1}
+    })
+    if (Date.now() < end) setTimeout(fall, 90)
   }
-  shot()
-  confetti({particleCount: 90, spread: 100, origin: {y: 0.7}, colors, startVelocity: 42})
+  fall()
+  return () => void fire.reset()
 }
 
 export const GameOver = ({view, me, isHost}: {view: View; me: Player | null; isHost: boolean}) => {
-  const {reduced} = useMotion()
-  const winner = view.winner ?? 'red'
+    const winner = view.winner ?? 'red'
   const iWon = me?.team === winner
+
+  const sky = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
     const t = setTimeout(() => (iWon || !me?.team ? sfx.victory() : sfx.defeat()), 320)
-    if (!reduced) fireCannons(winner)
+    const stop = sky.current ? dropConfetti(winner, sky.current) : undefined
     return () => {
       clearTimeout(t)
-      confetti.reset()
+      stop?.()
     }
-  }, [iWon, me?.team, winner, reduced])
+  }, [iWon, me?.team, winner])
 
   return (
     <main className="relative grid min-h-full place-items-center px-6 py-16">
+      <canvas ref={sky} aria-hidden className="pointer-events-none fixed inset-0 z-10 size-full" />
+
       <motion.span
         aria-hidden
         className="pointer-events-none fixed inset-0"
@@ -62,12 +79,12 @@ export const GameOver = ({view, me, isHost}: {view: View; me: Player | null; isH
         glossy
         className="relative z-20 flex w-full max-w-md flex-col items-center gap-6 px-8 py-9 text-center"
       >
-        <Bulbs lit chase={!reduced} />
+        <Bulbs lit chase />
 
         <motion.span
-          initial={reduced ? {opacity: 0} : {scale: 0.45, opacity: 0, rotate: -6}}
+          initial={{scale: 0.45, opacity: 0, rotate: -6}}
           animate={{scale: 1, opacity: 1, rotate: 0}}
-          transition={reduced ? {duration: 0.12} : {type: 'spring', stiffness: 250, damping: 14}}
+          transition={{type: 'spring', stiffness: 250, damping: 14}}
           className={cx(
             'type-marquee text-4xl sm:text-5xl',
             winner === 'red' ? 'text-red-lit' : 'text-blue-lit'
@@ -82,7 +99,7 @@ export const GameOver = ({view, me, isHost}: {view: View; me: Player | null; isH
         <motion.p
           initial={{opacity: 0, y: 8}}
           animate={{opacity: 1, y: 0}}
-          transition={{delay: reduced ? 0 : 0.3, ...spring.soft}}
+          transition={{delay: 0.3, ...spring.soft}}
           className="type-body"
         >
           {view.endReason === 'assassin'
@@ -117,7 +134,7 @@ export const GameOver = ({view, me, isHost}: {view: View; me: Player | null; isH
           <Label>Waiting on the host…</Label>
         )}
 
-        <Bulbs lit chase={!reduced} />
+        <Bulbs lit chase />
       </Panel>
     </main>
   )

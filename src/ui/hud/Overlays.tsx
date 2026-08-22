@@ -1,5 +1,4 @@
 import {motion} from 'motion/react'
-import {useMotion} from '../motion'
 
 /**
  * The assassin kills the stage lights: true black first, then the emergency
@@ -7,30 +6,29 @@ import {useMotion} from '../motion'
  * colour change.
  */
 export const AssassinTakeover = () => {
-  const {reduced} = useMotion()
-  return (
+    return (
     <motion.div
       initial={{opacity: 0}}
       animate={{opacity: 1}}
       exit={{opacity: 0}}
-      transition={{duration: reduced ? 0.12 : 0.1}}
+      transition={{duration: 0.1}}
       className="pointer-events-none fixed inset-0 z-40"
     >
       <motion.span
         className="absolute inset-0 bg-stage-000"
-        animate={reduced ? {opacity: 0.7} : {opacity: [1, 1, 0.55, 0.7, 0.5]}}
+        animate={{opacity: [1, 1, 0.55, 0.7, 0.5]}}
         transition={{duration: 2.2, times: [0, 0.08, 0.3, 0.6, 1]}}
       />
       <motion.span
         className="absolute inset-0"
-        animate={reduced ? {opacity: 0.6} : {opacity: [0, 0.9, 0.4, 0.85, 0.45]}}
+        animate={{opacity: [0, 0.9, 0.4, 0.85, 0.45]}}
         transition={{duration: 2.2, times: [0, 0.18, 0.42, 0.68, 1]}}
         style={{
           background:
             'radial-gradient(125% 90% at 50% 50%, transparent 18%, rgba(255,45,45,.42) 70%, rgba(90,0,0,.95) 100%)'
         }}
       />
-      {!reduced && (
+      {(
         <motion.span
           aria-hidden
           className="absolute inset-x-0 top-0 h-2 bg-kill-lit"
@@ -40,10 +38,10 @@ export const AssassinTakeover = () => {
         />
       )}
       <motion.span
-        initial={reduced ? {opacity: 0} : {scale: 2.8, opacity: 0, rotate: -8}}
+        initial={{scale: 2.8, opacity: 0, rotate: -8}}
         animate={{scale: 1, opacity: 1, rotate: -3}}
         transition={
-          reduced ? {duration: 0.12} : {type: 'spring', stiffness: 280, damping: 15, delay: 0.16}
+          {type: 'spring', stiffness: 280, damping: 15, delay: 0.16}
         }
         className="type-marquee absolute inset-x-0 top-[42%] text-center text-4xl tracking-[0.16em] text-kill-lit sm:text-6xl"
         style={{textShadow: '0 0 46px rgba(255,45,45,.9)'}}
@@ -56,8 +54,6 @@ export const AssassinTakeover = () => {
 
 /** Fires with the correct-guess burst so the whole room feels it, not just the plate. */
 export const BoardBreath = ({team}: {team: 'red' | 'blue'}) => {
-  const {reduced} = useMotion()
-  if (reduced) return null
   return (
     <motion.span
       aria-hidden

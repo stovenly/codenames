@@ -38,8 +38,7 @@ export const clearMarks = () => {
   publish()
 }
 
-export const armCard = (card: number, on_: boolean) => {
-  apply(card, self, on_)
+const broadcast = (card: number, on_: boolean) => {
   const now = Date.now()
   if (now - lastSent < THROTTLE_MS && on_) return
   lastSent = now
@@ -50,6 +49,24 @@ export const myMark = () => {
   for (const [card, who] of marks) if (who.has(self)) return card
   return null
 }
+
+/**
+ * One card at a time, cleared from the live map rather than from whatever the
+ * caller last rendered: two quick clicks used to leave both marked, and the
+ * lock-in button then named whichever the Map happened to yield first.
+ */
+export const setMyMark = (card: number | null) => {
+  for (const [at, who] of [...marks]) {
+    if (!who.has(self) || at === card) continue
+    apply(at, self, false)
+    broadcast(at, false)
+  }
+  if (card === null) return
+  apply(card, self, true)
+  broadcast(card, true)
+}
+
+export const clearMyMark = () => setMyMark(null)
 
 export const startPresence = () => {
   if (wired) return
@@ -74,6 +91,12 @@ export const startPresence = () => {
       clearMarks()
     }
   })
+}
+
+/** Subscribed, unlike myMark(): a component that only reads cannot know a pick happened. */
+export const useMyMark = () => {
+  useMarks()
+  return myMark()
 }
 
 export const useMarks = () =>

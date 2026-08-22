@@ -4,9 +4,9 @@ import {useEffect, useState} from 'react'
 import {refreshStats, roomId, self, useNet} from '../state/net'
 import {setPrefs, usePrefs} from '../state/prefs'
 import {Button, Heading, IconButton, Label, Panel, Rule} from './atoms'
-import {EffectsToggle, MuteToggle} from './Controls'
+import {MuteToggle} from './Controls'
 import {cx} from './cx'
-import {spring, useMotion} from './motion'
+import {spring} from './motion'
 
 const advice = (report: ReturnType<typeof useNet>['report']) => {
   if (!report.transports.some(t => t.relaysOpen > 0))
@@ -47,8 +47,7 @@ export const Diagnostics = () => {
   const [copied, setCopied] = useState(false)
   const {report} = useNet()
   const prefs = usePrefs()
-  const {reduced} = useMotion()
-
+  
   useEffect(() => {
     if (!open) return
     void refreshStats()
@@ -73,7 +72,6 @@ export const Diagnostics = () => {
     <>
       <div className="fixed bottom-4 left-4 z-40 flex items-center gap-2">
         <MuteToggle />
-        <EffectsToggle />
         <IconButton
           label={down ? 'Offline' : `${report.router.directPeers} connected`}
           aria-expanded={open}
@@ -87,9 +85,9 @@ export const Diagnostics = () => {
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={reduced ? {opacity: 0} : {opacity: 0, y: 12}}
+            initial={{opacity: 0, y: 12}}
             animate={{opacity: 1, y: 0}}
-            exit={reduced ? {opacity: 0} : {opacity: 0, y: 12}}
+            exit={{opacity: 0, y: 12}}
             transition={spring.firm}
             className="fixed bottom-16 left-4 z-40 w-[min(92vw,25rem)]"
           >
@@ -148,11 +146,6 @@ export const Diagnostics = () => {
 
               <section className="flex flex-col gap-1.5">
                 <Heading>Display</Heading>
-                <Toggle
-                  label="Reduce motion"
-                  on={reduced}
-                  onClick={() => setPrefs({motion: reduced ? 'full' : 'reduced'})}
-                />
                 <Toggle
                   label="Colourblind contrast"
                   on={prefs.colourblind}

@@ -1,5 +1,4 @@
 import {cx} from '../cx'
-import {useMotion} from '../motion'
 import {AIMING, PAIR, type Figure} from './figures'
 
 /**
@@ -26,8 +25,7 @@ const FLANK: Array<{
 ]
 
 export const Crowd = () => {
-  const {reduced} = useMotion()
-  return (
+    return (
     <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[72vh]">
       <div className="grid h-full grid-cols-2 items-end">
         {FLANK.map(({figure, side, height, opacity, sway, flip, seal}, i) => (
@@ -40,7 +38,7 @@ export const Crowd = () => {
               strokeWidth={seal}
               strokeLinejoin="round"
               strokeLinecap="round"
-              className={cx('fade-feet', !reduced && 'anim-sway')}
+              className={cx('fade-feet', 'anim-sway')}
               style={{
                 height: `${height}vh`,
                 color: '#05060B',

@@ -4,7 +4,6 @@ import {joinedExisting} from '../../state/net'
 import {createRoom, joinRoom, myDisplayName} from '../../state/room'
 import {Button, Enter, Field, Item, Label, Panel, Rule, input} from '../atoms'
 import {cx} from '../cx'
-import {useMotion} from '../motion'
 import {Crowd} from './Silhouettes'
 
 /**
@@ -25,11 +24,10 @@ const TRUSS = Array.from({length: 15}, (_, i) => ({
 }))
 
 const Spot = ({tint, anim, x}: (typeof RIG)[number]) => {
-  const {reduced} = useMotion()
-  return (
+    return (
     <>
       <span
-        className={cx('spotlight', !reduced && anim)}
+        className={cx('spotlight', anim)}
         style={{left: `${x}%`, top: '-6vh', ['--tint' as string]: tint}}
       />
       <span
@@ -45,8 +43,7 @@ const Spot = ({tint, anim, x}: (typeof RIG)[number]) => {
 }
 
 const Lighting = () => {
-  const {reduced} = useMotion()
-
+  
   const sparkles = useMemo(
     () =>
       Array.from({length: 24}, (_, i) => ({
@@ -62,7 +59,7 @@ const Lighting = () => {
   return (
     <div aria-hidden className="lightbox">
       <span
-        className={cx('ambience', !reduced && 'anim-ambience')}
+        className={cx('ambience', 'anim-ambience')}
         style={{
           backgroundImage: [
             'radial-gradient(closest-side, rgba(255,197,61,.30), transparent)',
@@ -76,7 +73,7 @@ const Lighting = () => {
 
       {/* Footlights first: the crowd needs something lit to stand against. */}
       <span
-        className={cx('absolute -bottom-[60vmax] left-1/2 size-[120vmax] -translate-x-1/2', !reduced && 'anim-breathe')}
+        className={cx('absolute -bottom-[60vmax] left-1/2 size-[120vmax] -translate-x-1/2', 'anim-breathe')}
         style={{
           background: 'radial-gradient(closest-side, rgba(255,197,61,.26), transparent 70%)',
           mixBlendMode: 'screen'
@@ -95,31 +92,29 @@ const Lighting = () => {
       {TRUSS.map((t, i) => (
         <span
           key={i}
-          className={cx('absolute top-0 size-1.5 -translate-x-1/2 rounded-full bg-lamp-300', !reduced && 'anim-truss')}
+          className={cx('absolute top-0 size-1.5 -translate-x-1/2 rounded-full bg-lamp-300', 'anim-truss')}
           style={{
             left: `${t.x}%`,
             animationDelay: `${t.delay}s`,
-            boxShadow: '0 0 10px 3px rgba(255,197,61,.55)',
-            opacity: reduced ? 0.7 : undefined
+            boxShadow: '0 0 10px 3px rgba(255,197,61,.55)'
           }}
         />
       ))}
 
-      {!reduced &&
-        sparkles.map((s, i) => (
-          <span
-            key={i}
-            className="sparkle anim-twinkle"
-            style={{
-              left: s.left,
-              top: s.top,
-              width: s.size,
-              height: s.size,
-              animationDuration: `${s.duration}s`,
-              animationDelay: `${s.delay}s`
-            }}
-          />
-        ))}
+      {sparkles.map((s, i) => (
+        <span
+          key={i}
+          className="sparkle anim-twinkle"
+          style={{
+            left: s.left,
+            top: s.top,
+            width: s.size,
+            height: s.size,
+            animationDuration: `${s.duration}s`,
+            animationDelay: `${s.delay}s`
+          }}
+        />
+      ))}
 
       <span
         className="absolute inset-0"
@@ -142,20 +137,18 @@ const perimeter = (across: number, down: number) => {
 }
 
 const BulbFrame = () => {
-  const {reduced} = useMotion()
-  const lamps = useMemo(() => perimeter(13, 6), [])
+    const lamps = useMemo(() => perimeter(13, 6), [])
   return (
     <span aria-hidden className="pointer-events-none absolute inset-0">
       {lamps.map((p, i) => (
         <span
           key={i}
-          className={cx('lamp', !reduced && 'lamp-run')}
+          className={cx('lamp', 'lamp-run')}
           style={{
             left: `${p.x}%`,
             top: `${p.y}%`,
             ['--i' as string]: i,
-            ['--n' as string]: lamps.length,
-            opacity: reduced ? 0.85 : undefined
+            ['--n' as string]: lamps.length
           }}
         />
       ))}
@@ -180,17 +173,16 @@ const SignFrame = ({children}: {children: React.ReactNode}) => (
 )
 
 const Wordmark = () => {
-  const {reduced} = useMotion()
-  const size = 'text-[clamp(2.2rem,9.5vw,5rem)]'
+    const size = 'text-[clamp(2.2rem,9.5vw,5rem)]'
   const layer = cx('halo type-marquee', size)
 
   return (
-    <span className={cx('relative block select-none', !reduced && 'anim-lift')}>
+    <span className={cx('relative block select-none', 'anim-lift')}>
       {/* Outer bloom: wide and slow. */}
       <span
         aria-hidden
-        className={cx(layer, !reduced && 'anim-glow-drift')}
-        style={{color: '#FF9A14', filter: 'blur(28px)', opacity: reduced ? 0.55 : undefined}}
+        className={cx(layer, 'anim-glow-drift')}
+        style={{color: '#FF9A14', filter: 'blur(28px)'}}
       >
         Codenames
       </span>
@@ -198,15 +190,15 @@ const Wordmark = () => {
       {/* Inner bloom: tighter and brighter, on a period that does not divide the outer one. */}
       <span
         aria-hidden
-        className={cx(layer, !reduced && 'anim-glow-swell')}
-        style={{color: '#FFD166', filter: 'blur(13px)', opacity: reduced ? 0.8 : undefined}}
+        className={cx(layer, 'anim-glow-swell')}
+        style={{color: '#FFD166', filter: 'blur(13px)'}}
       >
         Codenames
       </span>
 
       <h1 className={cx('type-marquee neon relative text-lamp-300', size)}>Codenames</h1>
 
-      {!reduced && (
+      {(
         <span
           aria-hidden
           className={cx('type-marquee anim-sheen absolute inset-0', size)}

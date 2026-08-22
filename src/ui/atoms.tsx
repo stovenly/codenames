@@ -23,11 +23,10 @@ export const Bulbs = ({
   chase?: boolean
   className?: string
 }) => {
-  const {reduced} = useMotion()
-  return (
+    return (
     <span
       aria-hidden
-      className={cx('bulbs block w-full', lit && 'bulbs-lit', chase && !reduced && 'bulbs-chase', className)}
+      className={cx('bulbs block w-full', lit && 'bulbs-lit', chase && 'bulbs-chase', className)}
     />
   )
 }
@@ -111,8 +110,7 @@ export const Button = ({
   ...rest
 }: {children: ReactNode; className?: string} & VariantProps<typeof button> &
   ComponentProps<typeof motion.button>) => {
-  const {reduced} = useMotion()
-  const still = reduced || rest.disabled
+    const still = rest.disabled
   return (
     <motion.button
       type="button"
@@ -181,15 +179,14 @@ export const IconButton = ({
   active?: boolean
   className?: string
 } & ComponentProps<typeof motion.button>) => {
-  const {reduced} = useMotion()
-  return (
+    return (
     <Tooltip.Root>
       <Tooltip.Trigger asChild>
         <motion.button
           type="button"
           aria-label={label}
-          whileHover={reduced || rest.disabled ? undefined : {y: -1}}
-          whileTap={reduced || rest.disabled ? undefined : {scale: 0.92}}
+          whileHover={rest.disabled ? undefined : {y: -1}}
+          whileTap={rest.disabled ? undefined : {scale: 0.92}}
           transition={spring.firm}
           className={cx(
             'grid size-10 shrink-0 cursor-pointer place-items-center rounded-md border transition-colors duration-[120ms] disabled:cursor-not-allowed disabled:opacity-40',

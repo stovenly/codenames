@@ -570,31 +570,6 @@ button {
     0 -1px 0 rgba(255, 255, 255, 0.12);
 }
 
-/* Team identity never rides on hue alone: hatch for red, dots for blue. */
-@utility pattern-red {
-  background-image: repeating-linear-gradient(
-    45deg,
-    color-mix(in oklab, var(--team-red) 45%, transparent) 0 2px,
-    transparent 2px 7px
-  );
-}
-
-@utility pattern-blue {
-  background-image: radial-gradient(
-    color-mix(in oklab, var(--team-blue) 45%, transparent) 1.2px,
-    transparent 1.4px
-  );
-  background-size: 7px 7px;
-}
-
-/* Driven by the effects control, not by the OS preference. See ui/motion.ts. */
-:root[data-motion='reduced'] *,
-:root[data-motion='reduced'] *::before,
-:root[data-motion='reduced'] *::after {
-  animation-duration: 0.01ms !important;
-  animation-iteration-count: 1 !important;
-}
-
 /**
  * Hides what is typed without telling the browser it is a password, so no
  * password manager offers to save a throwaway room code.

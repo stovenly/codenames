@@ -14,7 +14,6 @@ vi.mock('./room', () => ({
   }
 }))
 vi.mock('../ui/sound/audio', () => ({sfx: new Proxy({}, {get: () => () => {}})}))
-vi.mock('../ui/motion', () => ({reducedMotion: () => false}))
 vi.mock('./words', () => ({
   get: () => Array.from({length: 64}, (_, i) => `W${i}`),
   have: () => true
@@ -61,7 +60,7 @@ describe('theatre', () => {
     deliver([START])
     await settle(10)
     deliver([START, CLUE])
-    await settle(2000)
+    await settle(5000)
     deliver([START, CLUE, GUESS])
     await settle(10)
     expect(getTheatre().stage.kind).toBe('windup')
@@ -71,7 +70,7 @@ describe('theatre', () => {
     deliver([START])
     await settle(10)
     deliver([START, CLUE])
-    await settle(2000)
+    await settle(5000)
     deliver([START, CLUE, GUESS, END_TURN])
     await settle(10)
     expect(getTheatre().stage.kind).toBe('windup')
@@ -81,7 +80,7 @@ describe('theatre', () => {
     deliver([START])
     await settle(10)
     deliver([START, CLUE, GUESS, END_TURN])
-    await settle(2000)
+    await settle(4000)
     expect(getTheatre().stage.kind).toBe('windup')
   })
 

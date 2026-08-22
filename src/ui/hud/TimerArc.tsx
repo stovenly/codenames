@@ -1,7 +1,6 @@
 import {motion} from 'motion/react'
 import {useEffect, useRef, useState} from 'react'
 import {hostNow} from '../../state/room'
-import {useReducedMotion} from '../motion'
 import {sfx} from '../sound/audio'
 
 const R = 22
@@ -11,8 +10,7 @@ const C = 2 * Math.PI * R
 export const TimerArc = ({deadline, total}: {deadline: number; total: number}) => {
   const [left, setLeft] = useState(() => Math.max(0, deadline - hostNow()))
   const lastTick = useRef(-1)
-  const reduced = useReducedMotion()
-
+  
   useEffect(() => {
     const id = setInterval(() => setLeft(Math.max(0, deadline - hostNow())), 100)
     return () => clearInterval(id)
@@ -31,7 +29,7 @@ export const TimerArc = ({deadline, total}: {deadline: number; total: number}) =
 
   return (
     <motion.span
-      animate={urgent && !reduced && seconds > 0 ? {scale: [1, 1.07, 1]} : {scale: 1}}
+      animate={urgent && seconds > 0 ? {scale: [1, 1.07, 1]} : {scale: 1}}
       transition={{duration: 0.5, repeat: urgent && seconds > 0 ? Infinity : 0, repeatDelay: 0.5}}
       className="relative grid size-16 shrink-0 place-items-center"
     >

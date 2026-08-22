@@ -5,25 +5,22 @@ import type {Card as CardModel} from '../../game/reducer'
 import type {Avatar as AvatarSpec, PlayerId} from '../../game/types'
 import {AvatarView} from '../avatar/Avatar'
 import {cx} from '../cx'
-import {spring, useMotion} from '../motion'
+import {spring} from '../motion'
 import {sfx} from '../sound/audio'
 import {INK, STAMP, SURFACE, Symbol} from './symbols'
 
 export type CardPhase = 'idle' | 'windup' | 'landing' | 'aftermath'
 
-const PATTERN: Record<Colour, string> = {
-  red: 'repeating-linear-gradient(45deg, rgba(43,10,6,.26) 0 2px, transparent 2px 8px)',
-  blue: 'radial-gradient(rgba(6,28,54,.30) 1.3px, transparent 1.5px)',
-  neutral: 'none',
-  assassin: 'repeating-linear-gradient(135deg, rgba(255,45,45,.26) 0 3px, transparent 3px 10px)'
-}
-
-/** The spymaster's key: a tint on the unlit plate, never the full face. */
-const KEY_TINT: Record<Colour, string> = {
-  red: 'rgba(240,68,56,.30)',
-  blue: 'rgba(46,134,255,.30)',
-  neutral: 'rgba(241,236,224,.12)',
-  assassin: 'rgba(255,45,45,.30)'
+/**
+ * The spymaster's key. Not a hint of a tint — a spymaster has seconds to read
+ * twenty-five cards and pick one word, and the assassin is the one card that
+ * ends the game, so it is solid black and carries a skull.
+ */
+const KEY_FACE: Record<Colour, string> = {
+  red: 'linear-gradient(180deg, #8E2018 0%, #5E140F 100%)',
+  blue: 'linear-gradient(180deg, #1B5AA8 0%, #103B71 100%)',
+  neutral: 'linear-gradient(180deg, #3A3527 0%, #26231A 100%)',
+  assassin: 'linear-gradient(180deg, #101014 0%, #000 100%)'
 }
 
 const CYCLE: Colour[] = ['red', 'neutral', 'blue', 'assassin', 'neutral', 'red', 'assassin', 'blue']
@@ -125,9 +122,7 @@ const CardBase = ({
   armed,
   marks,
   avatars,
-  onArm,
-  onConfirm,
-  focused
+  onPick
 }: {
   card: CardModel
   index: number
@@ -140,12 +135,9 @@ const CardBase = ({
   armed: boolean
   marks: ReadonlySet<PlayerId>
   avatars: Map<PlayerId, AvatarSpec>
-  onArm: () => void
-  onConfirm: () => void
-  focused: boolean
+  onPick: () => void
 }) => {
-  const {reduced} = useMotion()
-  const ref = useRef<HTMLButtonElement>(null)
+    const ref = useRef<HTMLButtonElement>(null)
   const [sheen, setSheen] = useState({x: 50, y: 50})
 
   const shown: Colour | null = card.revealed
@@ -156,9 +148,11 @@ const CardBase = ({
 
   const faceUp = shown !== null
   const key = spymaster && !faceUp ? card.colour : null
+  const plate =
+    'linear-gradient(178deg, rgba(255,255,255,.06) 0%, transparent 20%), linear-gradient(180deg, #121A2E 0%, #0A0D18 100%)'
 
   const move = (e: React.MouseEvent) => {
-    if (reduced || !interactive) return
+    if (!interactive) return
     const box = ref.current?.getBoundingClientRect()
     if (!box) return
     setSheen({x: ((e.clientX - box.left) / box.width) * 100, y: ((e.clientY - box.top) / box.height) * 100})
@@ -174,20 +168,16 @@ const CardBase = ({
       onMouseMove={move}
       onMouseLeave={() => setSheen({x: 50, y: 50})}
       onMouseEnter={() => interactive && sfx.hover()}
-      onClick={() => (armed ? onConfirm() : onArm())}
+      onClick={onPick}
       animate={{
-        scale: phase === 'windup' && !reduced ? 1.14 : armed && !faceUp ? 1.035 : 1,
-        opacity: dim && !reduced ? 0.32 : 1,
+        scale: phase === 'windup' ? 1.14 : armed && !faceUp ? 1.035 : 1,
+        opacity: dim ? 0.32 : 1,
         y: 0
       }}
-      whileHover={interactive && !reduced ? {y: -4} : undefined}
+      whileHover={interactive ? {y: -4} : undefined}
       transition={spring.firm}
       style={{
-        background: faceUp
-          ? SURFACE[shown]
-          : `linear-gradient(178deg, rgba(255,255,255,.06) 0%, transparent 20%), linear-gradient(180deg, ${
-              key ? KEY_TINT[key] : 'rgba(27,39,64,0)'
-            } 0%, transparent 62%), linear-gradient(180deg, #121A2E 0%, #0A0D18 100%)`,
+        background: faceUp ? SURFACE[shown] : key ? KEY_FACE[key] : plate,
         containerType: 'inline-size',
         zIndex: phase === 'windup' ? 30 : armed ? 10 : 1,
         boxShadow: faceUp
@@ -202,27 +192,15 @@ const CardBase = ({
         'relative grid aspect-[7/5] w-full place-items-center overflow-hidden rounded-md border text-center transition-[filter,border-color] duration-200',
         faceUp ? 'border-black/30' : 'border-gold-500/30 hover:border-gold-500/70',
         interactive ? 'cursor-pointer' : 'cursor-default',
-        card.revealed && phase === 'idle' && 'brightness-[.82] saturate-[.72]',
-        focused && 'outline-2 outline-lamp-500 outline-offset-2'
+        card.revealed && phase === 'idle' && 'brightness-[.82] saturate-[.72]'
       )}
     >
-      {!faceUp && !reduced && interactive && (
+      {!faceUp && interactive && (
         <span
           aria-hidden
           className="pointer-events-none absolute inset-0"
           style={{
             background: `radial-gradient(40% 60% at ${sheen.x}% ${sheen.y}%, rgba(255,226,154,.14), transparent 70%)`
-          }}
-        />
-      )}
-
-      {faceUp && PATTERN[shown] !== 'none' && (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage: PATTERN[shown],
-            backgroundSize: shown === 'blue' ? '8px 8px' : undefined
           }}
         />
       )}
@@ -241,25 +219,25 @@ const CardBase = ({
         className={cx(
           'type-plate relative z-20 px-1.5 transition-opacity duration-150',
           !faceUp && 'letterpress',
-          phase === 'windup' && !reduced && 'opacity-0'
+          phase === 'windup' && 'opacity-0'
         )}
         style={{
           fontSize: 'clamp(10px, 15cqw, 30px)',
-          color: faceUp ? INK[shown] : 'var(--color-text)'
+          color: faceUp ? INK[shown] : key ? '#F5F1E6' : 'var(--color-text)'
         }}
       >
         {card.word}
       </span>
 
-      {phase === 'windup' && !reduced && <Windup until={windupUntil} />}
+      {phase === 'windup' && <Windup until={windupUntil} />}
 
       <AnimatePresence>
         {phase === 'landing' && shown && (
           <motion.span
             key="stamp"
-            initial={reduced ? {opacity: 0} : {opacity: 0, scale: 2.2, rotate: -20}}
-            animate={reduced ? {opacity: 1} : {opacity: 1, scale: 1, rotate: -10}}
-            transition={reduced ? {duration: 0.12} : {type: 'spring', stiffness: 700, damping: 17}}
+            initial={{opacity: 0, scale: 2.2, rotate: -20}}
+            animate={{opacity: 1, scale: 1, rotate: -10}}
+            transition={{type: 'spring', stiffness: 700, damping: 17}}
             className="type-marquee pointer-events-none absolute z-20 rounded-xs border-2 px-2 py-0.5"
             style={{
               fontSize: 'clamp(5px, 6.5cqw, 12px)',
@@ -273,7 +251,7 @@ const CardBase = ({
         )}
       </AnimatePresence>
 
-      {phase === 'aftermath' && !reduced && shown && shown !== 'neutral' && <Burst colour={shown} />}
+      {phase === 'aftermath' && shown && shown !== 'neutral' && <Burst colour={shown} />}
 
       {!faceUp && marks.size > 0 && (
         <span className="pointer-events-none absolute -top-1.5 -right-1.5 z-20 flex -space-x-2">
@@ -282,7 +260,7 @@ const CardBase = ({
             return avatar ? (
               <motion.span
                 key={id}
-                initial={reduced ? {opacity: 0} : {scale: 0, y: -10}}
+                initial={{scale: 0, y: -10}}
                 animate={{scale: 1, y: 0, opacity: 1}}
                 exit={{scale: 0, opacity: 0}}
                 transition={spring.firm}
@@ -296,18 +274,9 @@ const CardBase = ({
       )}
 
       {key && (
-        <span
-          aria-hidden
-          className={cx(
-            'absolute top-1.5 left-1.5 z-20 size-2 rounded-full',
-            key === 'red'
-              ? 'bg-red-lit'
-              : key === 'blue'
-                ? 'bg-blue-lit'
-                : key === 'assassin'
-                  ? 'bg-kill-lit'
-                  : 'bg-bone/40'
-          )}
+        <Symbol
+          colour={key}
+          className="pointer-events-none absolute top-1 left-1 z-20 size-[13cqw] opacity-90"
         />
       )}
 
@@ -330,7 +299,6 @@ export const Card = memo(
     a.spymaster === b.spymaster &&
     a.interactive === b.interactive &&
     a.armed === b.armed &&
-    a.focused === b.focused &&
     a.marks.size === b.marks.size &&
     [...a.marks].every(id => b.marks.has(id))
 )

@@ -19,7 +19,7 @@
  * the ones a real client uses.
  */
 import {spawn} from 'node:child_process'
-import {mkdtempSync} from 'node:fs'
+import {mkdtempSync, writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 
@@ -35,6 +35,8 @@ const AUTO = flag('auto')
 /** Under --auto, the one window still left for you. */
 const SEAT = arg('seat', '0')
 const HEADLESS = flag('headless')
+/** Directory to drop one screenshot per player into, for checking a change landed. */
+const SHOT = arg('shot', '')
 const PORT = Number(arg('port', 9455))
 
 const CHROME =
@@ -59,7 +61,9 @@ const seatFor = i =>
         ? {team: 'Blue', spymaster: true}
         : {team: i % 2 === 1 ? 'Blue' : 'Red', spymaster: false}
 
-const chrome = spawn(
+// Detached: on Windows the launcher returns as soon as the browser is up, so
+// its exit says nothing about whether the windows are still open.
+spawn(
   CHROME,
   [
     ...(HEADLESS ? ['--headless=new'] : []),
@@ -70,9 +74,8 @@ const chrome = spawn(
     '--autoplay-policy=no-user-gesture-required',
     'about:blank'
   ],
-  {stdio: 'ignore'}
-)
-chrome.on('exit', () => process.exit(0))
+  {stdio: 'ignore', detached: true}
+).unref()
 
 const connect = async url => {
   const ws = new WebSocket(url)
@@ -152,7 +155,12 @@ const open = async (url, index, label) => {
     return res?.result?.value
   }
 
-  return {label, index, evaluate}
+  const shot = async name => {
+    const {data} = await send('Page.captureScreenshot', {format: 'png'})
+    writeFileSync(join(SHOT, name), Buffer.from(data, 'base64'))
+  }
+
+  return {label, index, evaluate, shot}
 }
 
 const click = (tab, text) =>
@@ -235,6 +243,12 @@ console.log(
     : `you are ${yours?.label ?? 'nobody'}; the rest play themselves`
 )
 
+if (SHOT) {
+  await sleep(9000)
+  for (const tab of tabs) await tab.shot(`${tab.index}-${tab.label}.png`)
+  console.log(`screenshots in ${SHOT}`)
+}
+
 const CLUES = ['ORBIT', 'CIPHER', 'HARBOR', 'LANTERN', 'THICKET', 'VELVET', 'QUARRY', 'MERIDIAN']
 
 /**
@@ -252,12 +266,14 @@ const act = (tab, clue) =>
       if (give && !give.disabled) { give.click(); return 'clue' }
       return null
     }
+    const lock = [...document.querySelectorAll('button')].find(b => /^lock in/i.test(b.textContent))
+    if (lock) { lock.click(); return lock.textContent.trim().toLowerCase() }
+
     const cards = [...document.querySelectorAll('main button[aria-label]')].filter(b => !b.disabled)
     if (!cards.length) return null
     const card = cards[Math.floor(Math.random() * cards.length)]
     card.click()
-    setTimeout(() => card.click(), 300)
-    return 'guess ' + card.getAttribute('aria-label')
+    return 'picks ' + card.getAttribute('aria-label')
   })()`)
 
 let turn = 0
@@ -278,5 +294,6 @@ for (; bots.length; ) {
   }
 }
 
-// Nothing to drive, but the windows are the point — hold them open.
-await new Promise(() => {})
+// Nothing to drive, but the windows are the point. A pending promise does not
+// keep the event loop alive on its own, so hold it open with a timer.
+setInterval(() => {}, 1 << 30)

@@ -2,7 +2,6 @@ import {useSyncExternalStore} from 'react'
 import type {Colour} from '../game/board'
 import {derive, type Clue} from '../game/reducer'
 import type {Team} from '../game/types'
-import {reducedMotion} from '../ui/motion'
 import {sfx} from '../ui/sound/audio'
 import {getRoom, subscribeRoom} from './room'
 import * as words from './words'
@@ -21,18 +20,20 @@ export type Stage =
   | {kind: 'turn'; team: Team}
   | {kind: 'finish'; winner: Team; reason: 'cards' | 'assassin'}
 
+/**
+ * Milliseconds. Every player is reading a board they did not touch, so each
+ * beat has to last long enough to notice, register and look up.
+ */
 const FULL = {
   /** Symbols churning on the card, decelerating into the flip. */
-  windup: 1900,
-  landing: 520,
-  correct: 700,
-  wrong: 950,
-  assassin: 2300,
-  clue: 1900,
-  turn: 750
+  windup: 2600,
+  landing: 900,
+  correct: 1500,
+  wrong: 1900,
+  assassin: 3400,
+  clue: 3600,
+  turn: 1800
 }
-
-const QUICK = {windup: 90, landing: 120, correct: 120, wrong: 120, assassin: 400, clue: 260, turn: 160}
 
 /**
  * How far behind we are willing to catch up by playing, once we are following
@@ -64,7 +65,7 @@ const at = (ms: number, fn: () => void) => {
   timers.push(setTimeout(fn, ms))
 }
 
-const timings = () => (reducedMotion() ? QUICK : FULL)
+const timings = () => FULL
 
 const colourAt = (cursorAfterGuess: number): {colour: Colour} | null => {
   const {shared} = getRoom()
@@ -78,6 +79,63 @@ const colourAt = (cursorAfterGuess: number): {colour: Colour} | null => {
   return view.lastGuess ? {colour: view.lastGuess.colour} : null
 }
 
+/**
+ * The guesser used to be last to see their own guess: their click travels to
+ * the host and the result travels back before anything moves. Confirming starts
+ * the windup here and now, and the step catches up with it — the outcome still
+ * comes from the host, and the churn never knew it anyway.
+ */
+let awaiting: {card: number; deadline: number} | null = null
+
+const GIVE_UP_MS = 6_000
+
+export const previewGuess = (card: number) => {
+  if (playing || awaiting) return
+  const {shared} = getRoom()
+  if (!shared) return
+  const view = derive(
+    shared.settings,
+    words.get(shared.settings.wordListHash),
+    shared.steps,
+    shownCursor
+  )
+  if (view.phase !== 'guess') return
+
+  const t = timings()
+  playing = true
+  awaiting = {card, deadline: Date.now() + GIVE_UP_MS}
+  stage = {kind: 'windup', card, team: view.turn, colour: 'neutral', until: Date.now() + t.windup, from: Date.now()}
+  publish()
+  sfx.confirm()
+  sfx.riser(t.windup / 1000)
+  at(t.windup, settlePreview)
+}
+
+/** The windup is over; land it as soon as the host's version of it arrives. */
+const settlePreview = () => {
+  if (!awaiting) return
+  const {shared} = getRoom()
+  const step = shared?.steps[shownCursor]
+
+  if (shared && step?.t === 'guess' && step.card === awaiting.card) {
+    const card = awaiting.card
+    const team = step.team
+    awaiting = null
+    land(card, team, colourAt(shownCursor + 1)?.colour ?? 'neutral')
+    return
+  }
+
+  if (Date.now() > awaiting.deadline) {
+    awaiting = null
+    stage = {kind: 'idle'}
+    playing = false
+    publish()
+    pump()
+    return
+  }
+  at(120, settlePreview)
+}
+
 const finishStep = () => {
   shownCursor++
   stage = {kind: 'idle'}
@@ -86,40 +144,43 @@ const finishStep = () => {
   queueMicrotask(pump)
 }
 
+/** The card flips here: the authoritative reveal becomes visible. */
+const land = (card: number, team: Team, colour: Colour) => {
+  const t = timings()
+  const correct = colour === team
+
+  shownCursor++
+  stage = {kind: 'landing', card, colour, team}
+  publish()
+  sfx.land()
+
+  at(t.landing, () => {
+    stage = {kind: 'aftermath', card, colour, team, correct}
+    publish()
+    if (colour === 'assassin') sfx.assassin()
+    else if (correct) sfx.correct(team)
+    else sfx.wrong()
+
+    const hold = colour === 'assassin' ? t.assassin : correct ? t.correct : t.wrong
+    at(hold, () => {
+      stage = {kind: 'idle'}
+      playing = false
+      publish()
+      pump()
+    })
+  })
+}
+
 const playGuess = (card: number, team: Team) => {
   const t = timings()
-  const outcome = colourAt(shownCursor + 1)
-  const colour: Colour = outcome?.colour ?? 'neutral'
-  const correct = colour === team
+  const colour: Colour = colourAt(shownCursor + 1)?.colour ?? 'neutral'
 
   stage = {kind: 'windup', card, team, colour, until: Date.now() + t.windup, from: Date.now()}
   publish()
   sfx.confirm()
-  if (!reducedMotion()) sfx.riser(t.windup / 1000)
+  sfx.riser(t.windup / 1000)
 
-  at(t.windup, () => {
-    // The card flips here: the authoritative reveal becomes visible.
-    shownCursor++
-    stage = {kind: 'landing', card, colour, team}
-    publish()
-    sfx.land()
-
-    at(t.landing, () => {
-      stage = {kind: 'aftermath', card, colour, team, correct}
-      publish()
-      if (colour === 'assassin') sfx.assassin()
-      else if (correct) sfx.correct(team)
-      else sfx.wrong()
-
-      const hold = colour === 'assassin' ? t.assassin : correct ? t.correct : t.wrong
-      at(hold, () => {
-        stage = {kind: 'idle'}
-        playing = false
-        publish()
-        pump()
-      })
-    })
-  })
+  at(t.windup, () => land(card, team, colour))
 }
 
 const pump = () => {
@@ -199,6 +260,7 @@ export const getTheatre = () => snapshot
 
 export const resetTheatre = () => {
   clearTimers()
+  awaiting = null
   shownCursor = 0
   stage = {kind: 'idle'}
   playing = false

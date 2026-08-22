@@ -4,12 +4,57 @@ import {Minus, Plus} from 'lucide-react'
 import {useState} from 'react'
 import type {View} from '../../game/reducer'
 import type {Player, Team} from '../../game/types'
-import {myMark} from '../../state/presence'
+import {clearMyMark, useMyMark} from '../../state/presence'
 import {intend} from '../../state/room'
+import {previewGuess} from '../../state/theatre'
 import {Bulbs, Button, Glyph, Label, Panel, input} from '../atoms'
 import {cx} from '../cx'
-import {spring, useMotion} from '../motion'
+import {spring} from '../motion'
 import {TimerArc} from './TimerArc'
+
+const TONE: Record<Team, string> = {
+  red: 'border-red-500/60 bg-red-500/15 text-red-lit',
+  blue: 'border-blue-500/60 bg-blue-500/15 text-blue-lit'
+}
+
+/**
+ * Lit bulbs say a side is active but not which side you are on, and half the
+ * table loses track of that within two turns. This says both, in words.
+ */
+const Standing = ({view, me}: {view: View; me: Player | null}) => {
+  const mine = me?.team === view.turn
+  const waiting = view.phase === 'clue'
+
+  const line = !me?.team
+    ? `${view.turn} team's turn`
+    : mine
+      ? me.spymaster
+        ? waiting
+          ? 'Your turn — give your team a clue'
+          : 'Your team is guessing'
+        : waiting
+          ? 'Your spymaster is thinking'
+          : 'You are guessing'
+      : `${view.turn} team's turn`
+
+  return (
+    <div className="flex items-center justify-center gap-2">
+      <span
+        className={cx(
+          'type-marquee rounded-sm border px-2.5 py-1 text-[11px] tracking-[0.14em]',
+          view.turn === 'red' ? TONE.red : TONE.blue
+        )}
+      >
+        {line}
+      </span>
+      {me?.team && (
+        <Label className={me.team === 'red' ? 'text-red-lit/70' : 'text-blue-lit/70'}>
+          you are {me.spymaster ? 'spymaster' : 'a spy'} for {me.team}
+        </Label>
+      )}
+    </div>
+  )
+}
 
 /** The scoreboard is an odometer, so a card landing reads as a count, not a swap. */
 const Score = ({team, left, active}: {team: Team; left: number; active: boolean}) => (
@@ -21,7 +66,9 @@ const Score = ({team, left, active}: {team: Team; left: number; active: boolean}
     <span
       className={cx(
         'flex items-center gap-1.5 rounded-sm px-2 py-0.5',
-        team === 'red' ? 'pattern-red text-red-lit' : 'pattern-blue text-blue-lit'
+        team === 'red'
+          ? 'bg-red-500/15 text-red-lit'
+          : 'bg-blue-500/15 text-blue-lit'
       )}
     >
       <Glyph team={team} className="size-2.5" />
@@ -104,8 +151,7 @@ export const Hud = ({
   busy: boolean
   size: number
 }) => {
-  const {reduced} = useMotion()
-  const armed = myMark()
+    const armed = useMyMark()
   const myTurn = me?.team === view.turn
   const amSpymaster = !!me?.spymaster
 
@@ -113,76 +159,86 @@ export const Hud = ({
   const canAct = myTurn && !amSpymaster && view.phase === 'guess' && !busy
 
   return (
-    <Panel level={2} glossy className="flex flex-wrap items-center gap-x-5 gap-y-3 px-4 py-3">
-      <Score team="red" left={view.remaining.red} active={view.turn === 'red'} />
+    <Panel level={2} glossy className="flex flex-col gap-2 px-4 py-3">
+      <Standing view={view} me={me} />
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+        <Score team="red" left={view.remaining.red} active={view.turn === 'red'} />
 
-      <div className="flex min-w-44 flex-1 flex-col items-center justify-center gap-0.5 text-center">
-        {view.clue ? (
-          <>
-            <motion.span
-              key={view.clue.word}
-              initial={reduced ? {opacity: 0} : {opacity: 0, y: 8}}
-              animate={{opacity: 1, y: 0}}
-              transition={spring.firm}
-              className="type-marquee text-2xl leading-tight text-text sm:text-3xl"
-              style={{textShadow: '0 0 20px rgba(255,197,61,.28)'}}
-            >
-              {view.clue.word}
-              <span className="ml-3 text-lamp-300">
-                {view.clue.count === 'unlimited' || view.clue.count === 0 ? '∞' : view.clue.count}
-              </span>
-            </motion.span>
-            <Label>
-              {view.unlimited
-                ? 'unlimited guesses'
-                : `${Math.max(0, view.guessesLeft)} guess${view.guessesLeft === 1 ? '' : 'es'} left`}
-            </Label>
-          </>
-        ) : (
-          <Label>
-            <span aria-live="polite">
-              {view.phase === 'clue'
-                ? `${view.turn} spymaster is thinking`
-                : view.phase === 'gameover'
-                  ? 'Game over'
-                  : ''}
-            </span>
-          </Label>
-        )}
-      </div>
-
-      {deadline !== null && timerTotal > 0 && <TimerArc deadline={deadline} total={timerTotal} />}
-
-      {canClue && <ClueComposer size={size} />}
-
-      {canAct && (
-        <div className="flex items-center gap-2">
-          <AnimatePresence>
-            {armed !== null && (
-              <motion.div
-                initial={{opacity: 0, scale: 0.92}}
-                animate={{opacity: 1, scale: 1}}
-                exit={{opacity: 0, scale: 0.92}}
+        <div className="flex min-w-44 flex-1 flex-col items-center justify-center gap-0.5 text-center">
+          {view.clue ? (
+            <>
+              <motion.span
+                key={view.clue.word}
+                initial={{opacity: 0, y: 8}}
+                animate={{opacity: 1, y: 0}}
                 transition={spring.firm}
+                className="type-marquee text-2xl leading-tight text-text sm:text-3xl"
+                style={{textShadow: '0 0 20px rgba(255,197,61,.28)'}}
               >
-                <Button size="lg" onClick={() => intend({kind: 'guess', card: armed})}>
-                  Lock in {view.cards[armed]?.word}
-                </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <Button
-            variant="ghost"
-            disabled={view.guessedSinceClue < 1}
-            title={view.guessedSinceClue < 1 ? 'Guess at least once before passing' : undefined}
-            onClick={() => intend({kind: 'pass'})}
-          >
-            Pass
-          </Button>
+                {view.clue.word}
+                <span className="ml-3 text-lamp-300">
+                  {view.clue.count === 'unlimited' || view.clue.count === 0 ? '∞' : view.clue.count}
+                </span>
+              </motion.span>
+              <Label>
+                {view.unlimited
+                  ? 'unlimited guesses'
+                  : `${Math.max(0, view.guessesLeft)} guess${view.guessesLeft === 1 ? '' : 'es'} left`}
+              </Label>
+            </>
+          ) : (
+            <Label>
+              <span aria-live="polite">
+                {view.phase === 'clue'
+                  ? `${view.turn} spymaster is thinking`
+                  : view.phase === 'gameover'
+                    ? 'Game over'
+                    : ''}
+              </span>
+            </Label>
+          )}
         </div>
-      )}
 
-      <Score team="blue" left={view.remaining.blue} active={view.turn === 'blue'} />
+        {deadline !== null && timerTotal > 0 && <TimerArc deadline={deadline} total={timerTotal} />}
+
+        {canClue && <ClueComposer size={size} />}
+
+        {canAct && (
+          <div className="flex items-center gap-2">
+            <AnimatePresence>
+              {armed !== null && (
+                <motion.div
+                  initial={{opacity: 0, scale: 0.92}}
+                  animate={{opacity: 1, scale: 1}}
+                  exit={{opacity: 0, scale: 0.92}}
+                  transition={spring.firm}
+                >
+                  <Button
+                  size="lg"
+                  onClick={() => {
+                    previewGuess(armed)
+                    intend({kind: 'guess', card: armed})
+                    clearMyMark()
+                  }}
+                >
+                    Lock in {view.cards[armed]?.word}
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <Button
+              variant="ghost"
+              disabled={view.guessedSinceClue < 1}
+              title={view.guessedSinceClue < 1 ? 'Guess at least once before passing' : undefined}
+              onClick={() => intend({kind: 'pass'})}
+            >
+              Pass
+            </Button>
+          </div>
+        )}
+
+        <Score team="blue" left={view.remaining.blue} active={view.turn === 'blue'} />
+      </div>
     </Panel>
   )
 }

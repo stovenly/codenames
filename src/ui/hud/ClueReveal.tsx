@@ -1,17 +1,15 @@
 import {motion} from 'motion/react'
 import {useEffect, useState} from 'react'
 import type {Clue} from '../../game/reducer'
-import {spring, useReducedMotion} from '../motion'
+import {spring} from '../motion'
 import {sfx} from '../sound/audio'
 
 /** The gameshow beat: the clue takes the whole screen before it docks. */
 export const ClueReveal = ({clue}: {clue: Clue}) => {
-  const reduced = useReducedMotion()
-  const [typed, setTyped] = useState(reduced ? clue.word : '')
-  const [showCount, setShowCount] = useState(reduced)
+  const [typed, setTyped] = useState('')
+  const [showCount, setShowCount] = useState(false)
 
   useEffect(() => {
-    if (reduced) return
     let i = 0
     const id = setInterval(() => {
       i++
@@ -19,11 +17,11 @@ export const ClueReveal = ({clue}: {clue: Clue}) => {
       sfx.type()
       if (i >= clue.word.length) {
         clearInterval(id)
-        setTimeout(() => setShowCount(true), 140)
+        setTimeout(() => setShowCount(true), 260)
       }
-    }, 55)
+    }, 95)
     return () => clearInterval(id)
-  }, [clue.word, reduced])
+  }, [clue.word])
 
   const tint = clue.team === 'red' ? 'text-red-lit' : 'text-blue-lit'
 
@@ -31,8 +29,8 @@ export const ClueReveal = ({clue}: {clue: Clue}) => {
     <motion.div
       initial={{opacity: 0}}
       animate={{opacity: 1}}
-      exit={{opacity: 0, scale: reduced ? 1 : 0.94}}
-      transition={{duration: reduced ? 0.12 : 0.28}}
+      exit={{opacity: 0, scale: 0.94}}
+      transition={{duration: 0.45}}
       className="fixed inset-0 z-50 grid place-items-center bg-stage-000/92 backdrop-blur-sm"
     >
       <motion.span
@@ -56,7 +54,7 @@ export const ClueReveal = ({clue}: {clue: Clue}) => {
         <div className="flex flex-wrap items-center justify-center gap-5">
           <span className="type-marquee text-3xl tracking-wider text-text sm:text-5xl">
             {typed}
-            {!reduced && typed.length < clue.word.length && (
+            {typed.length < clue.word.length && (
               <motion.span
                 animate={{opacity: [1, 0]}}
                 transition={{duration: 0.5, repeat: Infinity}}
@@ -69,9 +67,9 @@ export const ClueReveal = ({clue}: {clue: Clue}) => {
 
           {showCount && (
             <motion.span
-              initial={reduced ? {opacity: 0} : {scale: 2.6, opacity: 0, rotate: -14}}
+              initial={{scale: 2.6, opacity: 0, rotate: -14}}
               animate={{scale: 1, opacity: 1, rotate: 0}}
-              transition={reduced ? {duration: 0.12} : {type: 'spring', stiffness: 620, damping: 18}}
+              transition={{type: 'spring', stiffness: 620, damping: 18}}
               className="type-marquee grid size-16 place-items-center rounded-lg border-2 border-lamp-500 bg-lamp-500/10 text-3xl text-lamp-300 sm:size-20 sm:text-4xl"
             >
               {clue.count === 'unlimited' ? '∞' : clue.count}
@@ -82,7 +80,7 @@ export const ClueReveal = ({clue}: {clue: Clue}) => {
         <motion.span
           initial={{opacity: 0}}
           animate={{opacity: 1}}
-          transition={{delay: reduced ? 0 : 0.5}}
+          transition={{delay: 0.5}}
           className="type-label"
         >
           {clue.count === 'unlimited' || clue.count === 0
@@ -95,8 +93,7 @@ export const ClueReveal = ({clue}: {clue: Clue}) => {
 }
 
 export const TurnBand = ({team}: {team: 'red' | 'blue'}) => {
-  const reduced = useReducedMotion()
-  return (
+    return (
     <motion.div
       initial={{opacity: 0}}
       animate={{opacity: 1}}
@@ -105,10 +102,10 @@ export const TurnBand = ({team}: {team: 'red' | 'blue'}) => {
       className="pointer-events-none fixed inset-0 z-40 grid place-items-center overflow-hidden"
     >
       <motion.div
-        initial={reduced ? {opacity: 0} : {x: '-120%'}}
-        animate={reduced ? {opacity: 1} : {x: '0%'}}
-        exit={reduced ? {opacity: 0} : {x: '120%'}}
-        transition={reduced ? {duration: 0.12} : spring.heavy}
+        initial={{x: '-120%'}}
+        animate={{x: '0%'}}
+        exit={{x: '120%'}}
+        transition={spring.heavy}
         className="flex w-[160%] -skew-y-3 items-center justify-center py-6 shadow-[0_20px_60px_-20px_rgba(0,0,0,1)]"
         style={{
           background:

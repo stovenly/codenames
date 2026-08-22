@@ -11,7 +11,6 @@ import {AvatarPicker} from '../avatar/Picker'
 import {Bulbs, Button, Enter, Heading, Item, Label, Panel, Rule} from '../atoms'
 import {cx} from '../cx'
 import {SettingsPanel} from '../host/SettingsPanel'
-import {useMotion} from '../motion'
 import {PlayerCard} from '../room/PlayerCard'
 
 const HOST_NOTICE_KEY = 'cn.hostNoticeSeen'
@@ -57,8 +56,7 @@ const HostNotice = () => {
 export const Waiting = () => {
   const {shared, role, me} = useRoom()
   const {report} = useNet()
-  const {reduced} = useMotion()
-  const [dragging, setDragging] = useState<string | null>(null)
+    const [dragging, setDragging] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   words.useWords()
 
@@ -179,7 +177,7 @@ export const Waiting = () => {
                     {faults.length === 0 && (
                       <motion.span
                         key="clear"
-                        initial={reduced ? {opacity: 0} : {opacity: 0, y: 4}}
+                        initial={{opacity: 0, y: 4}}
                         animate={{opacity: 1, y: 0}}
                         exit={{opacity: 0}}
                         className="type-label"
@@ -190,7 +188,7 @@ export const Waiting = () => {
                     {faults.map(f => (
                       <motion.span
                         key={f.key}
-                        initial={reduced ? {opacity: 0} : {opacity: 0, y: 4}}
+                        initial={{opacity: 0, y: 4}}
                         animate={{opacity: 1, y: 0}}
                         exit={{opacity: 0}}
                         className={cx('type-label', f.tint)}
