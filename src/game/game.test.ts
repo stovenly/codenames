@@ -355,8 +355,8 @@ describe('roster', () => {
 
   it('wants a spymaster and a guesser on each side', () => {
     expect(rosterProblems([])).toEqual([
-      {team: 'red', message: 'Red has nobody on it'},
-      {team: 'blue', message: 'Blue has nobody on it'}
+      {team: 'red', message: 'Red has no players'},
+      {team: 'blue', message: 'Blue has no players'}
     ])
 
     expect(

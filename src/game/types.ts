@@ -62,7 +62,7 @@ export const rosterProblems = (players: Player[]): Array<{team: Team; message: s
   for (const team of ['red', 'blue'] as Team[]) {
     const side = players.filter(p => p.team === team)
     const label = team === 'red' ? 'Red' : 'Blue'
-    if (!side.length) out.push({team, message: `${label} has nobody on it`})
+    if (!side.length) out.push({team, message: `${label} has no players`})
     else if (!side.some(p => p.spymaster)) out.push({team, message: `${label} needs a spymaster`})
     else if (side.every(p => p.spymaster)) out.push({team, message: `${label} needs at least one spy`})
   }

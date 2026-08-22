@@ -114,9 +114,20 @@ export const AvatarPicker = ({
   const setStyle = (id: string) =>
     onChange({...value, style: id, seed: seeds[id] ?? openingVariant(id)})
 
-  /** Never lands on the one already showing, which reads as a broken button. */
-  const roll = () =>
-    setVariant(String((variant + 1 + Math.floor(Math.random() * (VARIANTS - 1))) % VARIANTS))
+  /**
+   * Anywhere in the whole set, category included — rolling within one category
+   * only ever offers a fraction of what is on the shelf. Never lands on the one
+   * already showing, which reads as a broken button.
+   */
+  const roll = () => {
+    const style = STYLES[Math.floor(Math.random() * STYLES.length)]!
+    const same = style.id === value.style
+    const seed = String(
+      same ? (variant + 1 + Math.floor(Math.random() * (VARIANTS - 1))) % VARIANTS : Math.floor(Math.random() * VARIANTS)
+    )
+    setSeeds(prev => ({...prev, [style.id]: seed}))
+    onChange({...value, style: style.id, seed})
+  }
 
   return (
     <Panel className="flex flex-col gap-3 p-3">
