@@ -39,7 +39,7 @@ export const CompositionRow = ({
     <div
       role="img"
       aria-label={`${counts.assassin} assassin, ${counts.red} red, ${counts.blue} blue, ${counts.neutral} neutral`}
-      className="grid w-fit gap-1"
+      className="mx-auto grid w-fit gap-1"
       style={{gridTemplateColumns: `repeat(${settings.size}, minmax(0, 1fr))`}}
     >
       <AnimatePresence initial={false}>
@@ -52,7 +52,7 @@ export const CompositionRow = ({
             exit={reduced ? {opacity: 0} : {opacity: 0, scale: 0.4}}
             transition={{type: 'spring', stiffness: 460, damping: 32, delay: reduced ? 0 : i * 0.008}}
             className={cx(
-              'grid size-6 place-items-center rounded-xs border transition-colors duration-200',
+              'grid h-6 w-8 place-items-center rounded-xs border transition-colors duration-200',
               TONE[colour]
             )}
           >
