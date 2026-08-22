@@ -93,6 +93,15 @@ const colourAt = (cursorAfterGuess: number): {colour: Colour} | null => {
  */
 let played: number | null = null
 
+/**
+ * How long the guesser will hold for the host's version of their guess before
+ * starting anyway. Everyone else starts when the broadcast reaches them, so
+ * holding briefly is what keeps the table looking at the same thing — but the
+ * hold has to be bounded, or one slow round trip leaves the guesser watching
+ * the aftermath of a reveal the rest of the room has already finished.
+ */
+const SYNC_GRACE_MS = 450
+
 export const previewGuess = (card: number) => {
   if (playing) return
   const {shared} = getRoom()
@@ -107,9 +116,23 @@ export const previewGuess = (card: number) => {
   const colour = view.cards[card]?.colour
   if (!colour) return
 
+  // Claimed straight away so pump cannot play this guess from the top when the
+  // step lands while we are still waiting for it.
   playing = true
   played = card
-  windUp(card, view.turn, colour)
+  sfx.confirm()
+
+  const deadline = Date.now() + SYNC_GRACE_MS
+  const begin = () => {
+    if (arrived(card) || Date.now() >= deadline) windUp(card, view.turn, colour)
+    else at(60, begin)
+  }
+  begin()
+}
+
+const arrived = (card: number) => {
+  const steps = getRoom().shared?.steps ?? []
+  return steps.some((st, i) => i >= shownCursor && st.t === 'guess' && st.card === card)
 }
 
 /**
@@ -169,13 +192,14 @@ const windUp = (card: number, team: Team, colour: Colour) => {
   const t = timings()
   stage = {kind: 'windup', card, team, colour, until: Date.now() + t.windup, from: Date.now()}
   publish()
-  sfx.confirm()
   sfx.riser(t.windup / 1000)
   at(t.windup, () => land(card, team, colour))
 }
 
-const playGuess = (card: number, team: Team) =>
+const playGuess = (card: number, team: Team) => {
+  sfx.confirm()
   windUp(card, team, colourAt(shownCursor + 1)?.colour ?? 'neutral')
+}
 
 const pump = () => {
   if (playing) return

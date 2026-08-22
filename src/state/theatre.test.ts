@@ -19,7 +19,7 @@ vi.mock('./words', () => ({
   have: () => true
 }))
 
-const {getTheatre, resetTheatre} = await import('./theatre')
+const {getTheatre, previewGuess, resetTheatre} = await import('./theatre')
 
 const room = (steps: Step[]): Shared => ({
   version: 1,
@@ -89,5 +89,54 @@ describe('theatre', () => {
     await settle(10)
     expect(getTheatre().stage.kind).toBe('idle')
     expect(getTheatre().shownCursor).toBe(4)
+  })
+})
+
+describe('a guess of my own', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    shared = null
+    resetTheatre()
+  })
+
+  it('holds briefly for the host, then starts without it', async () => {
+    deliver([START])
+    await settle(3200)
+    deliver([START, CLUE])
+    await settle(5000)
+
+    previewGuess(0)
+    await settle(100)
+    expect(getTheatre().stage.kind).toBe('idle')
+
+    // Nothing ever comes back, and the reveal still happens.
+    await settle(600)
+    expect(getTheatre().stage.kind).toBe('windup')
+  })
+
+  it('starts the moment the host confirms it, without waiting out the grace', async () => {
+    deliver([START])
+    await settle(3200)
+    deliver([START, CLUE])
+    await settle(5000)
+
+    previewGuess(0)
+    deliver([START, CLUE, GUESS])
+    await settle(100)
+    expect(getTheatre().stage.kind).toBe('windup')
+  })
+
+  it('never plays the same guess twice', async () => {
+    deliver([START])
+    await settle(3200)
+    deliver([START, CLUE])
+    await settle(5000)
+
+    previewGuess(0)
+    deliver([START, CLUE, GUESS])
+    await settle(30_000)
+
+    expect(getTheatre().stage.kind).toBe('idle')
+    expect(getTheatre().shownCursor).toBe(3)
   })
 })
