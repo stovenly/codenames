@@ -65,6 +65,12 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
  *
  * Weights rank interest, not merit: picking the assassin is the only thing
  * anyone will remember, so it outranks every competent thing that happened.
+ *
+ * A title has to say on sight whether it is a compliment. Saboteur, Double
+ * Agent, Collateral Damage and Dead Weight are not things anyone reads as
+ * praise, and Sharpshooter and Mind Reader are not things anyone reads as a
+ * complaint. A name that is merely quirky leaves the table working out which
+ * one it was, which is the joke going off in the wrong order.
  */
 export const catalogue = (
   settings: Settings,
@@ -198,29 +204,35 @@ export const catalogue = (
   add('smith', 'Wordsmith', smith ? `${plural(smith.n, 'card')} from their clues` : '', smith, 55)
 
   const gift = leader(tallies, t => t.gifts)
-  add('gift', 'Gift Horse', gift ? `${plural(gift.n, 'card')} to the other side` : '', gift, 52)
+  add('gift', 'Double Agent', gift ? `${plural(gift.n, 'card')} handed to the enemy` : '', gift, 52)
 
   const butter = leader(tallies, t => t.wrong)
   add('butter', 'Butterfingers', butter ? plural(butter.n, 'wrong pick') : '', butter, 50)
 
   const bystand = leader(tallies, t => t.neutral)
-  add('bystand', 'Civilian Liaison', bystand ? `${plural(bystand.n, 'innocent')} disturbed` : '', bystand, 45)
+  add(
+    'bystand',
+    'Collateral Damage',
+    bystand ? `${plural(bystand.n, 'neutral card')} burned` : '',
+    bystand,
+    45
+  )
 
   const trigger = leader(tallies, t => (t.picks >= 3 ? t.picks : 0))
-  add('trigger', 'Trigger Happy', trigger ? plural(trigger.n, 'card') + ' touched' : '', trigger, 35)
+  add('trigger', 'Trigger Happy', trigger ? plural(trigger.n, 'card') + ' grabbed' : '', trigger, 35)
 
   const talker = leader(tallies, t => (t.biggestCount >= 3 ? t.biggestCount : 0))
-  add('talker', 'Big Talker', talker ? `promised ${talker.n} on one clue` : '', talker, 34)
+  add('talker', 'Overpromised', talker ? `asked for ${talker.n} on one clue` : '', talker, 34)
 
   const cold = leader(tallies, t => t.passes)
-  add('cold', 'Cold Feet', cold ? plural(cold.n, 'turn') + ' handed back' : '', cold, 33)
+  add('cold', 'Cold Feet', cold ? plural(cold.n, 'turn') + ' given up early' : '', cold, 33)
 
   out.push(...teamLeaders(seated, tallies))
 
   const idle = seated
     .filter(p => !p.spymaster && (tallies.get(p.id)?.picks ?? 0) === 0)
     .map(p => ({who: p.id, n: 1, at: Number.MAX_SAFE_INTEGER}))[0]
-  add('idle', 'Passenger', 'never touched a card', idle ?? null, 30)
+  add('idle', 'Dead Weight', 'never touched a card', idle ?? null, 30)
 
   return out
 }

@@ -395,8 +395,10 @@ const CardBase = ({
 
       {phase === 'aftermath' && shown && shown !== 'neutral' && <Burst colour={shown} />}
 
+      {/* Sized against the card, not in pixels: on a big screen a 20px badge
+          in the corner of a 200px plate is a speck. */}
       {!faceUp && marks.size > 0 && (
-        <span className="pointer-events-none absolute -top-1.5 -right-1.5 z-20 flex -space-x-2">
+        <span className="pointer-events-none absolute -top-[2cqw] -right-[2cqw] z-20 flex -space-x-[3cqw]">
           {[...marks].slice(0, 4).map(id => {
             const avatar = avatars.get(id)
             return avatar ? (
@@ -408,7 +410,11 @@ const CardBase = ({
                 transition={spring.firm}
                 className="rounded-full ring-2 ring-lamp-500/80"
               >
-                <AvatarView spec={avatar} size={20} className="rounded-full" />
+                <AvatarView
+                  spec={avatar}
+                  size={null}
+                  className="size-[18cqw] max-h-9 min-h-4 max-w-9 min-w-4 rounded-full"
+                />
               </motion.span>
             ) : null
           })}

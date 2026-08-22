@@ -1,6 +1,6 @@
 import {useSyncExternalStore} from 'react'
 import type {PlayerId} from '../net/protocol'
-import {TTL_PRESENCE} from '../net/protocol'
+import {TTL_DEFAULT} from '../net/protocol'
 import {on, self, send} from './net'
 import {getRoom, subscribeRoom} from './room'
 
@@ -9,12 +9,10 @@ import {getRoom, subscribeRoom} from './room'
  * the point is that everyone sees your avatar land on the card immediately.
  * A lost one costs a stale marker for a second, never a desync.
  */
-const THROTTLE_MS = 100
 
 const listeners = new Set<() => void>()
 let marks = new Map<number, Set<PlayerId>>()
 let snapshot: ReadonlyMap<number, ReadonlySet<PlayerId>> = marks
-let lastSent = 0
 let lastTurnKey = ''
 let wired = false
 
@@ -38,12 +36,16 @@ export const clearMarks = () => {
   publish()
 }
 
-const broadcast = (card: number, on_: boolean) => {
-  const now = Date.now()
-  if (now - lastSent < THROTTLE_MS && on_) return
-  lastSent = now
-  send('presence', {kind: 'arm', card, on: on_}, '*', TTL_PRESENCE)
-}
+/**
+ * Every change goes out. This was throttled to 100ms, which silently swallowed
+ * the half that matters: moving your mark clears the old card and sets the new
+ * one in the same tick, so the clear went and the set was dropped — everyone
+ * else watched marks vanish and never come back.
+ *
+ * There is nothing to throttle anyway. A mark changes when somebody clicks.
+ */
+const broadcast = (card: number, on_: boolean) =>
+  send('presence', {kind: 'arm', card, on: on_}, '*', TTL_DEFAULT)
 
 export const myMark = () => {
   for (const [card, who] of marks) if (who.has(self)) return card

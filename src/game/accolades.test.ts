@@ -86,7 +86,7 @@ describe('accolades', () => {
       {t: 'clue', team: 'red', by: 'rs', word: 'ORBIT', count: 1},
       {t: 'guess', team: 'red', by: 'rg', card: firstOf('red')}
     ]
-    expect(titles(steps).some(t => t.startsWith('Passenger'))).toBe(true)
+    expect(titles(steps).some(t => t.startsWith('Dead Weight'))).toBe(true)
   })
 })
 

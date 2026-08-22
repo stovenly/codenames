@@ -52,13 +52,13 @@ const render = (spec: AvatarSpec): string | null => {
 }
 
 /** A style still downloading renders as this, not as another style's avatar. */
-const Placeholder = ({size, bg}: {size: number; bg: string}) => (
+const Placeholder = ({bg}: {bg: string}) => (
   <span
     aria-hidden
     className="grid size-full place-items-center"
     style={{background: `#${bg.replace('#', '')}`}}
   >
-    <svg viewBox="0 0 24 24" className="opacity-25" style={{width: size * 0.6}}>
+    <svg viewBox="0 0 24 24" className="w-3/5 opacity-25">
       <circle cx="12" cy="9" r="4" fill="currentColor" />
       <path d="M3.5 23c0-4.7 3.8-8 8.5-8s8.5 3.3 8.5 8z" fill="currentColor" />
     </svg>
@@ -72,7 +72,8 @@ export const AvatarView = ({
   className = ''
 }: {
   spec: AvatarSpec
-  size?: number
+  /** null hands sizing to the class, for anywhere the box is a fraction of something. */
+  size?: number | null
   className?: string
 }) => {
   const [, bump] = useState(0)
@@ -90,9 +91,9 @@ export const AvatarView = ({
       <span
         aria-hidden
         className={`block overflow-hidden rounded-md text-text-dim ${className}`}
-        style={{width: size, height: size}}
+        style={size === null ? undefined : {width: size, height: size}}
       >
-        <Placeholder size={size} bg={spec.bg} />
+        <Placeholder bg={spec.bg} />
       </span>
     )
   }
@@ -104,7 +105,7 @@ export const AvatarView = ({
       // 1744, Pixel 16 — so the generated svg has to be told to fill the box or
       // it renders at its own scale and gets cropped to a speck.
       className={`block overflow-hidden rounded-md [&>svg]:size-full ${className}`}
-      style={{width: size, height: size}}
+      style={size === null ? undefined : {width: size, height: size}}
       dangerouslySetInnerHTML={{__html: svg}}
     />
   )

@@ -4,6 +4,7 @@
  *
  *   npm run playtest                    four windows, all yours to play
  *   npm run playtest -- --players=6
+ *   npm run playtest -- --players=5 --seats=red*,red,blue*,blue,blue
  *   npm run playtest -- --auto          the seats you are not in play themselves
  *   npm run playtest -- --auto --seat=1 you keep seat 1 instead of seat 0
  *   npm run playtest -- --auto --seat=none   nobody is yours; it plays itself
@@ -51,15 +52,28 @@ const sleep = ms => new Promise(r => setTimeout(r, ms))
 
 const NAMES = ['You', 'Marlow', 'Vesper', 'Cobb', 'Rook', 'Sable', 'Pike', 'Wren']
 
-/** Red spymaster, red spy, blue spymaster, blue spy, then alternating spies. */
+/**
+ * Red spymaster, red spy, blue spymaster, blue spy, then alternating spies —
+ * unless --seats says otherwise, as `red*,red,blue*,blue,blue` where a star is
+ * the mask. Stacking one side is how you get two people picking at once.
+ */
+const SEATS = arg('seats', '')
+  .split(',')
+  .filter(Boolean)
+  .map(entry => ({
+    team: entry.replace('*', '').trim().toLowerCase() === 'blue' ? 'Blue' : 'Red',
+    spymaster: entry.includes('*')
+  }))
+
 const seatFor = i =>
-  i === 0
+  SEATS[i] ??
+  (i === 0
     ? {team: 'Red', spymaster: true}
     : i === 1
       ? {team: 'Red', spymaster: false}
       : i === 2
         ? {team: 'Blue', spymaster: true}
-        : {team: i % 2 === 1 ? 'Blue' : 'Red', spymaster: false}
+        : {team: i % 2 === 1 ? 'Blue' : 'Red', spymaster: false})
 
 // Detached: on Windows the launcher returns as soon as the browser is up, so
 // its exit says nothing about whether the windows are still open.

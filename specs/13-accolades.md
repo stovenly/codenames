@@ -42,18 +42,19 @@ thing anyone will remember, so it outranks every competent thing that happened.
 
 | Title | For | Weight |
 |---|---|---|
-| **Handed Over the Assassin** | picked the assassin | 100 |
+| **Saboteur** | picked the assassin | 100 |
 | **Closer** | picked the winning card | 70 |
 | **Mind Reader** | most correct picks off a single clue | 62 |
 | **Sharpshooter** | most correct picks, no wrong ones | 60 |
 | **Wordsmith** | spymaster, most correct picks across their clues | 55 |
-| **Gift Horse** | most cards handed to the other team | 52 |
+| **Double Agent** | most cards handed to the other team | 52 |
 | **Butterfingers** | most wrong picks | 50 |
-| **Bystander Magnet** | most neutral cards found | 45 |
+| **Collateral Damage** | most neutral cards found | 45 |
 | **Trigger Happy** | most picks of any kind | 35 |
-| **Big Talker** | spymaster, highest clue number given | 34 |
+| **Overpromised** | spymaster, highest clue number given | 34 |
 | **Cold Feet** | passed the most turns | 33 |
-| **Along for the Ride** | on a team all game, never picked | 30 |
+| **Dead Weight** | on a team all game, never picked | 30 |
+| **Team Leader** | took most of a side's moves, weighted by side size | 34–72 |
 
 Ties break toward the player who did it earliest, so the card is about a moment
 rather than an alphabetical accident.
@@ -65,8 +66,11 @@ row is short. Padding it with "was present" cards is worse than three cards.
 
 - **Every card names somebody.** No "the red team" cards. The joke needs an
   owner.
-- **Blunders are welcome, insults are not.** "Butterfingers" and "Along for the
-  Ride" are the floor. Nothing that reads as an actual judgement of a person.
+- **A title says on sight whether it is a compliment.** Nobody should have to
+  work out which way "Civilian Liaison" was meant. Quirky-but-ambiguous is the
+  joke going off in the wrong order.
+- **Blunders are welcome, insults are not.** "Butterfingers" and "Dead Weight"
+  are the floor. Nothing that reads as an actual judgement of a person.
 - **Nothing that reveals the key.** Accolades are computed from what was
   revealed in play. A game abandoned mid-way has no accolades to give, and the
   cards simply do not appear.
