@@ -199,44 +199,57 @@ export const Hud = ({
 
         {deadline !== null && timerTotal > 0 && <TimerArc deadline={deadline} total={timerTotal} />}
 
-        {canClue && <ClueComposer size={size} />}
-
-        {canAct && (
-          <div className="flex items-center gap-2">
-            <AnimatePresence>
-              {armed !== null && (
-                <motion.div
-                  initial={{opacity: 0, scale: 0.92}}
-                  animate={{opacity: 1, scale: 1}}
-                  exit={{opacity: 0, scale: 0.92}}
-                  transition={spring.firm}
-                >
-                  <Button
-                  size="lg"
-                  onClick={() => {
-                    previewGuess(armed)
-                    intend({kind: 'guess', card: armed})
-                    clearMyMark()
-                  }}
-                >
-                    Lock in {view.cards[armed]?.word}
-                  </Button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <Button
-              variant="ghost"
-              disabled={view.guessedSinceClue < 1}
-              title={view.guessedSinceClue < 1 ? 'Guess at least once before passing' : undefined}
-              onClick={() => intend({kind: 'pass'})}
-            >
-              Pass
-            </Button>
-          </div>
-        )}
-
         <Score team="blue" left={view.remaining.blue} active={view.turn === 'blue'} />
       </div>
+
+      {/* Its own row. Sharing one with the clue meant the clue slid sideways
+          every time a button turned up beside it — and the clue is the thing
+          everyone is reading. */}
+      {(canClue || canAct) && (
+        <div className="flex min-h-11 flex-wrap items-center justify-center gap-2">
+          {canClue && <ClueComposer size={size} />}
+
+          {canAct && (
+            <>
+              {/* Held open whether or not a card is picked, so Pass does not
+                  hop across the moment somebody chooses one. */}
+              <span className="flex w-[min(60vw,15rem)] justify-end">
+                <AnimatePresence>
+                  {armed !== null && (
+                    <motion.div
+                      initial={{opacity: 0, scale: 0.92}}
+                      animate={{opacity: 1, scale: 1}}
+                      exit={{opacity: 0, scale: 0.92}}
+                      transition={spring.firm}
+                    >
+                      <Button
+                        size="lg"
+                        onClick={() => {
+                          previewGuess(armed)
+                          intend({kind: 'guess', card: armed})
+                          clearMyMark()
+                        }}
+                        className="max-w-[min(60vw,15rem)] truncate"
+                      >
+                        Lock in {view.cards[armed]?.word}
+                      </Button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </span>
+
+              <Button
+                variant="ghost"
+                disabled={view.guessedSinceClue < 1}
+                title={view.guessedSinceClue < 1 ? 'Guess at least once before passing' : undefined}
+                onClick={() => intend({kind: 'pass'})}
+              >
+                Pass
+              </Button>
+            </>
+          )}
+        </div>
+      )}
     </Panel>
   )
 }
