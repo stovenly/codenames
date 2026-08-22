@@ -87,6 +87,8 @@ export const Waiting = () => {
     ...missingSpymaster.map(t => `${t === 'red' ? 'Red' : 'Blue'} needs a spymaster`)
   ]
 
+  const hostName = shared.players.find(p => p.id === shared.hostId)?.name
+  const here = shared.players.filter(p => p.connected).length
   const readyCount = shared.players.filter(p => p.ready).length
   const outstanding = shared.players.filter(p => !p.ready).map(p => p.name)
   const rttFor = (id: string) => report.peers.find(p => p.playerId === id)?.rttMs ?? null
@@ -97,9 +99,11 @@ export const Waiting = () => {
         <Item className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-col gap-1.5">
             <Label className="text-lamp-500/80">
-              {isHost ? 'You are running the room' : 'Waiting room'}
+              {here} {here === 1 ? 'player' : 'players'} in lobby
             </Label>
-            <h1 className="type-marquee text-2xl text-lamp-300 sm:text-3xl">Codenames</h1>
+            <h1 className="type-marquee text-2xl text-lamp-300 sm:text-3xl">
+              {hostName ? `${hostName}'s Lobby` : 'Codenames'}
+            </h1>
           </div>
 
           <Button

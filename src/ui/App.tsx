@@ -42,7 +42,7 @@ const Banner = ({text, tone}: {text: string; tone: 'lamp' | 'danger'}) => (
 )
 
 export const App = () => {
-  const {role, shared, banner, split, locked} = useRoom()
+  const {role, shared, banner, split} = useRoom()
   words.useWords()
 
   useEffect(() => {
@@ -66,7 +66,7 @@ export const App = () => {
       </AnimatePresence>
 
       {role === 'idle' || role === 'rejected' ? (
-        <Landing locked={locked} rejected={role === 'rejected'} />
+        <Landing rejected={role === 'rejected'} />
       ) : role === 'joining' ? (
         <Connecting title="Taking your seat" />
       ) : view && view.phase !== 'setup' ? (

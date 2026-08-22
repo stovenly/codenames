@@ -226,13 +226,11 @@ const Wordmark = () => {
   )
 }
 
-export const Landing = ({locked, rejected}: {locked: boolean | null; rejected: boolean}) => {
+export const Landing = ({rejected}: {rejected: boolean}) => {
   const seat = offeredSeat()
   const [name, setName] = useState(myDisplayName())
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
-
-  const asks = !joinedExisting || locked === true || rejected
 
   const go = async () => {
     const trimmed = name.trim()
@@ -270,37 +268,31 @@ export const Landing = ({locked, rejected}: {locked: boolean | null; rejected: b
               />
             </Field>
 
-            {asks && (
-              <Field
-                label={joinedExisting ? 'Lobby password' : 'Lobby password (optional)'}
-                hint={
-                  rejected ? (
-                    <Label className="text-kill-lit">
-                      {password.trim() ? 'Not accepted. Try again.' : 'This lobby needs a password.'}
-                    </Label>
-                  ) : undefined
-                }
-              >
-                <input
-                  type="text"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  data-1p-ignore
-                  data-lpignore="true"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && void go()}
-                  className={cx(input, 'text-masked')}
-                />
-              </Field>
-            )}
-
-            <Button
-              size="lg"
-              onClick={() => void go()}
-              disabled={!name.trim() || busy || (locked === true && !password.trim())}
+            <Field
+              label="Lobby password (optional)"
+              hint={
+                rejected ? (
+                  <Label className="text-kill-lit">
+                    {password.trim() ? 'Not accepted. Try again.' : 'This lobby needs a password.'}
+                  </Label>
+                ) : undefined
+              }
             >
+              <input
+                type="text"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+                data-1p-ignore
+                data-lpignore="true"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && void go()}
+                className={cx(input, 'text-masked')}
+              />
+            </Field>
+
+            <Button size="lg" onClick={() => void go()} disabled={!name.trim() || busy}>
               {joinedExisting ? 'Take a seat' : 'Start a game'}
             </Button>
 
