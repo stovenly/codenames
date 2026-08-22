@@ -48,7 +48,20 @@ const publish = () => {
   listeners.forEach(l => l())
 }
 
+/**
+ * When each player was last heard from, by any route.
+ *
+ * `peers()` is direct links only, and the mesh forwards: a player two hops away
+ * plays the game perfectly while having no link to the host at all. Deciding
+ * who is present from direct links alone marks those players as having dropped
+ * while they are sitting there taking turns.
+ */
+const heard = new Map<PlayerId, number>()
+
+export const lastHeardFrom = (id: PlayerId) => heard.get(id) ?? 0
+
 const dispatch = (env: Envelope, body: unknown) => {
+  if (env.from && env.from !== playerId) heard.set(env.from, Date.now())
   handlers.get(env.kind)?.forEach(h => h(body, env))
 }
 

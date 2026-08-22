@@ -7,7 +7,7 @@ import {defaultSettings, validate, type BoardSize, type Settings} from '../game/
 import type {ClueCount, Step} from '../game/steps'
 import type {Avatar, Player, Shared, Team} from '../game/types'
 import {AVATAR_VARIANTS, otherTeam, rosterProblems} from '../game/types'
-import {joinedExisting, on, openRoom, peers, roomId, self, send, startMesh, subscribe as onNetChange} from './net'
+import {joinedExisting, lastHeardFrom, on, openRoom, peers, roomId, self, send, startMesh, subscribe as onNetChange} from './net'
 import {getPrefs, setPrefs} from './prefs'
 import * as words from './words'
 
@@ -29,6 +29,21 @@ export type RoomSnapshot = {
 const MISSING_HOST_MS = 6_000
 const MISSING_HOST_HIDDEN_MS = 30_000
 const BEAT_MS = 2_000
+/** Clients say so periodically, so a relayed player is not mistaken for a lost one. */
+const HERE_MS = 3_000
+const HEARD_WINDOW_MS = 11_000
+
+/**
+ * Everyone we can currently reach, by any route. A direct link is proof; so is
+ * having heard from them lately, which is the only evidence there is for a
+ * player the mesh is forwarding to.
+ */
+const present = (ids: PlayerId[] = []): Set<PlayerId> => {
+  const now = Date.now()
+  const live = new Set<PlayerId>([self, ...peers()])
+  for (const id of ids) if (now - lastHeardFrom(id) < HEARD_WINDOW_MS) live.add(id)
+  return live
+}
 const CLAIM_WINDOW_MS = 1_500
 const BROADCAST_DEBOUNCE_MS = 50
 const SPLIT_GRACE_MS = 25_000
@@ -180,7 +195,12 @@ const broadcast = () => {
   broadcastTimer = setTimeout(() => {
     broadcastTimer = null
     if (!isHost() || !shared) return
-    shared = {...shared, version: shared.version + 1, sentAt: Date.now(), roster: [self, ...peers()]}
+    shared = {
+      ...shared,
+      version: shared.version + 1,
+      sentAt: Date.now(),
+      roster: [...present(shared.players.map(p => p.id))]
+    }
     const {steps, ...meta} = shared
     const base = Math.min(broadcastBase, steps.length)
     send('state', {meta, base, add: steps.slice(base)} satisfies StateMsg)
@@ -352,7 +372,7 @@ const myClaim = (): Claim => ({
 
 const promoteSelf = (epoch: number) => {
   if (!shared) return
-  const connected = new Set([self, ...peers()])
+  const connected = present(shared.players.map(p => p.id))
   becomeHost({
     ...shared,
     version: shared.version + 1,
@@ -403,7 +423,7 @@ const monitor = () => {
   if (role === 'client' && shared && now - lastHostAt > missingWindow()) startElection()
 
   if (isHost() && shared) {
-    const connected = new Set([self, ...peers()])
+    const connected = present(shared.players.map(p => p.id))
     if (shared.players.some(p => p.connected !== connected.has(p.id))) {
       hostMutate(draft => ({
         ...draft,
@@ -564,7 +584,8 @@ const applyIntent = (from: PlayerId, intent: Intent) => {
 
     case 'transferHost': {
       if (!fromHost) return
-      if (!peers().includes(intent.target)) return refuse(from, 'That player is not connected')
+      if (!present(state.players.map(p => p.id)).has(intent.target))
+        return refuse(from, 'That player is not connected')
       send('handoff', {to: intent.target, epoch: state.hostEpoch + 1})
       demote()
       return
@@ -791,6 +812,9 @@ export const start = () => {
 
   onNetChange(monitor)
   setInterval(monitor, 500)
+  setInterval(() => {
+    if (!isHost() && shared) send('presence', {kind: 'here'}, shared.hostId)
+  }, HERE_MS)
   startSeatClaim()
 
   document.addEventListener('visibilitychange', () => {
