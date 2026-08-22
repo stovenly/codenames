@@ -82,20 +82,21 @@ export const STYLES: Entry[] = [
 
 /**
  * A spread rather than a palette lift: two darks to sit against the stage, then
- * hues far enough apart to be told apart at 40px. The two team colours are not
- * here, so an avatar can never contradict the column it is standing in.
+ * hues far enough apart to be told apart at 40px, each pulled a little toward
+ * its own grey because a face has to sit in front of it. The two team colours
+ * are not here, so an avatar can never contradict the column it stands in.
  */
 export const BACKGROUNDS = [
-  '141C30',
-  '2C3550',
-  '6B7A99',
-  'C9962C',
-  'FFC53D',
-  'F1ECE0',
-  'C2410C',
-  '9333EA',
-  '0E7490',
-  '15803D'
+  '161C2A',
+  '2F3549',
+  '6F7A90',
+  'BC974B',
+  'EFC664',
+  'F0ECE3',
+  'A74A24',
+  '8641C5',
+  '236C81',
+  '287545'
 ]
 
 export {AVATAR_VARIANTS as VARIANTS} from '../../game/types'

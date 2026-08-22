@@ -23,6 +23,12 @@ const variantIndex = (seed: string) => {
 
 const clean = (hex: string) => hex.replace('#', '').toUpperCase()
 
+/** Black or white, whichever the swatch underneath can carry. */
+const ink = (hex: string) => {
+  const [r, g, b] = [0, 2, 4].map(i => parseInt(hex.slice(i, i + 2), 16) || 0)
+  return 0.299 * r! + 0.587 * g! + 0.114 * b! > 150 ? '#0A0D18' : '#F1ECE0'
+}
+
 const CustomColour = ({value, onPick}: {value: string; onPick: (hex: string) => void}) => {
   const [draft, setDraft] = useState(`#${value}`)
 
@@ -39,10 +45,10 @@ const CustomColour = ({value, onPick}: {value: string; onPick: (hex: string) => 
         <button
           type="button"
           aria-label="Custom background colour"
-          className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-xs border border-stage-600 text-text-dim transition-colors hover:border-gold-500/60 hover:text-lamp-300"
-          style={{background: `#${value}`}}
+          className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-xs border border-stage-600 transition-colors hover:border-gold-500/60"
+          style={{background: `#${value}`, color: ink(value)}}
         >
-          <Pipette className="size-3.5 mix-blend-difference" />
+          <Pipette className="size-3.5" />
         </button>
       </Popover.Trigger>
 
@@ -174,13 +180,6 @@ export const AvatarPicker = ({
       <div className="flex flex-wrap items-center gap-2">
         <Label>Background</Label>
         <CustomColour value={value.bg} onPick={bg => onChange({...value, bg})} />
-        <IconButton
-          label="Roll a random colour"
-          className="size-7"
-          onClick={() => onChange({...value, bg: randomHex()})}
-        >
-          <Dices className="size-3.5" />
-        </IconButton>
         {BACKGROUNDS.map(bg => (
           <button
             key={bg}
@@ -195,6 +194,13 @@ export const AvatarPicker = ({
             style={{background: `#${bg}`}}
           />
         ))}
+        <IconButton
+          label="Roll a random colour"
+          className="size-7"
+          onClick={() => onChange({...value, bg: randomHex()})}
+        >
+          <Dices className="size-3.5" />
+        </IconButton>
       </div>
     </Panel>
   )
