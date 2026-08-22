@@ -226,11 +226,13 @@ const Wordmark = () => {
   )
 }
 
-export const Landing = ({needsPassword: rejected}: {needsPassword: boolean}) => {
+export const Landing = ({locked, rejected}: {locked: boolean | null; rejected: boolean}) => {
   const seat = offeredSeat()
   const [name, setName] = useState(myDisplayName())
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
+
+  const asks = !joinedExisting || locked === true || rejected
 
   const go = async () => {
     const trimmed = name.trim()
@@ -268,12 +270,14 @@ export const Landing = ({needsPassword: rejected}: {needsPassword: boolean}) => 
               />
             </Field>
 
-            {(rejected || !joinedExisting) && (
+            {asks && (
               <Field
                 label={joinedExisting ? 'Lobby password' : 'Lobby password (optional)'}
                 hint={
                   rejected ? (
-                    <Label className="text-kill-lit">Not accepted. Try again.</Label>
+                    <Label className="text-kill-lit">
+                      {password.trim() ? 'Not accepted. Try again.' : 'This lobby needs a password.'}
+                    </Label>
                   ) : undefined
                 }
               >
@@ -292,7 +296,11 @@ export const Landing = ({needsPassword: rejected}: {needsPassword: boolean}) => 
               </Field>
             )}
 
-            <Button size="lg" onClick={() => void go()} disabled={!name.trim() || busy}>
+            <Button
+              size="lg"
+              onClick={() => void go()}
+              disabled={!name.trim() || busy || (locked === true && !password.trim())}
+            >
               {joinedExisting ? 'Take a seat' : 'Start a game'}
             </Button>
 

@@ -128,20 +128,20 @@ export const SettingsPanel = ({
   if (!editable) {
     return (
       <Panel className="h-fit p-5">
-        <Heading>On the card</Heading>
+        <Heading>Board settings</Heading>
         <Rule className="mt-3 mb-1" />
         <Readout label="Board" value={`${settings.size} × ${settings.size} · ${total} cards`} />
         <Readout label="Team cards" value={`${c.perTeam} each`} />
         <Readout label="Assassins" value={String(c.assassins)} />
         <Readout label="Neutral cards" value={String(Math.max(0, c.neutral))} />
+        <div className="my-3">
+          <CompositionRow settings={settings} />
+        </div>
         <Rule className="my-1" />
         <Readout label="Clue timer" value={settings.clueTimer ? `${settings.clueTimer}s` : 'off'} />
         <Readout label="Guess timer" value={settings.guessTimer ? `${settings.guessTimer}s` : 'off'} />
         <Rule className="my-1" />
-        <Readout label="Words" value={`${settings.wordListName} · ${wordCount}`} />
-        <div className="mt-4">
-          <CompositionRow settings={settings} />
-        </div>
+        <Readout label="Word bank" value={settings.wordListName} />
       </Panel>
     )
   }
@@ -162,8 +162,6 @@ export const SettingsPanel = ({
           />
         </Row>
 
-        <CompositionRow settings={settings} />
-
         <Row label={`Team cards — ${settings.teamCards}`}>
           <Dial
             min={1}
@@ -181,6 +179,8 @@ export const SettingsPanel = ({
             onChange={assassins => patch({assassins})}
           />
         </Row>
+
+        <CompositionRow settings={settings} />
 
         {problems.map(p => (
           <p key={p.field} className="type-label text-kill-lit">
@@ -212,7 +212,7 @@ export const SettingsPanel = ({
 
       <Rule />
 
-      <Row label={`Words — ${wordCount}`}>
+      <Row label="Word bank">
         <div className="flex flex-wrap gap-1.5">
           {PACKS.map(pack => (
             <Chip
@@ -227,12 +227,11 @@ export const SettingsPanel = ({
               onClick={() => choosePack(pack.id)}
             >
               {pack.name}
-              <span className="ml-1.5 opacity-50">{pack.count}</span>
             </Chip>
           ))}
         </div>
         <Button variant="quiet" size="sm" className="self-start" onClick={() => setShowCustom(v => !v)}>
-          {showCustom ? 'Close custom list' : 'Custom list…'}
+          {showCustom ? 'Close custom word bank' : 'Custom word bank…'}
         </Button>
         {showCustom && <CustomWordList size={settings.size} />}
       </Row>

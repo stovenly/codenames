@@ -7,6 +7,8 @@ export type MessageKind =
   | 'hello'
   | 'welcome'
   | 'reject'
+  | 'knock'
+  | 'lock'
   | 'state'
   | 'intent'
   | 'beat'

@@ -23,6 +23,8 @@ export type RoomSnapshot = {
   /** Host-local: how long our own tab has been backgrounded, for the title and favicon ladder. */
   hiddenMs: number
   degrading: boolean
+  /** null until the room answers a knock: an invite link cannot say whether the lobby is locked. */
+  locked: boolean | null
 }
 
 /** Widened while the host advertises a hidden tab, whose timers the browser throttles. */
@@ -89,6 +91,7 @@ let myAvatar: Avatar = getPrefs().avatar ?? {
 }
 let announcedAvatar = false
 let passwordHash: string | null = null
+let locked: boolean | null = joinedExisting ? null : false
 let lastHostAt = 0
 let clockOffset = 0
 let claims: Claim[] = []
@@ -112,7 +115,8 @@ let snapshot: RoomSnapshot = {
   me: self,
   wordsReady: false,
   hiddenMs: 0,
-  degrading: false
+  degrading: false,
+  locked
 }
 
 const publish = () => {
@@ -124,7 +128,8 @@ const publish = () => {
     me: self,
     wordsReady: shared ? words.have(shared.settings.wordListHash) : false,
     hiddenMs: hiddenSince ? Date.now() - hiddenSince : 0,
-    degrading
+    degrading,
+    locked
   }
   listeners.forEach(l => l())
 }
@@ -649,6 +654,19 @@ export const start = () => {
   // Creators have no room yet — createRoom boots the mesh.
   if (joinedExisting) startMesh()
 
+  // Asked before the join, because an invite link carries no sign that a password is wanted.
+  on('knock', (_body, env) => {
+    if (isHost()) send('lock', {locked: passwordHash !== null}, env.from)
+  })
+
+  on('lock', body => {
+    if (isHost()) return
+    const next = !!(body as {locked?: boolean} | null)?.locked
+    if (next === locked) return
+    locked = next
+    publish()
+  })
+
   on('hello', async (body, env) => {
     if (!isHost() || !shared) return
     const {name, proof} = (body ?? {}) as {name?: string; proof?: string | null}
@@ -755,6 +773,12 @@ export const start = () => {
     sendFull(shared, env.from)
   })
 
+  const knock = () => {
+    if (locked === null && peers().length) send('knock', {})
+  }
+  onNetChange(knock)
+  setInterval(knock, 700)
+
   onNetChange(monitor)
   setInterval(monitor, 500)
   startSeatClaim()
@@ -821,6 +845,7 @@ export const setPassword = async (password: string | null) => {
   if (!isHost()) return
   passwordHash = await proofFor(password)
   saveSession({password})
+  send('lock', {locked: passwordHash !== null})
   publish()
 }
 
