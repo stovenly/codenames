@@ -6,8 +6,9 @@ import type {Accolade} from '../../game/accolades'
 import type {View} from '../../game/reducer'
 import type {Player, Team} from '../../game/types'
 import {intend} from '../../state/room'
-import {Bulbs, Button, Label, Panel, Rule} from '../atoms'
+import {Button, Label, Panel, Rule} from '../atoms'
 import {cx} from '../cx'
+import {LampRing} from '../LampRing'
 import {spring} from '../motion'
 import {sfx} from '../sound/audio'
 import {Accolades} from './Accolades'
@@ -99,9 +100,11 @@ export const GameOver = ({
       <Panel
         level={2}
         glossy
-        className="relative z-20 flex w-full max-w-md flex-col items-center gap-6 px-8 py-9 text-center"
+        className="relative z-20 flex w-full max-w-md flex-col items-center gap-6 px-9 py-10 text-center"
       >
-        <Bulbs lit chase />
+        {/* A marquee border rather than two sliding strips: the eye follows a
+            ring around the result instead of being pulled off the top of it. */}
+        <LampRing across={9} down={5} className="inset-2.5" />
 
         <motion.span
           initial={{scale: 0.45, opacity: 0, rotate: -6}}
@@ -156,7 +159,6 @@ export const GameOver = ({
           <Label>Waiting on the host…</Label>
         )}
 
-        <Bulbs lit chase />
       </Panel>
 
       <Accolades cards={honours} players={players} />

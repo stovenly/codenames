@@ -62,7 +62,8 @@ export const Board = ({
             index={i}
             phase={phaseFor(stage, i)}
             landedColour={stage.kind === 'landing' || stage.kind === 'aftermath' ? stage.colour : null}
-            windupUntil={stage.kind === 'windup' ? stage.until : 0}
+            reelColour={stage.kind === 'windup' && stage.card === i ? stage.colour : null}
+            windupMs={stage.kind === 'windup' ? stage.until - stage.from : 0}
             dim={stage.kind === 'windup' && stage.card !== i}
             spymaster={spymaster}
             interactive={canGuess && !card.revealed && !busy}

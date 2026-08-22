@@ -13,6 +13,7 @@ import * as words from './words'
  */
 export type Stage =
   | {kind: 'idle'}
+  | {kind: 'deal'; team: Team}
   | {kind: 'clue'; clue: Clue}
   | {kind: 'windup'; card: number; team: Team; colour: Colour; until: number; from: number}
   | {kind: 'landing'; card: number; colour: Colour; team: Team}
@@ -32,7 +33,9 @@ const FULL = {
   wrong: 1900,
   assassin: 3400,
   clue: 3600,
-  turn: 1800
+  turn: 1800,
+  /** The board arriving, so the first card is not simply there one frame later. */
+  deal: 2800
 }
 
 /**
@@ -80,17 +83,18 @@ const colourAt = (cursorAfterGuess: number): {colour: Colour} | null => {
 }
 
 /**
- * The guesser used to be last to see their own guess: their click travels to
- * the host and the result travels back before anything moves. Confirming starts
- * the windup here and now, and the step catches up with it — the outcome still
- * comes from the host, and the churn never knew it anyway.
+ * The guesser used to be last to see their own guess: the click travelled to
+ * the host and the result travelled back before anything moved.
+ *
+ * It does not have to. Every client derives the same board from the same seed,
+ * so the guesser already knows what that card is the instant they commit to it.
+ * The whole sequence runs locally and the host's step is reconciled against it
+ * afterwards — it decides whether the guess counted, never what it was.
  */
-let awaiting: {card: number; deadline: number} | null = null
-
-const GIVE_UP_MS = 2_500
+let played: number | null = null
 
 export const previewGuess = (card: number) => {
-  if (playing || awaiting) return
+  if (playing) return
   const {shared} = getRoom()
   if (!shared) return
   const view = derive(
@@ -100,53 +104,25 @@ export const previewGuess = (card: number) => {
     shownCursor
   )
   if (view.phase !== 'guess') return
+  const colour = view.cards[card]?.colour
+  if (!colour) return
 
-  const t = timings()
   playing = true
-  awaiting = {card, deadline: Date.now() + GIVE_UP_MS}
-  stage = {kind: 'windup', card, team: view.turn, colour: 'neutral', until: Date.now() + t.windup, from: Date.now()}
-  publish()
-  sfx.confirm()
-  sfx.riser(t.windup / 1000)
-  at(t.windup, settlePreview)
+  played = card
+  windUp(card, view.turn, colour)
 }
 
 /**
- * The windup is over; land it as soon as the host's version of it arrives.
- *
- * Searching forward rather than checking one slot matters: anything still
- * queued in front of the guess would otherwise hide it, the preview would time
- * out, and pump would then play the very same guess again — a second full
- * windup, which is the guesser sitting through twice what everyone else saw.
+ * Consumes the guess step for a card we have already shown, wherever it landed
+ * in the list. Returns false while it is still in flight, which is what `played`
+ * is for: pump must skip it when it arrives rather than play it a second time.
  */
-const settlePreview = () => {
-  if (!awaiting) return
-  const {shared} = getRoom()
-  const mine = awaiting.card
-
-  const found = shared
-    ? shared.steps.findIndex((st, i) => i >= shownCursor && st.t === 'guess' && st.card === mine)
-    : -1
-
-  if (found >= 0 && shared) {
-    const step = shared.steps[found]!
-    if (step.t !== 'guess') return
-    awaiting = null
-    shownCursor = found
-    land(step.card, step.team, colourAt(found + 1)?.colour ?? 'neutral')
-    return
-  }
-
-  // No such step: the host refused it, so there is nothing to play.
-  if (Date.now() > awaiting.deadline) {
-    awaiting = null
-    stage = {kind: 'idle'}
-    playing = false
-    publish()
-    pump()
-    return
-  }
-  at(120, settlePreview)
+const consumeGuess = (card: number): boolean => {
+  const steps = getRoom().shared?.steps ?? []
+  const found = steps.findIndex((st, i) => i >= shownCursor && st.t === 'guess' && st.card === card)
+  if (found < 0) return false
+  shownCursor = found + 1
+  return true
 }
 
 const finishStep = () => {
@@ -157,12 +133,17 @@ const finishStep = () => {
   queueMicrotask(pump)
 }
 
-/** The card flips here: the authoritative reveal becomes visible. */
+/** The card flips here: the reveal becomes visible. */
 const land = (card: number, team: Team, colour: Colour) => {
   const t = timings()
   const correct = colour === team
 
-  shownCursor++
+  if (played === card) {
+    if (consumeGuess(card)) played = null
+  } else {
+    shownCursor++
+  }
+
   stage = {kind: 'landing', card, colour, team}
   publish()
   sfx.land()
@@ -184,17 +165,17 @@ const land = (card: number, team: Team, colour: Colour) => {
   })
 }
 
-const playGuess = (card: number, team: Team) => {
+const windUp = (card: number, team: Team, colour: Colour) => {
   const t = timings()
-  const colour: Colour = colourAt(shownCursor + 1)?.colour ?? 'neutral'
-
   stage = {kind: 'windup', card, team, colour, until: Date.now() + t.windup, from: Date.now()}
   publish()
   sfx.confirm()
   sfx.riser(t.windup / 1000)
-
   at(t.windup, () => land(card, team, colour))
 }
+
+const playGuess = (card: number, team: Team) =>
+  windUp(card, team, colourAt(shownCursor + 1)?.colour ?? 'neutral')
 
 const pump = () => {
   if (playing) return
@@ -211,7 +192,8 @@ const pump = () => {
 
   if (shownCursor === shared.cursor) return
 
-  // Arriving at a game already in progress is not something to replay.
+  // Arriving at a game already in progress is not something to replay. A board
+  // that has only just been dealt is not in progress.
   const joining = shownCursor === 0 && shared.cursor > 1
   if (joining || shared.cursor - shownCursor > CATCH_UP_LIMIT) {
     shownCursor = shared.cursor
@@ -223,12 +205,24 @@ const pump = () => {
   const step = shared.steps[shownCursor]
   if (!step) return
 
+  // Our own guess, arriving after we already showed it.
+  if (step.t === 'guess' && played === step.card) {
+    played = null
+    shownCursor++
+    publish()
+    queueMicrotask(pump)
+    return
+  }
+
   playing = true
   const t = timings()
 
   switch (step.t) {
     case 'start':
-      finishStep()
+      stage = {kind: 'deal', team: step.startTeam}
+      publish()
+      sfx.turn(step.startTeam)
+      at(t.deal, finishStep)
       return
 
     case 'clue':
@@ -273,7 +267,7 @@ export const getTheatre = () => snapshot
 
 export const resetTheatre = () => {
   clearTimers()
-  awaiting = null
+  played = null
   shownCursor = 0
   stage = {kind: 'idle'}
   playing = false

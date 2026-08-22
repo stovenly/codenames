@@ -58,7 +58,7 @@ describe('theatre', () => {
 
   it('winds up a guess that arrives on its own', async () => {
     deliver([START])
-    await settle(10)
+    await settle(3200)
     deliver([START, CLUE])
     await settle(5000)
     deliver([START, CLUE, GUESS])
@@ -68,7 +68,7 @@ describe('theatre', () => {
 
   it('winds up a guess that arrives batched with its follow-up', async () => {
     deliver([START])
-    await settle(10)
+    await settle(3200)
     deliver([START, CLUE])
     await settle(5000)
     deliver([START, CLUE, GUESS, END_TURN])
@@ -78,7 +78,7 @@ describe('theatre', () => {
 
   it('winds up when the clue and the guess arrive together', async () => {
     deliver([START])
-    await settle(10)
+    await settle(3200)
     deliver([START, CLUE, GUESS, END_TURN])
     await settle(4000)
     expect(getTheatre().stage.kind).toBe('windup')

@@ -4,6 +4,7 @@ import {joinedExisting} from '../../state/net'
 import {createRoom, joinRoom, myDisplayName} from '../../state/room'
 import {Button, Enter, Field, Item, Label, Panel, Rule, input} from '../atoms'
 import {cx} from '../cx'
+import {LampRing} from '../LampRing'
 import {Crowd} from './Silhouettes'
 
 /**
@@ -127,35 +128,6 @@ const Lighting = () => {
 }
 
 /** Lamps walked round the perimeter in order, so the chase actually travels. */
-const perimeter = (across: number, down: number) => {
-  const points: Array<{x: number; y: number}> = []
-  for (let i = 0; i < across; i++) points.push({x: (i / across) * 100, y: 0})
-  for (let i = 0; i < down; i++) points.push({x: 100, y: (i / down) * 100})
-  for (let i = across; i > 0; i--) points.push({x: (i / across) * 100, y: 100})
-  for (let i = down; i > 0; i--) points.push({x: 0, y: (i / down) * 100})
-  return points
-}
-
-const BulbFrame = () => {
-    const lamps = useMemo(() => perimeter(13, 6), [])
-  return (
-    <span aria-hidden className="pointer-events-none absolute inset-0">
-      {lamps.map((p, i) => (
-        <span
-          key={i}
-          className={cx('lamp', 'lamp-run')}
-          style={{
-            left: `${p.x}%`,
-            top: `${p.y}%`,
-            ['--i' as string]: i,
-            ['--n' as string]: lamps.length
-          }}
-        />
-      ))}
-    </span>
-  )
-}
-
 const SignFrame = ({children}: {children: React.ReactNode}) => (
   <div className="relative px-10 py-9 select-none sm:px-14 sm:py-11">
     <span
@@ -167,7 +139,7 @@ const SignFrame = ({children}: {children: React.ReactNode}) => (
           'inset 0 1px 0 rgba(255,255,255,.16), inset 0 -3px 16px rgba(0,0,0,.75), 0 26px 70px -28px rgba(0,0,0,1), 0 0 70px -18px rgba(255,197,61,.4)'
       }}
     />
-    <BulbFrame />
+    <LampRing />
     <div className="relative">{children}</div>
   </div>
 )

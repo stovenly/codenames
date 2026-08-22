@@ -168,8 +168,8 @@ export const accolades = (
   if (assassin) {
     out.push({
       id: 'assassin',
-      title: 'Handed Over the Assassin',
-      detail: 'ended it for everyone',
+      title: 'Saboteur',
+      detail: 'found the assassin',
       who: assassin.who,
       weight: 100,
       at: assassin.at
@@ -204,7 +204,7 @@ export const accolades = (
   add('butter', 'Butterfingers', butter ? plural(butter.n, 'wrong pick') : '', butter, 50)
 
   const bystand = leader(tallies, t => t.neutral)
-  add('bystand', 'Bystander Magnet', bystand ? `${plural(bystand.n, 'innocent')} disturbed` : '', bystand, 45)
+  add('bystand', 'Civilian Liaison', bystand ? `${plural(bystand.n, 'innocent')} disturbed` : '', bystand, 45)
 
   const trigger = leader(tallies, t => (t.picks >= 3 ? t.picks : 0))
   add('trigger', 'Trigger Happy', trigger ? plural(trigger.n, 'card') + ' touched' : '', trigger, 35)
@@ -218,7 +218,7 @@ export const accolades = (
   const idle = seated
     .filter(p => !p.spymaster && (tallies.get(p.id)?.picks ?? 0) === 0)
     .map(p => ({who: p.id, n: 1, at: Number.MAX_SAFE_INTEGER}))[0]
-  add('idle', 'Along for the Ride', 'never touched a card', idle ?? null, 30)
+  add('idle', 'Passenger', 'never touched a card', idle ?? null, 30)
 
   return pick(out, 4)
 }

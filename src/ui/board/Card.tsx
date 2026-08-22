@@ -23,16 +23,58 @@ const KEY_FACE: Record<Colour, string> = {
   assassin: 'linear-gradient(180deg, #101014 0%, #000 100%)'
 }
 
-const FACES = 30
+const FACES = 34
 /** Faces fall, so the reel runs from the far end of the strip back toward the top. */
-const START = 27
-const SPUN = 6
-/** Where it comes to rest; the faces either side exist only to overshoot into. */
-const LAND = 2
+const START = 31
+/** Where it comes to rest. The faces either side exist to be overshot into. */
+const LAND = 3
 
-const shuffleFaces = (): Colour[] => {
-  const pool: Colour[] = ['red', 'blue', 'neutral', 'assassin']
-  return Array.from({length: FACES}, () => pool[Math.floor(Math.random() * pool.length)]!)
+const POOL: Colour[] = ['red', 'blue', 'neutral', 'assassin']
+
+/** A different run-up every time, with the answer dropped into the resting slot. */
+const buildStrip = (target: Colour): Colour[] => {
+  const strip = Array.from({length: FACES}, () => POOL[Math.floor(Math.random() * POOL.length)]!)
+  strip[LAND] = target
+  // Never sit the answer directly above the window as the reel slows: seeing it
+  // arrive one notch early is the whole tension given away for free.
+  strip[LAND + 1] = POOL.filter(c => c !== target)[Math.floor(Math.random() * 3)]!
+  return strip
+}
+
+/**
+ * The last second of a wheel, which is the only part anyone watches.
+ *
+ * Each ending is a list of [notch, hold] pairs covering the final third of the
+ * run — a notch being a position on the strip, fractional where the wheel is
+ * caught between two. They exist because a wheel that decelerates smoothly onto
+ * its answer has no moment in it: the tension is in the pass-and-click-back and
+ * the last grudging half-notch.
+ */
+type Ending = {notches: number[]; times: number[]}
+
+const ENDINGS: Ending[] = [
+  // Straight past it, hangs, and clicks back up.
+  {notches: [LAND + 2, LAND - 1, LAND - 1, LAND], times: [0.62, 0.82, 0.9, 1]},
+  // Creeps in, stalling twice on the way.
+  {notches: [LAND + 2, LAND + 1, LAND + 1, LAND + 0.45, LAND + 0.45, LAND], times: [0.6, 0.74, 0.84, 0.9, 0.95, 1]},
+  // Arrives, twitches past, settles back.
+  {notches: [LAND + 2, LAND, LAND - 0.4, LAND], times: [0.62, 0.85, 0.93, 1]},
+  // Stops a notch short, sits there, then drops in.
+  {notches: [LAND + 2, LAND + 1, LAND + 1, LAND], times: [0.58, 0.72, 0.92, 1]},
+  // Clean. Rare on purpose, so the others read as near-misses rather than as how it always goes.
+  {notches: [LAND + 2, LAND], times: [0.7, 1]}
+]
+
+/** The clean stop is one draw in nine; a near-miss every time stops being one. */
+const WEIGHTS = [3, 3, 3, 3, 1]
+
+const anEnding = () => {
+  let n = Math.random() * WEIGHTS.reduce((a, b) => a + b, 0)
+  for (let i = 0; i < ENDINGS.length; i++) {
+    n -= WEIGHTS[i]!
+    if (n <= 0) return ENDINGS[i]!
+  }
+  return ENDINGS[0]!
 }
 
 const Face = ({colour}: {colour: Colour}) => (
@@ -45,38 +87,56 @@ const Face = ({colour}: {colour: Colour}) => (
 )
 
 /**
- * One reel, the height of the card, spinning through whole card faces. It
- * decelerates through the windup without settling, because until the host's
- * step lands there is nothing to settle on — and then it overshoots the answer
- * by one and ticks back, the way a wheel does.
- *
- * The strip is random every time, so the run-up is never the same twice.
+ * One reel, the height of the card, spinning whole card faces past the window.
+ * It knows the answer from the first frame — every client derives the same
+ * board — so the run is one continuous choreography that ends on the card
+ * rather than a spin that snaps to it.
  */
-const Reel = ({target, landMs}: {target: Colour | null; landMs: number}) => {
-  const strip = useRef(shuffleFaces()).current
-  /** Chosen once, so a re-render mid-tick cannot flip which way it settles. */
-  const overshoot = useRef(Math.random() < 0.5 ? 1 : -1).current
+const Reel = ({target, ms, settling}: {target: Colour; ms: number; settling: boolean}) => {
+  const run = useRef({strip: buildStrip(target), ending: anEnding()}).current
 
-  const faces = target ? strip.map((c, i) => (i === LAND ? target : c)) : strip
   const at = (i: number) => `${(-i * 100) / FACES}%`
+  const {notches, times} = run.ending
 
   return (
-    <span className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
+    <motion.span
+      className="pointer-events-none absolute inset-0 z-10 overflow-hidden"
+      animate={{opacity: settling ? 0 : 1}}
+      transition={{duration: settling ? 0.4 : 0, delay: settling ? 0.2 : 0}}
+    >
       <motion.span
         className="absolute inset-x-0 top-0 flex flex-col"
         initial={{y: at(START)}}
-        animate={target ? {y: [null, at(LAND + overshoot), at(LAND)]} : {y: at(SPUN)}}
+        animate={
+          settling
+            ? {y: at(LAND)}
+            : {y: [at(START), at(LAND + 9), ...notches.map(at)]}
+        }
         transition={
-          target
-            ? {duration: landMs / 1000, times: [0, 0.66, 1], ease: ['easeOut', 'easeInOut']}
-            : {duration: 2.4, ease: [0.12, 0.55, 0.2, 1]}
+          settling
+            ? {duration: 0}
+            : {
+                duration: ms / 1000,
+                times: [0, 0.34, ...times],
+                ease: ['easeIn', 'easeOut', ...notches.map(() => 'easeInOut' as const)]
+              }
         }
       >
-        {faces.map((colour, i) => (
+        {run.strip.map((colour, i) => (
           <Face key={i} colour={colour} />
         ))}
       </motion.span>
-    </span>
+
+      {/* The window's own shadow, so faces arrive out of somewhere. */}
+      <span
+        aria-hidden
+        className="absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(180deg, rgba(0,0,0,.55) 0%, transparent 22%, transparent 78%, rgba(0,0,0,.55) 100%)'
+        }}
+      />
+    </motion.span>
   )
 }
 
@@ -127,7 +187,8 @@ const CardBase = ({
   index,
   phase,
   landedColour,
-  windupUntil,
+  reelColour,
+  windupMs,
   dim,
   spymaster,
   interactive,
@@ -140,7 +201,8 @@ const CardBase = ({
   index: number
   phase: CardPhase
   landedColour: Colour | null
-  windupUntil: number
+  reelColour: Colour | null
+  windupMs: number
   dim: boolean
   spymaster: boolean
   interactive: boolean
@@ -231,7 +293,7 @@ const CardBase = ({
         className={cx(
           'type-plate relative z-20 px-1.5 transition-opacity duration-150',
           !faceUp && 'letterpress',
-          (phase === 'windup' || phase === 'landing') && 'opacity-0'
+          phase === 'windup' && 'opacity-0'
         )}
         style={{
           // Long words shrink rather than run off the card, which the wider
@@ -243,8 +305,14 @@ const CardBase = ({
         {card.word}
       </span>
 
-      {(phase === 'windup' || phase === 'landing') && (
-        <Reel target={phase === 'landing' ? shown : null} landMs={windupUntil} />
+      {/* Held through the landing and faded out, so the face it stopped on does
+          not blink into the word underneath it. */}
+      {(phase === 'windup' || phase === 'landing') && (reelColour ?? shown) && (
+        <Reel
+          target={(reelColour ?? shown)!}
+          ms={windupMs}
+          settling={phase === 'landing'}
+        />
       )}
 
       <AnimatePresence>
@@ -315,7 +383,7 @@ export const Card = memo(
     a.card.colour === b.card.colour &&
     a.phase === b.phase &&
     a.landedColour === b.landedColour &&
-    a.windupUntil === b.windupUntil &&
+    a.reelColour === b.reelColour &&
     a.dim === b.dim &&
     a.spymaster === b.spymaster &&
     a.interactive === b.interactive &&

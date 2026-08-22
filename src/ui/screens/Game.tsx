@@ -9,6 +9,7 @@ import * as words from '../../state/words'
 import {Label} from '../atoms'
 import {Board} from '../board/Board'
 import {ClueReveal, TurnBand} from '../hud/ClueReveal'
+import {Curtain} from '../hud/Curtain'
 import {Hud} from '../hud/Hud'
 import {AssassinTakeover, BoardBreath, SpymasterChrome} from '../hud/Overlays'
 import {unlockAudio} from '../sound/audio'
@@ -97,6 +98,7 @@ export const Game = () => {
       </main>
 
       <AnimatePresence>
+        {stage.kind === 'deal' && <Curtain key="deal" team={stage.team} />}
         {stage.kind === 'clue' && <ClueReveal key="clue" clue={stage.clue} />}
         {stage.kind === 'turn' && <TurnBand key={`turn-${stage.team}`} team={stage.team} />}
         {stage.kind === 'aftermath' && stage.colour === 'assassin' && (

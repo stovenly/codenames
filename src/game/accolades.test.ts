@@ -46,7 +46,7 @@ describe('accolades', () => {
       {t: 'guess', team: 'red', by: 'rg', card: firstOf('red')},
       {t: 'guess', team: 'red', by: 'rg', card: firstOf('assassin')}
     ]
-    expect(titles(steps)[0]).toBe('Handed Over the Assassin:rg')
+    expect(titles(steps)[0]).toBe('Saboteur:rg')
   })
 
   it('names four different people when it can', () => {
@@ -86,6 +86,6 @@ describe('accolades', () => {
       {t: 'clue', team: 'red', by: 'rs', word: 'ORBIT', count: 1},
       {t: 'guess', team: 'red', by: 'rg', card: firstOf('red')}
     ]
-    expect(titles(steps).some(t => t.startsWith('Along for the Ride'))).toBe(true)
+    expect(titles(steps).some(t => t.startsWith('Passenger'))).toBe(true)
   })
 })
