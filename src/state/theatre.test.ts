@@ -106,11 +106,11 @@ describe('a guess of my own', () => {
     await settle(5000)
 
     previewGuess(0)
-    await settle(100)
+    await settle(10)
     expect(getTheatre().stage.kind).toBe('idle')
 
     // Nothing ever comes back, and the reveal still happens.
-    await settle(600)
+    await settle(200)
     expect(getTheatre().stage.kind).toBe('windup')
   })
 

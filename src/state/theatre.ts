@@ -95,12 +95,11 @@ let played: number | null = null
 
 /**
  * How long the guesser will hold for the host's version of their guess before
- * starting anyway. Everyone else starts when the broadcast reaches them, so
- * holding briefly is what keeps the table looking at the same thing — but the
- * hold has to be bounded, or one slow round trip leaves the guesser watching
- * the aftermath of a reveal the rest of the room has already finished.
+ * starting anyway. Long enough to cover the round trip on a healthy mesh, so
+ * everyone starts together — and short enough that it reads as a click rather
+ * than as the game thinking about it.
  */
-const SYNC_GRACE_MS = 450
+const SYNC_GRACE_MS = 100
 
 export const previewGuess = (card: number) => {
   if (playing) return
@@ -125,7 +124,7 @@ export const previewGuess = (card: number) => {
   const deadline = Date.now() + SYNC_GRACE_MS
   const begin = () => {
     if (arrived(card) || Date.now() >= deadline) windUp(card, view.turn, colour)
-    else at(60, begin)
+    else at(20, begin)
   }
   begin()
 }

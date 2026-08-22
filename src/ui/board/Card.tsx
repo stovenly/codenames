@@ -212,7 +212,7 @@ const CardBase = ({
   onPick: () => void
 }) => {
     const ref = useRef<HTMLButtonElement>(null)
-  const [sheen, setSheen] = useState({x: 50, y: 50})
+  const [sheen, setSheen] = useState<{x: number; y: number} | null>(null)
 
   const shown: Colour | null = card.revealed
     ? card.colour
@@ -225,11 +225,16 @@ const CardBase = ({
   const plate =
     'linear-gradient(178deg, rgba(255,255,255,.06) 0%, transparent 20%), linear-gradient(180deg, #121A2E 0%, #0A0D18 100%)'
 
+  /** Null until the pointer is actually over the card: a light under a cursor
+      that is not there is just a permanent smudge behind the word. */
   const move = (e: React.MouseEvent) => {
     if (!interactive) return
     const box = ref.current?.getBoundingClientRect()
     if (!box) return
-    setSheen({x: ((e.clientX - box.left) / box.width) * 100, y: ((e.clientY - box.top) / box.height) * 100})
+    setSheen({
+      x: ((e.clientX - box.left) / box.width) * 100,
+      y: ((e.clientY - box.top) / box.height) * 100
+    })
   }
 
   return (
@@ -240,7 +245,7 @@ const CardBase = ({
       aria-label={`${card.word}${faceUp ? `, ${STAMP[shown]}` : ''}`}
       aria-pressed={armed}
       onMouseMove={move}
-      onMouseLeave={() => setSheen({x: 50, y: 50})}
+      onMouseLeave={() => setSheen(null)}
       onMouseEnter={() => interactive && sfx.hover()}
       onClick={onPick}
       animate={{
@@ -269,12 +274,12 @@ const CardBase = ({
         card.revealed && phase === 'idle' && 'brightness-[.82] saturate-[.72]'
       )}
     >
-      {!faceUp && interactive && (
+      {!faceUp && interactive && sheen && (
         <span
           aria-hidden
           className="pointer-events-none absolute inset-0"
           style={{
-            background: `radial-gradient(40% 60% at ${sheen.x}% ${sheen.y}%, rgba(255,226,154,.14), transparent 70%)`
+            background: `radial-gradient(38% 56% at ${sheen.x}% ${sheen.y}%, rgba(255,226,154,.2), transparent 72%)`
           }}
         />
       )}

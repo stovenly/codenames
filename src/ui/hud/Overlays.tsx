@@ -71,29 +71,33 @@ export const BoardBreath = ({team}: {team: 'red' | 'blue'}) => {
 }
 
 /** The spymaster is in the booth: hazard bands, and a watermark a screen-share cannot hide. */
+/**
+ * You are holding the key. Said with the light the rest of the set is made of —
+ * a warm gold edge, as though this one seat has its own lamp — rather than with
+ * hazard tape and a watermark, which belong to a different product.
+ */
 export const SpymasterChrome = () => (
   <>
-    {(['top-0', 'bottom-0'] as const).map(edge => (
-      <span
-        key={edge}
-        aria-hidden
-        className={`pointer-events-none fixed inset-x-0 ${edge} z-30 flex h-5 items-center justify-center overflow-hidden`}
-        style={{
-          background:
-            'repeating-linear-gradient(135deg, rgba(255,197,61,.8) 0 12px, rgba(5,6,11,.92) 12px 24px)'
-        }}
-      >
-        <span className="type-marquee rounded-xs bg-stage-000/92 px-3 py-0.5 text-[9px] tracking-[0.3em] text-lamp-300">
-          Spymaster
-        </span>
-      </span>
-    ))}
+    <motion.span
+      aria-hidden
+      className="pointer-events-none fixed inset-0 z-30"
+      initial={{opacity: 0}}
+      animate={{opacity: [0.55, 0.8, 0.55]}}
+      transition={{duration: 6.5, repeat: Infinity, ease: 'easeInOut'}}
+      style={{
+        boxShadow:
+          'inset 0 0 0 1px rgba(255,197,61,.28), inset 0 0 90px -30px rgba(255,197,61,.75)'
+      }}
+    />
     <span
       aria-hidden
-      className="type-marquee pointer-events-none fixed inset-0 z-20 grid select-none place-items-center overflow-hidden text-[16vw] leading-none text-lamp-500/[0.04]"
-      style={{transform: 'rotate(-20deg)'}}
-    >
-      Spymaster
-    </span>
+      className="pointer-events-none fixed inset-x-0 top-0 z-30 h-px"
+      style={{background: 'linear-gradient(90deg, transparent, rgba(255,197,61,.75), transparent)'}}
+    />
+    <span
+      aria-hidden
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-30 h-px"
+      style={{background: 'linear-gradient(90deg, transparent, rgba(255,197,61,.75), transparent)'}}
+    />
   </>
 )
