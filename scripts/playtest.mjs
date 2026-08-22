@@ -2,11 +2,11 @@
  * Opens a full lobby of real, separate clients so one person can play test a
  * game that needs four.
  *
- *   npm run playtest                    four windows; you are red's spymaster
- *   npm run playtest -- --seat=1        you are a red spy instead
- *   npm run playtest -- --seat=none     nobody is yours; it plays itself
- *   npm run playtest -- --seat=all      every window is yours, no bots
+ *   npm run playtest                    four windows, all yours to play
  *   npm run playtest -- --players=6
+ *   npm run playtest -- --auto          the seats you are not in play themselves
+ *   npm run playtest -- --auto --seat=1 you keep seat 1 instead of seat 0
+ *   npm run playtest -- --auto --seat=none   nobody is yours; it plays itself
  *   npm run playtest -- --headless      no windows; watch the log instead
  *   npm run playtest -- --url=http://localhost:4173/codenames/
  *
@@ -31,7 +31,8 @@ const flag = name => process.argv.includes(`--${name}`)
 
 const URL_BASE = arg('url', 'http://localhost:5173/codenames/')
 const PLAYERS = Math.max(4, Number(arg('players', 4)))
-/** Which window you intend to drive yourself; the rest play themselves. */
+const AUTO = flag('auto')
+/** Under --auto, the one window still left for you. */
 const SEAT = arg('seat', '0')
 const HEADLESS = flag('headless')
 const PORT = Number(arg('port', 9455))
@@ -226,12 +227,13 @@ await waitFor(
 await click(host, 'Start game')
 console.log('game started')
 
-const bots = SEAT === 'all' ? [] : tabs.filter(t => String(t.index) !== SEAT)
-if (!bots.length) {
-  console.log('no bots — every window is yours. Ctrl-C when you are done.')
-} else {
-  console.log(`you are ${tabs.find(t => String(t.index) === SEAT)?.label ?? 'nobody'}; the rest play themselves`)
-}
+const bots = AUTO ? tabs.filter(t => String(t.index) !== SEAT) : []
+const yours = tabs.find(t => String(t.index) === SEAT)
+console.log(
+  !bots.length
+    ? 'every window is yours to play. Ctrl-C when you are done.'
+    : `you are ${yours?.label ?? 'nobody'}; the rest play themselves`
+)
 
 const CLUES = ['ORBIT', 'CIPHER', 'HARBOR', 'LANTERN', 'THICKET', 'VELVET', 'QUARRY', 'MERIDIAN']
 
@@ -260,7 +262,7 @@ const act = (tab, clue) =>
 
 let turn = 0
 let done = false
-for (;;) {
+for (; bots.length; ) {
   await sleep(1800)
 
   if (await host.evaluate(`/play again|new game|rematch/i.test(document.body.innerText)`)) {
@@ -275,3 +277,6 @@ for (;;) {
     if (did) console.log(`  ${bot.label}: ${did}`)
   }
 }
+
+// Nothing to drive, but the windows are the point — hold them open.
+await new Promise(() => {})
