@@ -13,10 +13,11 @@
  * person does not put it back.
  *
  * Trystero seeds its shuffle with the app id, not the room, so its pick of the
- * nostr defaults is the same five for every client of this app forever — and
- * one of them is relay.damus.io, which rate-limits us and refuses outright from
- * some networks. The list below is that same pick with damus dropped and the
- * next relay in shuffle order taking its place.
+ * nostr defaults is the same handful for every client of this app forever, and
+ * a bad entry in that pick fails for everyone on every load. The list below is
+ * chosen from its defaults — so still relays known to accept the events it
+ * publishes — favouring the largest and fastest, because small self-hosted
+ * relays are the ones a VPN exit or a corporate resolver tends to block.
  *
  * Note that supplying `urls` makes Trystero ignore `redundancy` and connect to
  * every entry, so a list here must be short enough to be the whole set, and
@@ -27,10 +28,9 @@
 export const REDUNDANCY = 5
 
 export const NOSTR_RELAYS: string[] | null = [
-  'wss://yabu.me/v2',
-  'wss://relay.notoshi.win',
-  'wss://koru.bitcointxoko.org',
-  'wss://nostr.self-determined.de',
+  'wss://nos.lol',
+  'wss://purplerelay.com',
+  'wss://relay.nostr.place',
   'wss://relay.mostr.pub'
 ]
 
@@ -50,10 +50,11 @@ export const TORRENT_RELAYS: string[] | null = [
  *
  *   mqtt     broker.emqx.io:8084, broker-cn.emqx.io:8084,
  *            test.mosquitto.org:8081, mqtt.eclipseprojects.io
+ *   nostr    relay.froth.zone, strfry.openhoofd.nl
  *   torrent  tracker.files.fm:7073, tracker.btorrent.xyz, tracker.novage.com.ua
  *
  * Opens a socket but not worth listing:
  *
- *   nostr    relay.damus.io (rate-limits, and blocked on some VPN exits),
- *            offchain.pub (web-of-trust policy)
+ *   nostr    relay.damus.io (rate-limits), offchain.pub (web-of-trust policy),
+ *            koru.bitcointxoko.org (reachable here, refused from a VPN exit)
  */
