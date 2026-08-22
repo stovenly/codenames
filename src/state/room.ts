@@ -253,11 +253,16 @@ const commit = (mutate: (draft: Shared) => Shared) => {
 }
 
 const appendStep = (step: Step) => {
-  lastStepAt = Date.now()
+  const now = Date.now()
+  lastStepAt = now
   commit(draft => {
     const list = words.get(draft.settings.wordListHash)
     const truncated = draft.steps.slice(0, draft.cursor)
-    const steps = advance(draft.settings, list, truncated, step)
+    // Follow-ups are consequences of this one and share its moment. Only the
+    // host runs this, so every stamp in the list comes off the same clock.
+    const steps = advance(draft.settings, list, truncated, step).map(s =>
+      s.at === undefined ? {...s, at: now} : s
+    )
     return {...draft, steps, cursor: steps.length}
   })
 }

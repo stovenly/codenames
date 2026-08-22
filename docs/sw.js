@@ -1,10 +1,10 @@
-const VERSION = 'cn-ubi2io'
+const VERSION = 'cn-13ebekc'
 const SHELL = [
   "./",
   "./index.html",
-  "./assets/index-Dz6oJ8fk.js",
+  "./assets/index-C4W8mwzD.js",
   "./assets/rolldown-runtime-hePW80VL.js",
-  "./assets/index-DEw_hdEx.css"
+  "./assets/index-BMXd5TVx.css"
 ]
 
 self.addEventListener('install', event => {

@@ -228,6 +228,7 @@ export const catalogue = (
   add('cold', 'Cold Feet', cold ? plural(cold.n, 'turn') + ' given up early' : '', cold, 33)
 
   out.push(...teamLeaders(seated, tallies))
+  out.push(...thinkers(steps, seated))
 
   const idle = seated
     .filter(p => !p.spymaster && (tallies.get(p.id)?.picks ?? 0) === 0)
@@ -244,6 +245,76 @@ export const accolades = (
   steps: Step[],
   players: Player[]
 ): Accolade[] => pick(catalogue(settings, words, steps, players), 4)
+
+/**
+ * How long a spymaster sat there, measured against the other one.
+ *
+ * Against the other one because the raw number is not clean: a clue cannot be
+ * given until the previous team's reveal has finished playing, so every gap
+ * carries a few seconds of animation nobody was thinking during. Both
+ * spymasters pay that, so comparing them cancels it — and the ratio between
+ * them is the only claim worth making anyway.
+ *
+ * The configured clue timer is deliberately ignored. This is how long somebody
+ * took, not how much of an allowance they used.
+ */
+const MIN_CLUES = 2
+/** Below this they were much of a muchness, and there is no card in that. */
+const NOTABLE_RATIO = 1.35
+
+const took = (ms: number) =>
+  ms < 60_000 ? `${Math.round(ms / 1000)}s a clue` : `${Math.floor(ms / 60_000)}m a clue`
+
+const thinkers = (steps: Step[], seated: Player[]): Accolade[] => {
+  const spent = new Map<PlayerId, {total: number; n: number; at: number}>()
+
+  steps.forEach((step, i) => {
+    if (step.t !== 'clue' || step.at === undefined) return
+    const before = steps[i - 1]
+    // The opening clue also waited out the deal, which nobody was thinking
+    // during and only the side going first ever pays.
+    if (!before || before.t === 'start' || before.at === undefined) return
+
+    const gap = step.at - before.at
+    if (gap <= 0) return
+    const row = spent.get(step.by) ?? {total: 0, n: 0, at: i}
+    row.total += gap
+    row.n++
+    spent.set(step.by, row)
+  })
+
+  const ranked = [...spent]
+    .filter(([who, row]) => row.n >= MIN_CLUES && seated.some(p => p.id === who && p.spymaster))
+    .map(([who, row]) => ({who, avg: row.total / row.n, at: row.at}))
+    .sort((a, b) => a.avg - b.avg)
+
+  if (ranked.length < 2) return []
+  const quick = ranked[0]!
+  const slow = ranked[ranked.length - 1]!
+  if (slow.avg / quick.avg < NOTABLE_RATIO) return []
+
+  // How far apart they were decides how much of a card it is.
+  const weight = Math.min(66, 36 + 20 * (slow.avg / quick.avg - NOTABLE_RATIO))
+
+  return [
+    {
+      id: 'quick',
+      title: 'Quick Draw',
+      detail: took(quick.avg),
+      who: quick.who,
+      weight,
+      at: quick.at
+    },
+    {
+      id: 'slow',
+      title: 'Kept Us Waiting',
+      detail: took(slow.avg),
+      who: slow.who,
+      weight: weight - 1,
+      at: slow.at
+    }
+  ]
+}
 
 /**
  * Carrying a team, weighted by how much there was to carry.

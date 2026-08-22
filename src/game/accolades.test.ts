@@ -137,3 +137,57 @@ describe('team leader', () => {
     expect(leaderIn(table(4), 4, 12)).toBeUndefined()
   })
 })
+
+describe('thinking time', () => {
+  const players = [seat('rs', 'red', true), seat('rg', 'red'), seat('bs', 'blue', true), seat('bg', 'blue')]
+
+  /** Alternating clues, each spymaster taking a fixed number of seconds to think. */
+  // Three rounds, because the opening clue is not timed and each spymaster
+  // needs two that are.
+  const race = (redSecs: number, blueSecs: number, rounds = 3): Step[] => {
+    const steps: Step[] = [{...START, at: 0}]
+    let clock = 1000
+    for (let r = 0; r < rounds; r++) {
+      for (const [team, by, secs] of [
+        ['red', 'rs', redSecs],
+        ['blue', 'bs', blueSecs]
+      ] as const) {
+        clock += secs * 1000
+        steps.push({t: 'clue', team, by, word: `W${r}${team}`, count: 1, at: clock})
+        clock += 500
+        steps.push({t: 'guess', team, by: team === 'red' ? 'rg' : 'bg', card: firstOf('neutral', r), at: clock})
+        clock += 500
+        steps.push({t: 'endTurn', team, reason: 'wrong', at: clock})
+      }
+    }
+    return steps
+  }
+
+  const titles = (steps: Step[]) => catalogue(settings, WORDS, steps, players).map(a => `${a.title}:${a.who}`)
+
+  it('says nothing when both spymasters took about as long', () => {
+    const out = titles(race(20, 22))
+    expect(out.some(t => t.startsWith('Quick Draw'))).toBe(false)
+    expect(out.some(t => t.startsWith('Kept Us Waiting'))).toBe(false)
+  })
+
+  it('names both ends once one is clearly slower', () => {
+    const out = titles(race(5, 40))
+    expect(out).toContain('Quick Draw:rs')
+    expect(out).toContain('Kept Us Waiting:bs')
+  })
+
+  it('weighs a wider gap more heavily', () => {
+    const near = catalogue(settings, WORDS, race(10, 16), players).find(a => a.title === 'Quick Draw')!
+    const wide = catalogue(settings, WORDS, race(5, 60), players).find(a => a.title === 'Quick Draw')!
+    expect(wide.weight).toBeGreaterThan(near.weight)
+  })
+
+  it('ignores the opening clue, which also waited out the deal', () => {
+    const one: Step[] = [
+      {...START, at: 0},
+      {t: 'clue', team: 'red', by: 'rs', word: 'ORBIT', count: 1, at: 90_000}
+    ]
+    expect(titles(one).some(t => t.startsWith('Quick Draw'))).toBe(false)
+  })
+})

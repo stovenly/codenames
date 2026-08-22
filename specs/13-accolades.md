@@ -55,9 +55,20 @@ thing anyone will remember, so it outranks every competent thing that happened.
 | **Cold Feet** | passed the most turns | 33 |
 | **Dead Weight** | on a team all game, never picked | 30 |
 | **Team Leader** | took most of a side's moves, weighted by side size | 34–72 |
+| **Quick Draw** | spymaster, quicker average thinking time | 36–66 |
+| **Kept Us Waiting** | spymaster, slower average thinking time | 35–65 |
 
 Ties break toward the player who did it earliest, so the card is about a moment
 rather than an alphabetical accident.
+
+**Thinking time is relative, never absolute.** A clue cannot be given until the
+previous team's reveal has finished playing, so every gap between steps carries
+a few seconds nobody was thinking during. Both spymasters pay it, so comparing
+them to each other cancels it, and the ratio between them is the only claim
+worth making. The pair only appears when one took at least a third longer than
+the other. The configured clue timer is not consulted: this is how long somebody
+took, not how much of an allowance they used, and a room with the timer off
+should still be able to say who was holding things up.
 
 If fewer than four accolades qualify — a game that ended on the first turn — the
 row is short. Padding it with "was present" cards is worse than three cards.
