@@ -346,7 +346,7 @@ const CardBase = ({
         style={{
           // Long words shrink rather than run off the card, which the wider
           // dyslexia-friendly face makes obvious.
-          fontSize: `clamp(9px, ${Math.min(15, 78 / Math.max(5, card.word.length))}cqw, 30px)`,
+          fontSize: `clamp(9px, ${Math.min(13, 66 / Math.max(5, card.word.length))}cqw, 28px)`,
           // A spent card keeps white type: dark ink on a faded plate is a
           // second thing to read past, not a card that has stopped mattering.
           color: spent ? 'var(--color-text)' : faceUp ? INK[shown] : key ? '#F5F1E6' : 'var(--color-text)'

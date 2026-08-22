@@ -39,8 +39,8 @@ Licence. Attribution is not required; it is here because it costs nothing.
 setting. It is fetched only when that switch is turned on. By Abbie Gonzalez,
 under the [SIL Open Font License 1.1](https://opendyslexic.org).
 
-Everything else is served from Google Fonts: Archivo Black, Big Shoulders
-Display and Chivo, all under the SIL Open Font License 1.1.
+Everything else is bundled from Fontsource: Archivo Black, Oswald and Chivo,
+all under the SIL Open Font License 1.1.
 
 ## Word lists
 

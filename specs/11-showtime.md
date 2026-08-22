@@ -80,7 +80,7 @@ screen shouts. Three faces, each with a job it is actually built for:
 | Role | Face | Package | Used for |
 |---|---|---|---|
 | Marquee | **Bungee** | `@fontsource/bungee` | The wordmark, team names, the turn band, WINS/ASSASSIN. Signage type, drawn for exactly this |
-| Plate | **Big Shoulders Display** | `@fontsource-variable/big-shoulders-display` | Card words. A wayfinding face: condensed enough to fit 7x7 on a phone and still be read across a room |
+| Plate | **Oswald** | `@fontsource-variable/oswald` | Card words. A signage face people have read a thousand times without noticing: condensed enough for 7x7 on a phone, familiar enough not to announce itself |
 | Text | **Chivo** | `@fontsource-variable/chivo` | Clues, timers, counts, labels, the little prose there is |
 
 **No monospace anywhere.** A fixed-pitch face exists so code columns line up;

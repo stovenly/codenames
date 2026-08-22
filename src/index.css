@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @import "@fontsource/archivo-black/latin-400.css";
-@import "@fontsource-variable/big-shoulders-display";
+@import "@fontsource-variable/oswald";
 @import "@fontsource-variable/chivo";
 
 @theme {
@@ -51,7 +51,7 @@
      belongs in a terminal, and using one as a UI font is the giveaway. Numbers
      get tabular figures from the feature, not from the whole face. */
   --font-marquee: 'Archivo Black', 'Impact', ui-sans-serif, system-ui, sans-serif;
-  --font-plate: 'Big Shoulders Display Variable', 'Haettenschweiler', 'Arial Narrow', sans-serif;
+  --font-plate: 'Oswald Variable', 'Oswald', 'Arial Narrow', sans-serif;
   --font-ui: 'Chivo Variable', 'Helvetica Neue', ui-sans-serif, system-ui, sans-serif;
 
   --radius-xs: 3px;
