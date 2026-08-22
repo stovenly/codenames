@@ -20,7 +20,7 @@ required, which is what this section is for:
 
 | Style | Author |
 |---|---|
-| Adventurer | [Lisa Wischofsky](https://www.instagram.com/illustration_by_lisa/) |
+| Nomad (DiceBear's *Adventurer*) | [Lisa Wischofsky](https://www.instagram.com/illustration_by_lisa/) |
 | Micah | [Micah Lanier](https://dribbble.com/micahlanier) |
 | Dylan | [Natalia Spivak](https://dribbble.com/Nataliaspivak) |
 

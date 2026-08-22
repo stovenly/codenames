@@ -44,7 +44,7 @@ export const STYLES: Entry[] = [
   },
   {
     id: 'adventurer',
-    name: 'Adventurer',
+    name: 'Nomad',
     note: 'Colourful, widest variety',
     load: async () => (await import('@dicebear/adventurer')) as unknown as Style<never>
   },
