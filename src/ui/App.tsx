@@ -5,7 +5,7 @@ import {derive} from '../game/reducer'
 import {start, useRoom} from '../state/room'
 import * as words from '../state/words'
 import {AwayWatch, HostAwayPill} from './Away'
-import {Diagnostics} from './Diagnostics'
+import {Rail} from './Rail'
 import {watchDyslexicFont} from './font'
 import {Label, Panel, Stage} from './atoms'
 import {cx} from './cx'
@@ -82,7 +82,7 @@ export const App = () => {
       )}
 
       <HostAwayPill />
-      <Diagnostics />
+      <Rail />
     </Tooltip.Provider>
   )
 }

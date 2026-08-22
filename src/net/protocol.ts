@@ -15,6 +15,7 @@ export type MessageKind =
   | 'presence'
   | 'resync'
   | 'words'
+  | 'chat'
   | 'echo'
 
 export type Envelope = {

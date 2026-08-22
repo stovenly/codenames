@@ -1,5 +1,6 @@
 import {AnimatePresence} from 'motion/react'
 import {Suspense, lazy, useEffect} from 'react'
+import {accolades} from '../../game/accolades'
 import {derive} from '../../game/reducer'
 import {startPresence} from '../../state/presence'
 import {useRoom} from '../../state/room'
@@ -44,7 +45,13 @@ export const Game = () => {
   if (stage.kind === 'finish' || (view.phase === 'gameover' && stage.kind === 'idle')) {
     return (
       <>
-        <GameOver view={view} me={player} isHost={isHost} />
+        <GameOver
+          view={view}
+          me={player}
+          isHost={isHost}
+          players={shared.players}
+          honours={accolades(shared.settings, list, shared.steps, shared.players)}
+        />
         {panel}
       </>
     )

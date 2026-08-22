@@ -2,6 +2,7 @@ import confetti from 'canvas-confetti'
 import {motion} from 'motion/react'
 import NumberFlow from '@number-flow/react'
 import {useEffect, useRef} from 'react'
+import type {Accolade} from '../../game/accolades'
 import type {View} from '../../game/reducer'
 import type {Player, Team} from '../../game/types'
 import {intend} from '../../state/room'
@@ -9,6 +10,7 @@ import {Bulbs, Button, Label, Panel, Rule} from '../atoms'
 import {cx} from '../cx'
 import {spring} from '../motion'
 import {sfx} from '../sound/audio'
+import {Accolades} from './Accolades'
 
 /** Canvas wants literal colours, so the team's are read back off the document. */
 const tintsFor = (team: Team) => {
@@ -50,7 +52,19 @@ const dropConfetti = (team: Team, canvas: HTMLCanvasElement) => {
   return () => void fire.reset()
 }
 
-export const GameOver = ({view, me, isHost}: {view: View; me: Player | null; isHost: boolean}) => {
+export const GameOver = ({
+  view,
+  me,
+  isHost,
+  honours,
+  players
+}: {
+  view: View
+  me: Player | null
+  isHost: boolean
+  honours: Accolade[]
+  players: Player[]
+}) => {
     const winner = view.winner ?? 'red'
   const iWon = me?.team === winner
 
@@ -144,6 +158,8 @@ export const GameOver = ({view, me, isHost}: {view: View; me: Player | null; isH
 
         <Bulbs lit chase />
       </Panel>
+
+      <Accolades cards={honours} players={players} />
     </main>
   )
 }

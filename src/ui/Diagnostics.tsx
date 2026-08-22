@@ -1,14 +1,11 @@
-import {AnimatePresence, motion} from 'motion/react'
 import * as Slider from '@radix-ui/react-slider'
-import {Check, Copy, Settings, X} from 'lucide-react'
+import {Check, Copy, X} from 'lucide-react'
 import {useEffect, useState} from 'react'
 import {refreshStats, roomId, self, useNet} from '../state/net'
 import {getPrefs, setPrefs, usePrefs} from '../state/prefs'
 import {Button, Heading, IconButton, Label, Panel, Rule} from './atoms'
-import {MuteToggle} from './Controls'
 import {cx} from './cx'
 import {fontLoading} from './font'
-import {spring} from './motion'
 import {sfx} from './sound/audio'
 
 const advice = (report: ReturnType<typeof useNet>['report']) => {
@@ -69,21 +66,16 @@ const Volume = () => {
   )
 }
 
-export const Diagnostics = () => {
-  const [open, setOpen] = useState(false)
+export const SettingsSheet = ({onClose}: {onClose: () => void}) => {
   const [copied, setCopied] = useState(false)
   const {report} = useNet()
   const prefs = usePrefs()
-  
+
   useEffect(() => {
-    if (!open) return
     void refreshStats()
     const t = setInterval(() => void refreshStats(), 3000)
     return () => clearInterval(t)
-  }, [open])
-
-  const relays = report.transports.reduce((n, t) => n + t.relaysOpen, 0)
-  const down = report.transports.length > 0 && relays === 0
+  }, [])
 
   const copy = async () => {
     try {
@@ -96,117 +88,91 @@ export const Diagnostics = () => {
   }
 
   return (
-    <>
-      <div className="fixed bottom-4 left-4 z-40 flex items-center gap-2">
-        <IconButton
-          label="Settings"
-          aria-expanded={open}
-          onClick={() => setOpen(v => !v)}
-          className={cx('backdrop-blur', down && 'border-kill-lit/70 text-kill-lit')}
-        >
-          <Settings className="size-4" />
+    <Panel level={2} className="max-h-[70vh] overflow-y-auto p-4 backdrop-blur">
+      <div className="flex items-center justify-between gap-3">
+        <Heading>Settings</Heading>
+        <IconButton label="Close" onClick={onClose} className="size-8">
+          <X className="size-3.5" />
         </IconButton>
-        <MuteToggle />
       </div>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{opacity: 0, y: 12}}
-            animate={{opacity: 1, y: 0}}
-            exit={{opacity: 0, y: 12}}
-            transition={spring.firm}
-            className="fixed bottom-16 left-4 z-40 w-[min(92vw,25rem)]"
-          >
-            <Panel level={2} className="max-h-[70vh] overflow-y-auto p-4 backdrop-blur">
-              <div className="flex items-center justify-between gap-3">
-                <Heading>Settings</Heading>
-                <IconButton label="Close" onClick={() => setOpen(false)} className="size-8">
-                  <X className="size-3.5" />
-                </IconButton>
-              </div>
+      <Rule className="my-3" />
 
-              <Rule className="my-3" />
+      <section className="flex flex-col gap-2">
+        <Label>Audio</Label>
+        <Volume />
+      </section>
 
-              <section className="flex flex-col gap-2">
-                <Label>Audio</Label>
-                <Volume />
-              </section>
+      <Rule className="my-3" />
 
-              <Rule className="my-3" />
+      <section className="flex flex-col gap-1.5">
+        <Label>Accessibility</Label>
+        <Toggle
+          label="Colourblind mode"
+          on={prefs.colourblind}
+          onClick={() => setPrefs({colourblind: !prefs.colourblind})}
+        />
+        <Toggle
+          label={fontLoading() ? 'Dyslexia-friendly font — fetching…' : 'Dyslexia-friendly font'}
+          on={prefs.dyslexic}
+          onClick={() => setPrefs({dyslexic: !prefs.dyslexic})}
+        />
+      </section>
 
-              <section className="flex flex-col gap-1.5">
-                <Label>Accessibility</Label>
-                <Toggle
-                  label="Colourblind mode"
-                  on={prefs.colourblind}
-                  onClick={() => setPrefs({colourblind: !prefs.colourblind})}
-                />
-                <Toggle
-                  label={fontLoading() ? 'Dyslexia-friendly font — fetching…' : 'Dyslexia-friendly font'}
-                  on={prefs.dyslexic}
-                  onClick={() => setPrefs({dyslexic: !prefs.dyslexic})}
-                />
-              </section>
+      <Rule className="my-3" />
 
-              <Rule className="my-3" />
+      <Label>Connection</Label>
 
-              <Label>Connection</Label>
+      <section className="mt-2 flex flex-col gap-2">
+        {report.transports.map(t => (
+          <div key={t.name} className="flex items-center justify-between gap-2">
+            <span
+              className={cx(
+                'type-label',
+                t.status === 'ready'
+                  ? 'text-lamp-300'
+                  : t.status === 'failed'
+                    ? 'text-kill-lit'
+                    : ''
+              )}
+            >
+              {t.name}
+            </span>
+            <Label>{t.error ?? `${t.relaysOpen}/${t.relaysTotal} · ${t.peers} links`}</Label>
+          </div>
+        ))}
+      </section>
 
-              <section className="mt-2 flex flex-col gap-2">
-                {report.transports.map(t => (
-                  <div key={t.name} className="flex items-center justify-between gap-2">
-                    <span
-                      className={cx(
-                        'type-label',
-                        t.status === 'ready'
-                          ? 'text-lamp-300'
-                          : t.status === 'failed'
-                            ? 'text-kill-lit'
-                            : ''
-                      )}
-                    >
-                      {t.name}
-                    </span>
-                    <Label>{t.error ?? `${t.relaysOpen}/${t.relaysTotal} · ${t.peers} links`}</Label>
-                  </div>
-                ))}
-              </section>
+      <Rule className="my-3" />
 
-              <Rule className="my-3" />
-
-              <section className="flex flex-col gap-2">
-                {report.peers.length === 0 ? (
-                  <p className="type-body">Nobody else connected.</p>
-                ) : (
-                  report.peers.map(p => (
-                    <div key={p.playerId} className="flex items-center justify-between gap-2">
-                      <span className="type-read text-sm text-text">{p.playerId.slice(0, 6)}</span>
-                      <Label>
-                        {p.ice}
-                        {p.relayed ? ' · relayed' : ''}
-                        {p.rttMs === null ? '' : ` · ${Math.round(p.rttMs)}ms`}
-                      </Label>
-                    </div>
-                  ))
-                )}
-              </section>
-
-              <p className="type-body mt-3">{advice(report)}</p>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={copy}
-                className="mt-4 flex w-full items-center justify-center gap-2"
-              >
-                {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-                {copied ? 'Copied' : 'Copy details'}
-              </Button>
-            </Panel>
-          </motion.div>
+      <section className="flex flex-col gap-2">
+        {report.peers.length === 0 ? (
+          <p className="type-body">Nobody else connected.</p>
+        ) : (
+          report.peers.map(p => (
+            <div key={p.playerId} className="flex items-center justify-between gap-2">
+              <span className="type-read text-sm text-text">{p.playerId.slice(0, 6)}</span>
+              <Label>
+                {p.ice}
+                {p.relayed ? ' · relayed' : ''}
+                {p.rttMs === null ? '' : ` · ${Math.round(p.rttMs)}ms`}
+              </Label>
+            </div>
+          ))
         )}
-      </AnimatePresence>
-    </>
+      </section>
+
+      <p className="type-body mt-3">{advice(report)}</p>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={copy}
+        className="mt-4 flex w-full items-center justify-center gap-2"
+      >
+        {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+        {copied ? 'Copied' : 'Copy details'}
+      </Button>
+    </Panel>
   )
 }

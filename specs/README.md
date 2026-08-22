@@ -27,6 +27,9 @@ depends on a later one.
 | [09](09-resilience.md) | Resilience | Hardened, offline-capable, degrades visibly |
 | [10](10-polish.md) | Polish | Reads as one designed thing, not nine steps stacked up |
 | [11](11-showtime.md) | Showtime | Looks like a game show, not a web app about a game |
+| [12](12-history.md) | The log | Everyone can read what has already been tried |
+| [13](13-accolades.md) | Accolades | The end screen recognises people, not just the score |
+| [14](14-chat.md) | Chat | Teams and spymasters can talk without leaving the tab |
 
 Items marked **OPEN** need a decision before that section is built. None of them
 block an earlier step. Resolutions are recorded inline where the item was
