@@ -52,6 +52,15 @@ export const AWAY_NOTICE_MS = 20_000
 const AWAY_TRANSFER_MS = 60_000
 const SETTLED_MS = 2_500
 const RIVAL_HOST_WINDOW_MS = 5_000
+/**
+ * How long two hosts are allowed to coexist before it counts as a split.
+ *
+ * Two hosts meeting is normal and self-resolving: a handoff or an election
+ * leaves the outgoing host beating for a moment, and the higher epoch takes the
+ * room on the next state or beat either way. Only a pair that will not settle
+ * is worth telling anyone about.
+ */
+const RIVAL_SETTLE_MS = 14_000
 
 const SESSION_KEY = 'cn.session'
 
@@ -114,6 +123,7 @@ let wakeLock: WakeLockSentinel | null = null
 let started = false
 const strangerSince = new Map<PlayerId, number>()
 const rivalHosts = new Map<PlayerId, number>()
+let rivalsSince = 0
 let hiddenSince = 0
 let lastBeatAt = 0
 let lastStepAt = 0
@@ -476,7 +486,11 @@ const monitor = () => {
 
   for (const [id, at] of rivalHosts) if (now - at > RIVAL_HOST_WINDOW_MS) rivalHosts.delete(id)
 
-  const next = stranded || rivalHosts.size > 1
+  if (rivalHosts.size > 1) rivalsSince = rivalsSince || now
+  else rivalsSince = 0
+
+  const contested = rivalsSince > 0 && now - rivalsSince > RIVAL_SETTLE_MS
+  const next = stranded || contested
   if (next !== split) {
     split = next
     publish()
@@ -762,7 +776,15 @@ export const start = () => {
   on('beat', (body, env) => {
     const beat = (body ?? {}) as Partial<Shared>
     rivalHosts.set(env.from, Date.now())
-    if (!shared || env.from !== shared.hostId) return
+    if (!shared) return
+
+    // A host we do not follow, running ahead of the one we do. Ask it for the
+    // room rather than sitting on a stale one until a state broadcast happens
+    // to reach us — this is what settles two hosts without anyone being told.
+    if (env.from !== shared.hostId) {
+      if ((beat.hostEpoch ?? 0) > shared.hostEpoch) send('resync', {want: 'state'}, env.from)
+      return
+    }
     lastHostAt = Date.now()
     if (beat.hostHidden !== shared.hostHidden) {
       shared = {...shared, hostHidden: !!beat.hostHidden}
