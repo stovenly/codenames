@@ -8,7 +8,6 @@ import type {Player, Team} from '../../game/types'
 import {intend} from '../../state/room'
 import {Button, Label, Panel, Rule} from '../atoms'
 import {cx} from '../cx'
-import {LampRing} from '../LampRing'
 import {spring} from '../motion'
 import {sfx} from '../sound/audio'
 import {Accolades} from './Accolades'
@@ -102,10 +101,6 @@ export const GameOver = ({
         glossy
         className="relative z-20 flex w-full max-w-md flex-col items-center gap-6 px-9 py-10 text-center"
       >
-        {/* A marquee border rather than two sliding strips: the eye follows a
-            ring around the result instead of being pulled off the top of it. */}
-        <LampRing across={9} down={5} className="inset-2.5" />
-
         <motion.span
           initial={{scale: 0.45, opacity: 0, rotate: -6}}
           animate={{scale: 1, opacity: 1, rotate: 0}}

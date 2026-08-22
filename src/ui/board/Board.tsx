@@ -3,7 +3,6 @@ import type {View} from '../../game/reducer'
 import type {Avatar as AvatarSpec, Player, PlayerId} from '../../game/types'
 import {myMark, setMyMark, useMarks} from '../../state/presence'
 import type {Stage} from '../../state/theatre'
-import {LampRing} from '../LampRing'
 import {sfx} from '../sound/audio'
 import {Card, type CardPhase} from './Card'
 
@@ -47,12 +46,8 @@ export const Board = ({
     [canGuess, busy]
   )
 
-  // Ringed rather than railed: two strips above and below pull the eye off the
-  // board they are supposed to be framing.
   return (
-    <div className="relative w-full px-3 py-3 sm:px-4 sm:py-4">
-      <LampRing across={size + 2} down={size} />
-
+    <div className="relative w-full">
       <div
         className="grid w-full gap-1.5 sm:gap-2.5"
         style={{gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`}}
