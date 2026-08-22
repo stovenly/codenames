@@ -6,6 +6,7 @@ import {start, useRoom} from '../state/room'
 import * as words from '../state/words'
 import {AwayWatch, HostAwayPill} from './Away'
 import {Diagnostics} from './Diagnostics'
+import {watchDyslexicFont} from './font'
 import {Label, Panel, Stage} from './atoms'
 import {cx} from './cx'
 import {spring} from './motion'
@@ -47,6 +48,7 @@ export const App = () => {
 
   useEffect(() => {
     start()
+    watchDyslexicFont()
   }, [])
 
   const view = shared

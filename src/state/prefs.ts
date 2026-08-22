@@ -3,7 +3,10 @@ import type {Avatar} from '../game/types'
 
 export type Prefs = {
   colourblind: boolean
-  muted: boolean
+  dyslexic: boolean
+  /** 0..1. Zero is muted; preMute is what the speaker button restores. */
+  volume: number
+  preMute: number
   /** Carried between rooms and between visits, so you are not rebuilt each time. */
   name: string
   avatar: Avatar | null
@@ -13,7 +16,9 @@ const KEY = 'cn.prefs'
 
 const DEFAULTS: Prefs = {
   colourblind: false,
-  muted: false,
+  dyslexic: false,
+  volume: 1,
+  preMute: 1,
   name: '',
   avatar: null
 }
@@ -49,6 +54,11 @@ export const setPrefs = (patch: Partial<Prefs>) => {
 }
 
 export const getPrefs = () => current
+
+export const subscribePrefs = (listener: () => void) => {
+  listeners.add(listener)
+  return () => listeners.delete(listener)
+}
 
 export const usePrefs = () =>
   useSyncExternalStore(

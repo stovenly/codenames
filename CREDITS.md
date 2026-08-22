@@ -33,6 +33,15 @@ The two spy silhouettes on the landing screen are from
 [Pixabay](https://pixabay.com) by **mohamed_hassan**, under the Pixabay Content
 Licence. Attribution is not required; it is here because it costs nothing.
 
+## Typefaces
+
+**OpenDyslexic** ships in `public/fonts/` and powers the dyslexia-friendly
+setting. It is fetched only when that switch is turned on. By Abbie Gonzalez,
+under the [SIL Open Font License 1.1](https://opendyslexic.org).
+
+Everything else is served from Google Fonts: Archivo Black, Big Shoulders
+Display and Chivo, all under the SIL Open Font License 1.1.
+
 ## Word lists
 
 See [`src/data/wordlists/SOURCES.md`](src/data/wordlists/SOURCES.md).

@@ -115,6 +115,32 @@ const version = await (async () => {
 
 const browser = await connect(version.webSocketDebuggerUrl)
 
+/**
+ * The launcher process returns immediately on Windows, so killing this script
+ * does not touch the browser it started. Closing it over the protocol is the
+ * only way, and it has to happen on every exit or the windows pile up.
+ */
+let closing = false
+const shutdown = async code => {
+  if (closing) return
+  closing = true
+  try {
+    await Promise.race([browser('Browser.close'), sleep(2000)])
+  } catch {
+    /* already gone */
+  }
+  process.exit(code)
+}
+for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGBREAK']) {
+  process.on(signal, () => void shutdown(0))
+}
+for (const fault of ['uncaughtException', 'unhandledRejection']) {
+  process.on(fault, err => {
+    console.error(err?.message ?? err)
+    void shutdown(1)
+  })
+}
+
 // A grid wide enough that every window shows its board without overlapping.
 const cols = PLAYERS <= 4 ? 2 : 3
 const rows = Math.ceil(PLAYERS / cols)
@@ -247,6 +273,7 @@ if (SHOT) {
   await sleep(9000)
   for (const tab of tabs) await tab.shot(`${tab.index}-${tab.label}.png`)
   console.log(`screenshots in ${SHOT}`)
+  if (!bots.length) await shutdown(0)
 }
 
 const CLUES = ['ORBIT', 'CIPHER', 'HARBOR', 'LANTERN', 'THICKET', 'VELVET', 'QUARRY', 'MERIDIAN']

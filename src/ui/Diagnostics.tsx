@@ -1,12 +1,15 @@
 import {AnimatePresence, motion} from 'motion/react'
-import {Activity, Check, Copy, X} from 'lucide-react'
+import * as Slider from '@radix-ui/react-slider'
+import {Check, Copy, Settings, X} from 'lucide-react'
 import {useEffect, useState} from 'react'
 import {refreshStats, roomId, self, useNet} from '../state/net'
-import {setPrefs, usePrefs} from '../state/prefs'
+import {getPrefs, setPrefs, usePrefs} from '../state/prefs'
 import {Button, Heading, IconButton, Label, Panel, Rule} from './atoms'
 import {MuteToggle} from './Controls'
 import {cx} from './cx'
+import {fontLoading} from './font'
 import {spring} from './motion'
+import {sfx} from './sound/audio'
 
 const advice = (report: ReturnType<typeof useNet>['report']) => {
   if (!report.transports.some(t => t.relaysOpen > 0))
@@ -42,6 +45,30 @@ const Toggle = ({label, on, onClick}: {label: string; on: boolean; onClick: () =
   </button>
 )
 
+const Volume = () => {
+  const {volume} = usePrefs()
+  return (
+    <Slider.Root
+      min={0}
+      max={100}
+      step={5}
+      value={[Math.round(volume * 100)]}
+      aria-label="Volume"
+      onValueChange={([v]) => {
+        const next = (v ?? 0) / 100
+        setPrefs(next > 0 ? {volume: next, preMute: next} : {preMute: getPrefs().volume || 1, volume: 0})
+      }}
+      onValueCommit={() => sfx.arm()}
+      className="relative flex h-5 w-full touch-none items-center select-none"
+    >
+      <Slider.Track className="relative h-1 w-full grow rounded-full bg-stage-600">
+        <Slider.Range className="absolute h-full rounded-full bg-gradient-to-r from-gold-500 to-lamp-500" />
+      </Slider.Track>
+      <Slider.Thumb className="block size-4 cursor-grab rounded-full border border-lamp-300/60 bg-gradient-to-b from-lamp-300 to-lamp-500 shadow-[0_2px_8px_-2px_rgba(255,197,61,.8)] active:cursor-grabbing" />
+    </Slider.Root>
+  )
+}
+
 export const Diagnostics = () => {
   const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -71,15 +98,15 @@ export const Diagnostics = () => {
   return (
     <>
       <div className="fixed bottom-4 left-4 z-40 flex items-center gap-2">
-        <MuteToggle />
         <IconButton
-          label={down ? 'Offline' : `${report.router.directPeers} connected`}
+          label="Settings"
           aria-expanded={open}
           onClick={() => setOpen(v => !v)}
           className={cx('backdrop-blur', down && 'border-kill-lit/70 text-kill-lit')}
         >
-          <Activity className="size-4" />
+          <Settings className="size-4" />
         </IconButton>
+        <MuteToggle />
       </div>
 
       <AnimatePresence>
@@ -93,7 +120,7 @@ export const Diagnostics = () => {
           >
             <Panel level={2} className="max-h-[70vh] overflow-y-auto p-4 backdrop-blur">
               <div className="flex items-center justify-between gap-3">
-                <Heading>Connection</Heading>
+                <Heading>Settings</Heading>
                 <IconButton label="Close" onClick={() => setOpen(false)} className="size-8">
                   <X className="size-3.5" />
                 </IconButton>
@@ -102,6 +129,31 @@ export const Diagnostics = () => {
               <Rule className="my-3" />
 
               <section className="flex flex-col gap-2">
+                <Label>Audio</Label>
+                <Volume />
+              </section>
+
+              <Rule className="my-3" />
+
+              <section className="flex flex-col gap-1.5">
+                <Label>Accessibility</Label>
+                <Toggle
+                  label="Colourblind mode"
+                  on={prefs.colourblind}
+                  onClick={() => setPrefs({colourblind: !prefs.colourblind})}
+                />
+                <Toggle
+                  label={fontLoading() ? 'Dyslexia-friendly font — fetching…' : 'Dyslexia-friendly font'}
+                  on={prefs.dyslexic}
+                  onClick={() => setPrefs({dyslexic: !prefs.dyslexic})}
+                />
+              </section>
+
+              <Rule className="my-3" />
+
+              <Label>Connection</Label>
+
+              <section className="mt-2 flex flex-col gap-2">
                 {report.transports.map(t => (
                   <div key={t.name} className="flex items-center justify-between gap-2">
                     <span
@@ -141,17 +193,6 @@ export const Diagnostics = () => {
               </section>
 
               <p className="type-body mt-3">{advice(report)}</p>
-
-              <Rule className="my-3" />
-
-              <section className="flex flex-col gap-1.5">
-                <Heading>Display</Heading>
-                <Toggle
-                  label="Colourblind contrast"
-                  on={prefs.colourblind}
-                  onClick={() => setPrefs({colourblind: !prefs.colourblind})}
-                />
-              </section>
 
               <Button
                 variant="ghost"

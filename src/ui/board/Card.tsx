@@ -17,7 +17,7 @@ export type CardPhase = 'idle' | 'windup' | 'landing' | 'aftermath'
  * ends the game, so it is solid black and carries a skull.
  */
 const KEY_FACE: Record<Colour, string> = {
-  red: 'linear-gradient(180deg, #8E2018 0%, #5E140F 100%)',
+  red: 'linear-gradient(180deg, var(--key-red-hi) 0%, var(--key-red-lo) 100%)',
   blue: 'linear-gradient(180deg, #1B5AA8 0%, #103B71 100%)',
   neutral: 'linear-gradient(180deg, #3A3527 0%, #26231A 100%)',
   assassin: 'linear-gradient(180deg, #101014 0%, #000 100%)'
@@ -92,7 +92,13 @@ const Burst = ({colour}: {colour: Colour}) => {
   ).current
 
   const tint =
-    colour === 'red' ? '#FF7A5C' : colour === 'blue' ? '#6FB6FF' : colour === 'assassin' ? '#FF2D2D' : '#FFC53D'
+    colour === 'red'
+      ? 'var(--color-red-lit)'
+      : colour === 'blue'
+        ? 'var(--color-blue-lit)'
+        : colour === 'assassin'
+          ? 'var(--color-kill-lit)'
+          : 'var(--color-lamp-500)'
 
   return (
     <span className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
@@ -228,7 +234,9 @@ const CardBase = ({
           (phase === 'windup' || phase === 'landing') && 'opacity-0'
         )}
         style={{
-          fontSize: 'clamp(10px, 15cqw, 30px)',
+          // Long words shrink rather than run off the card, which the wider
+          // dyslexia-friendly face makes obvious.
+          fontSize: `clamp(9px, ${Math.min(15, 78 / Math.max(5, card.word.length))}cqw, 30px)`,
           color: faceUp ? INK[shown] : key ? '#F5F1E6' : 'var(--color-text)'
         }}
       >

@@ -43,14 +43,14 @@ export const Symbol = ({colour, className}: {colour: Colour; className?: string}
 }
 
 export const SURFACE: Record<Colour, string> = {
-  red: 'linear-gradient(168deg, #F04438 0%, #A32419 100%)',
+  red: 'linear-gradient(168deg, var(--card-red-hi) 0%, var(--card-red-lo) 100%)',
   blue: 'linear-gradient(168deg, #2E86FF 0%, #14477F 100%)',
   neutral: 'linear-gradient(168deg, #F1ECE0 0%, #C3B9A3 100%)',
   assassin: 'linear-gradient(168deg, #1A1A20 0%, #06060A 100%)'
 }
 
 export const INK: Record<Colour, string> = {
-  red: '#2B0A06',
+  red: 'var(--card-red-ink)',
   blue: '#061C36',
   neutral: '#241F13',
   assassin: '#FF2D2D'

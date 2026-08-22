@@ -2,6 +2,7 @@ import {getPrefs} from '../../state/prefs'
 
 /** Synthesized, so there are no audio assets and no download weight. */
 let ctx: AudioContext | null = null
+let master: GainNode | null = null
 
 const context = () => {
   if (!ctx) ctx = new AudioContext()
@@ -9,7 +10,18 @@ const context = () => {
   return ctx
 }
 
-const enabled = () => !getPrefs().muted
+/** Everything routes through here, so the slider is one value and not a rewrite of every cue. */
+const out = () => {
+  const ac = context()
+  if (!master) {
+    master = ac.createGain()
+    master.connect(ac.destination)
+  }
+  master.gain.setTargetAtTime(getPrefs().volume, ac.currentTime, 0.01)
+  return master
+}
+
+const enabled = () => getPrefs().volume > 0
 
 type ToneOpts = {
   freq: number
@@ -48,7 +60,7 @@ const tone = ({freq, to, type = 'sine', dur, gain = 0.15, delay = 0, sweep, q = 
     tail = filter
   }
 
-  tail.connect(amp).connect(ac.destination)
+  tail.connect(amp).connect(out())
   osc.start(at)
   osc.stop(at + dur + 0.05)
 }
@@ -73,7 +85,7 @@ const noise = (dur: number, gain = 0.12, cutoff = 1400, delay = 0) => {
   amp.gain.setValueAtTime(gain, at)
   amp.gain.exponentialRampToValueAtTime(0.0001, at + dur)
 
-  src.connect(filter).connect(amp).connect(ac.destination)
+  src.connect(filter).connect(amp).connect(out())
   src.start(at)
 }
 

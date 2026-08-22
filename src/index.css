@@ -21,6 +21,14 @@
   --color-red-500: #F04438;
   --color-red-lit: #FF7A5C;
   --color-red-deep: #7A1A12;
+
+  /* The red card, its ink, and the spymaster's key face. Tokens rather than
+     literals so colourblind mode can reach them. */
+  --card-red-hi: #F04438;
+  --card-red-lo: #A32419;
+  --card-red-ink: #2B0A06;
+  --key-red-hi: #8E2018;
+  --key-red-lo: #5E140F;
   --color-blue-500: #2E86FF;
   --color-blue-lit: #6FB6FF;
   --color-blue-deep: #10305E;
@@ -56,9 +64,27 @@
   color-scheme: dark;
 }
 
+/**
+ * Red becomes a vivid yellow. Every kind of colour blindness confuses red with
+ * something — green, brown, or all hue at once — and none of them confuse a
+ * bright yellow with a mid blue.
+ */
 :root[data-cb='on'] {
-  --team-red: #FF8A63;
-  --team-blue: #79BCFF;
+  --team-red: #FFC300;
+  --color-red-500: #FFC300;
+  --color-red-lit: #FFDE5C;
+  --color-red-deep: #5A4400;
+  --card-red-hi: #FFCE1F;
+  --card-red-lo: #B08300;
+  --card-red-ink: #2A1F00;
+  --key-red-hi: #9A7400;
+  --key-red-lo: #6A4F00;
+}
+
+body.is-dyslexic {
+  --font-marquee: 'OpenDyslexic', ui-sans-serif, system-ui, sans-serif;
+  --font-plate: 'OpenDyslexic', ui-sans-serif, system-ui, sans-serif;
+  --font-ui: 'OpenDyslexic', ui-sans-serif, system-ui, sans-serif;
 }
 
 html,
