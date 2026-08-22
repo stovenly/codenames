@@ -38,7 +38,7 @@ const Standing = ({view, me}: {view: View; me: Player | null}) => {
       : `${view.turn} team's turn`
 
   return (
-    <div className="flex items-center justify-center gap-2">
+    <div className="flex flex-col items-center gap-1">
       <span
         className={cx(
           'type-marquee rounded-sm border px-2.5 py-1 text-[11px] tracking-[0.14em]',

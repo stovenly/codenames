@@ -1,4 +1,5 @@
 import {useSyncExternalStore} from 'react'
+import type {Team} from '../game/types'
 import type {PlayerId} from '../net/protocol'
 import {TTL_DEFAULT} from '../net/protocol'
 import {on, self, send} from './net'
@@ -12,6 +13,9 @@ export type Message = {
   from: PlayerId
   channel: Channel
   text: string
+  /** Who they were at the time, not who they are now. */
+  team: Team | null
+  spymaster: boolean
 }
 
 /** A tab left open all evening should not grow without limit. */
@@ -96,12 +100,15 @@ export const say = (channel: Channel, body: string) => {
   const text = body.trim().slice(0, MAX_LEN)
   if (!text || !writable(channel)) return
 
+  const mine = me()
   const msg: Message = {
     id: `${self}-${Date.now().toString(36)}-${counter++}`,
     at: Date.now(),
     from: self,
     channel,
-    text
+    text,
+    team: mine?.team ?? null,
+    spymaster: !!mine?.spymaster
   }
   push(msg)
   seenAt = log.length

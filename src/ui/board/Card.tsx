@@ -1,5 +1,5 @@
-import {AnimatePresence, motion} from 'motion/react'
-import {memo, useRef, useState} from 'react'
+import {AnimatePresence, motion, useAnimationFrame, useMotionValue, useTransform} from 'motion/react'
+import {memo, useEffect, useRef, useState} from 'react'
 import type {Colour} from '../../game/board'
 import type {Card as CardModel} from '../../game/reducer'
 import type {Avatar as AvatarSpec, PlayerId} from '../../game/types'
@@ -23,9 +23,9 @@ const KEY_FACE: Record<Colour, string> = {
   assassin: 'linear-gradient(180deg, #101014 0%, #000 100%)'
 }
 
-const FACES = 34
+const FACES = 26
 /** Faces fall, so the reel runs from the far end of the strip back toward the top. */
-const START = 31
+const START = 22
 /** Where it comes to rest. The faces either side exist to be overshot into. */
 const LAND = 3
 
@@ -41,41 +41,7 @@ const buildStrip = (target: Colour): Colour[] => {
   return strip
 }
 
-/**
- * The last second of a wheel, which is the only part anyone watches.
- *
- * Each ending is a list of [notch, hold] pairs covering the final third of the
- * run — a notch being a position on the strip, fractional where the wheel is
- * caught between two. They exist because a wheel that decelerates smoothly onto
- * its answer has no moment in it: the tension is in the pass-and-click-back and
- * the last grudging half-notch.
- */
-type Ending = {notches: number[]; times: number[]}
-
-const ENDINGS: Ending[] = [
-  // Straight past it, hangs, and clicks back up.
-  {notches: [LAND + 2, LAND - 1, LAND - 1, LAND], times: [0.62, 0.82, 0.9, 1]},
-  // Creeps in, stalling twice on the way.
-  {notches: [LAND + 2, LAND + 1, LAND + 1, LAND + 0.45, LAND + 0.45, LAND], times: [0.6, 0.74, 0.84, 0.9, 0.95, 1]},
-  // Arrives, twitches past, settles back.
-  {notches: [LAND + 2, LAND, LAND - 0.4, LAND], times: [0.62, 0.85, 0.93, 1]},
-  // Stops a notch short, sits there, then drops in.
-  {notches: [LAND + 2, LAND + 1, LAND + 1, LAND], times: [0.58, 0.72, 0.92, 1]},
-  // Clean. Rare on purpose, so the others read as near-misses rather than as how it always goes.
-  {notches: [LAND + 2, LAND], times: [0.7, 1]}
-]
-
-/** The clean stop is one draw in nine; a near-miss every time stops being one. */
-const WEIGHTS = [3, 3, 3, 3, 1]
-
-const anEnding = () => {
-  let n = Math.random() * WEIGHTS.reduce((a, b) => a + b, 0)
-  for (let i = 0; i < ENDINGS.length; i++) {
-    n -= WEIGHTS[i]!
-    if (n <= 0) return ENDINGS[i]!
-  }
-  return ENDINGS[0]!
-}
+const TAU = Math.PI * 2
 
 const Face = ({colour}: {colour: Colour}) => (
   <span
@@ -87,16 +53,96 @@ const Face = ({colour}: {colour: Colour}) => (
 )
 
 /**
- * One reel, the height of the card, spinning whole card faces past the window.
- * It knows the answer from the first frame — every client derives the same
- * board — so the run is one continuous choreography that ends on the card
- * rather than a spin that snaps to it.
+ * The wheel, as a wheel.
+ *
+ * Keyframes were the wrong tool: each notch was its own eased segment, so
+ * velocity fell to zero at every one of them and the run read as a series of
+ * little stops. The interesting part of a real wheel — coming to rest half a
+ * notch short, hanging, and being pulled over the crest — is not something to
+ * script. It falls out of a detent and some friction on its own.
+ *
+ * Integrated in notch units, one notch being one card face:
+ *
+ *   a = -DRAG·v            the wheel losing speed
+ *       -DETENT·sin(2πp)   the sprung pawl, zero on a notch, restoring around it
+ *       +creep             a hand's weight, only while resting on the wrong notch
+ *
+ * The pawl term is what makes it hesitate; whether it hesitates a notch past
+ * the answer or a notch short depends on how hard it was thrown, which is
+ * jittered per spin. Creep is what guarantees the answer regardless — it is off
+ * once the nearest notch is the right one, so the wheel is never dragged past.
  */
-const Reel = ({target, ms, settling}: {target: Colour; ms: number; settling: boolean}) => {
-  const run = useRef({strip: buildStrip(target), ending: anEnding()}).current
+const DETENT = 34
+const CREEP = 30
+/** Above this the wheel is turning; below it, it is resting and a hand can decide. */
+const RESTING = 5
 
-  const at = (i: number) => `${(-i * 100) / FACES}%`
-  const {notches, times} = run.ending
+const Reel = ({target, ms, settling}: {target: Colour; ms: number; settling: boolean}) => {
+  const strip = useRef(buildStrip(target)).current
+  const p = useMotionValue(START)
+  const y = useTransform(p, v => `${(-v * 100) / FACES}%`)
+
+  /**
+   * Drag is set from the time available rather than picked: a wheel still
+   * turning when the card is due to flip would be cut off mid-spin. Four time
+   * constants is a stop, so aiming them at the first 40% of the windup leaves
+   * the rest for whatever the pawl decides to do.
+   *
+   * Simulated over hundreds of spins: never leaves the strip, always comes to
+   * rest on the answer, settles inside the budget, and changes direction at
+   * least three times on the way.
+   *
+   * Thrown a notch long, with enough spread that where it runs out is genuinely
+   * in doubt — free travel under drag alone being v0/drag.
+   */
+  const sim = useRef(
+    (() => {
+      const drag = 4 / ((ms / 1000) * 0.4)
+      return {
+        drag,
+        v: -drag * (START - LAND + 1) * (0.95 + Math.random() * 0.1),
+        elapsed: 0,
+        done: false
+      }
+    })()
+  ).current
+
+  useAnimationFrame((_, delta) => {
+    if (settling || sim.done) return
+
+    // A backgrounded tab hands back one enormous frame; integrating it whole
+    // would fire the wheel off the end of the strip.
+    const dt = Math.min(delta, 34) / 1000
+    sim.elapsed += dt
+
+    // Out of time: lean on it so it is stopped before the card turns over,
+    // rather than being cut off wherever it happens to be.
+    const late = sim.elapsed > (ms / 1000) * 0.7
+    const drag = late ? sim.drag * 2.5 : sim.drag
+
+    const at = p.get()
+    const notch = Math.round(at)
+    // Only ever applied to a wheel that has stopped on the wrong notch. Applied
+    // while it is still turning it would push all the way round the run and
+    // throw it off the end of the strip.
+    const resting = Math.abs(sim.v) < RESTING
+    const pull =
+      resting && notch !== LAND ? Math.sign(LAND - at) * (late ? CREEP * 2 : CREEP) : 0
+
+    const a = -drag * sim.v - DETENT * Math.sin(TAU * at) + pull
+    sim.v += a * dt
+    const next = at + sim.v * dt
+    p.set(next)
+
+    if (notch === LAND && Math.abs(sim.v) < 0.3 && Math.abs(next - LAND) < 0.05) {
+      p.set(LAND)
+      sim.done = true
+    }
+  })
+
+  useEffect(() => {
+    if (settling) p.set(LAND)
+  }, [settling, p])
 
   return (
     <motion.span
@@ -104,25 +150,8 @@ const Reel = ({target, ms, settling}: {target: Colour; ms: number; settling: boo
       animate={{opacity: settling ? 0 : 1}}
       transition={{duration: settling ? 0.4 : 0, delay: settling ? 0.2 : 0}}
     >
-      <motion.span
-        className="absolute inset-x-0 top-0 flex flex-col"
-        initial={{y: at(START)}}
-        animate={
-          settling
-            ? {y: at(LAND)}
-            : {y: [at(START), at(LAND + 9), ...notches.map(at)]}
-        }
-        transition={
-          settling
-            ? {duration: 0}
-            : {
-                duration: ms / 1000,
-                times: [0, 0.34, ...times],
-                ease: ['easeIn', 'easeOut', ...notches.map(() => 'easeInOut' as const)]
-              }
-        }
-      >
-        {run.strip.map((colour, i) => (
+      <motion.span className="absolute inset-x-0 top-0 flex flex-col" style={{y}}>
+        {strip.map((colour, i) => (
           <Face key={i} colour={colour} />
         ))}
       </motion.span>
@@ -271,7 +300,9 @@ const CardBase = ({
         'relative grid aspect-[7/5] w-full place-items-center overflow-hidden rounded-md border text-center transition-[filter,border-color] duration-200',
         faceUp ? 'border-black/30' : 'border-gold-500/30 hover:border-gold-500/70',
         interactive ? 'cursor-pointer' : 'cursor-default',
-        card.revealed && phase === 'idle' && 'brightness-[.82] saturate-[.72]'
+        // Spent. Greyed and dropped back rather than merely dimmed, so what is
+        // left on the board is the only thing with any colour in it.
+        card.revealed && phase === 'idle' && 'opacity-45 grayscale-[.85] brightness-[.75]'
       )}
     >
       {!faceUp && interactive && sheen && (
@@ -304,7 +335,16 @@ const CardBase = ({
           // Long words shrink rather than run off the card, which the wider
           // dyslexia-friendly face makes obvious.
           fontSize: `clamp(9px, ${Math.min(15, 78 / Math.max(5, card.word.length))}cqw, 30px)`,
-          color: faceUp ? INK[shown] : key ? '#F5F1E6' : 'var(--color-text)'
+          // A spent card keeps white type: dark ink on a greyed plate is a
+          // second thing to read past, not a card that has stopped mattering.
+          color:
+            card.revealed && phase === 'idle'
+              ? 'var(--color-text)'
+              : faceUp
+                ? INK[shown]
+                : key
+                  ? '#F5F1E6'
+                  : 'var(--color-text)'
         }}
       >
         {card.word}

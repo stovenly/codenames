@@ -1,5 +1,5 @@
 import {useEffect, useRef, useState} from 'react'
-import {SendHorizontal} from 'lucide-react'
+import {SendHorizontal, VenetianMask} from 'lucide-react'
 import {
   markRead,
   readable,
@@ -11,19 +11,14 @@ import {
 } from '../state/chat'
 import {useRoom} from '../state/room'
 import {AvatarView} from './avatar/Avatar'
+import {Agent} from './board/symbols'
 import {Heading, IconButton, Label, Panel, input} from './atoms'
 import {cx} from './cx'
 
 const NAME: Record<Channel, string> = {all: 'All', team: 'Team', spymasters: 'Spymasters'}
 
-const tint = (msg: {channel: Channel}, team: string | null) =>
-  msg.channel === 'spymasters'
-    ? 'text-lamp-300'
-    : msg.channel === 'team'
-      ? team === 'red'
-        ? 'text-red-lit'
-        : 'text-blue-lit'
-      : 'text-text-dim'
+const teamTint = (team: string | null) =>
+  team === 'red' ? 'text-red-lit' : team === 'blue' ? 'text-blue-lit' : 'text-text'
 
 export const Chat = () => {
   const {shared} = useRoom()
@@ -84,11 +79,16 @@ export const Chat = () => {
                   </span>
                 )}
                 <div className="min-w-0 flex-1">
-                  <span className="flex items-baseline gap-2">
-                    <span className="type-read truncate text-sm text-text">
+                  <span className="flex items-center gap-1.5">
+                    {msg.spymaster ? (
+                      <VenetianMask className={cx('size-3.5 shrink-0', teamTint(msg.team))} />
+                    ) : (
+                      <Agent className={cx('size-3.5 shrink-0', teamTint(msg.team))} />
+                    )}
+                    <span className={cx('type-read truncate text-sm', teamTint(msg.team))}>
                       {who?.name ?? 'someone'}
                     </span>
-                    <Label className={tint(msg, who?.team ?? null)}>{NAME[msg.channel]}</Label>
+                    <Label className="text-text-dim">{NAME[msg.channel]}</Label>
                   </span>
                   <p className="type-body break-words">{msg.text}</p>
                 </div>

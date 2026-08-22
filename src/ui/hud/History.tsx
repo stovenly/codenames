@@ -2,7 +2,8 @@ import {useEffect, useRef} from 'react'
 import type {Entry} from '../../game/log'
 import type {Player, PlayerId} from '../../game/types'
 import {Label} from '../atoms'
-import {Symbol} from '../board/symbols'
+import {VenetianMask} from 'lucide-react'
+import {Agent, Symbol} from '../board/symbols'
 import {cx} from '../cx'
 
 const why = (reason: string) =>
@@ -23,7 +24,19 @@ const tint = (team: string) => (team === 'red' ? 'text-red-lit' : 'text-blue-lit
  */
 export const History = ({entries, players}: {entries: Entry[]; players: Player[]}) => {
   const foot = useRef<HTMLDivElement>(null)
-  const name = (id: PlayerId) => players.find(p => p.id === id)?.name ?? 'someone'
+  const who = (id: PlayerId) => players.find(p => p.id === id)
+
+  /** The mask or the agent, in their colour — the same pair the roster uses. */
+  const Who = ({id, team}: {id: PlayerId; team: string}) => {
+    const player = who(id)
+    const Mark = player?.spymaster ? VenetianMask : Agent
+    return (
+      <span className={cx('flex w-24 shrink-0 items-center gap-1.5', tint(team))}>
+        <Mark className="size-3.5 shrink-0" />
+        <Label className="truncate">{player?.name ?? 'someone'}</Label>
+      </span>
+    )
+  }
 
   useEffect(() => {
     foot.current?.scrollIntoView({block: 'end'})
@@ -38,10 +51,8 @@ export const History = ({entries, players}: {entries: Entry[]; players: Player[]
       {entries.map(entry => {
         if (entry.kind === 'clue') {
           return (
-            <div key={entry.index} className="flex items-baseline gap-2">
-              <Label className={cx('w-16 shrink-0 truncate', tint(entry.team))}>
-                {name(entry.by)}
-              </Label>
+            <div key={entry.index} className="flex items-center gap-2">
+              <Who id={entry.by} team={entry.team} />
               <span className="type-plate text-lg text-text">
                 {entry.word}
                 <span className="ml-2 text-lamp-300">
@@ -55,9 +66,7 @@ export const History = ({entries, players}: {entries: Entry[]; players: Player[]
         if (entry.kind === 'guess') {
           return (
             <div key={entry.index} className="flex items-center gap-2 pl-2">
-              <Label className={cx('w-16 shrink-0 truncate', tint(entry.team))}>
-                {name(entry.by)}
-              </Label>
+              <Who id={entry.by} team={entry.team} />
               <Symbol colour={entry.colour} className="size-3.5 shrink-0" />
               <span
                 className={cx(

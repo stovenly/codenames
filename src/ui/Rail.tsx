@@ -56,7 +56,7 @@ export const Rail = () => {
 
         {playing && (
           <IconButton
-            label="What has happened"
+            label="Round history"
             aria-expanded={open === 'log'}
             active={open === 'log'}
             onClick={() => toggle('log')}
@@ -100,7 +100,7 @@ export const Rail = () => {
               <Chat />
             ) : (
               <Panel level={2} className="max-h-[70vh] overflow-y-auto p-4 backdrop-blur">
-                <Heading>What has happened</Heading>
+                <Heading>Round history</Heading>
                 <div className="mt-3">
                   <History entries={entries} players={shared?.players ?? []} />
                 </div>
