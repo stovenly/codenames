@@ -3,7 +3,7 @@ import {shade} from './tint'
 
 /** A dog drawn from parts, in the shape DiceBear expects of a style. */
 
-const COAT = ['E8C88F', 'D89A4E', 'A9702F', '6B4426', 'EFE7DA', 'B9BEC8', '4A4652', 'E0A882']
+const COAT = ['E8C88F', 'E0A75A', 'A9702F', '6B4426', 'EFE7DA', 'B9BEC8', '4A4652', 'E0A882']
 
 const COLLAR = ['C8434F', '3F7FD0', '3E9E72', 'D08A2C', '8B5BC4']
 
@@ -19,8 +19,9 @@ const ear = (side: -1 | 1, kind: Ears, coat: string, inner: string) => {
     return `<g${flip}><path d="M${at - 3} 52 L${at - 9} 22q10 4 16 16Z" fill="#${coat}"/>
       <path d="M${at - 2.5} 47 L${at - 6.5} 30q5.5 3.5 9 11Z" fill="#${inner}"/></g>`
   }
+  // Set high, narrow at the skull, widening to a rounded fall past the jaw.
   if (kind === 'long') {
-    return `<g${flip}><rect x="${at - 15}" y="34" width="16" height="46" rx="8" fill="#${coat}" transform="rotate(-10 ${at - 7} 40)"/></g>`
+    return `<g${flip}><path d="M${at + 3} 36q-13-1-16 10-4 14-1 24 3 9 11 8t9-12q1-11-3-30Z" fill="#${coat}"/></g>`
   }
   if (kind === 'round') {
     return `<g${flip}><ellipse cx="${at - 4}" cy="41" rx="9" ry="10" fill="#${coat}"/></g>`
@@ -71,8 +72,8 @@ export const create: Style<never>['create'] = ({prng}) => {
       ${ear(-1, kind, shade(coat, 0.1), inner)}
       ${ear(1, kind, shade(coat, 0.1), inner)}
       <ellipse cx="50" cy="58" rx="27" ry="24" fill="#${coat}"/>
-      ${patch ? `<ellipse cx="38" cy="54" rx="11" ry="10.5" fill="#${shade(coat, 0.3)}"/>` : ''}
-      <ellipse cx="50" cy="70" rx="16" ry="11" fill="#${snout}"/>
+      ${patch ? `<ellipse cx="38" cy="54" rx="11" ry="10.5" fill="#${shade(coat, 0.22)}"/>` : ''}
+      <ellipse cx="50" cy="70" rx="17.5" ry="11.5" fill="#${snout}"/>
       ${eyes(look, coat)}
       ${
         brows

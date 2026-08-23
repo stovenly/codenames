@@ -75,7 +75,7 @@ describe('the styles drawn in this repository', () => {
   })
 
   it('gives the dog all four ears', () => {
-    const ears = [/L\d+ 22/, /rotate\(-10/, /ellipse cx="22" cy="41"/, /q-17 1-18 14/]
+    const ears = [/L\d+ 22/, /q-13-1-16 10/, /ellipse cx="22" cy="41"/, /q-17 1-18 14/]
     for (const ear of ears) expect(count(dog, ear)).toBeGreaterThan(5)
   })
 })

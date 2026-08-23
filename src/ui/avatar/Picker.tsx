@@ -53,9 +53,11 @@ const CustomColour = ({value, onPick}: {value: string; onPick: (hex: string) => 
       </Popover.Trigger>
 
       <Popover.Portal>
+        {/* Downward: opening over the avatar hides the thing the colour is for. */}
         <Popover.Content
-          side="top"
+          side="bottom"
           sideOffset={10}
+          collisionPadding={12}
           className="plate z-50 rounded-md p-3 shadow-4"
         >
           <div className="flex flex-col gap-3">
