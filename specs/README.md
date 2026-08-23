@@ -30,6 +30,7 @@ depends on a later one.
 | [12](12-history.md) | The log | Everyone can read what has already been tried |
 | [13](13-accolades.md) | Accolades | The end screen recognises people, not just the score |
 | [14](14-chat.md) | Chat | Teams and spymasters can talk without leaving the tab |
+| [15](15-connection.md) | Holding the room together | A dropped message costs a moment, never a player |
 
 Items marked **OPEN** need a decision before that section is built. None of them
 block an earlier step. Resolutions are recorded inline where the item was
