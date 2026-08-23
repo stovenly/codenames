@@ -1,4 +1,4 @@
-import {AnimatePresence, motion} from 'motion/react'
+import {motion} from 'motion/react'
 import NumberFlow from '@number-flow/react'
 import {Minus, Plus} from 'lucide-react'
 import {useState} from 'react'
@@ -160,79 +160,74 @@ export const Hud = ({
   const canAct = myTurn && !amSpymaster && view.phase === 'guess' && !busy
 
   return (
-    <Panel level={2} glossy className="flex flex-col gap-2 px-4 py-3">
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-        <Score team="red" left={view.remaining.red} active={view.turn === 'red'} />
+    <div className="flex w-full flex-col gap-3">
+      <Panel level={2} glossy className="flex flex-col gap-2 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <Score team="red" left={view.remaining.red} active={view.turn === 'red'} />
 
-        {/* Everything that says whose turn it is lives between the two scores,
-            which is where anyone looking for it already is. */}
-        <div className="flex min-w-44 flex-1 flex-col items-center justify-center gap-1 text-center">
-          <Standing view={view} me={me} />
+          {/* Everything that says whose turn it is lives between the two scores,
+              which is where anyone looking for it already is. */}
+          <div className="flex min-w-44 flex-1 flex-col items-center justify-center gap-1 text-center">
+            <Standing view={view} me={me} />
 
-          {view.clue ? (
-            <>
-              <motion.span
-                key={view.clue.word}
-                initial={{opacity: 0, y: 8}}
-                animate={{opacity: 1, y: 0}}
-                transition={spring.firm}
-                className="type-marquee text-2xl leading-tight text-text sm:text-3xl"
-                style={{textShadow: '0 0 20px rgba(255,197,61,.28)'}}
-              >
-                {view.clue.word}
-                <span className="ml-3 text-lamp-300">
-                  {view.clue.count === 'unlimited' || view.clue.count === 0 ? '∞' : view.clue.count}
-                </span>
-              </motion.span>
-              <Label>
-                {view.unlimited
-                  ? 'unlimited guesses'
-                  : `${Math.max(0, view.guessesLeft)} guess${view.guessesLeft === 1 ? '' : 'es'} left`}
-              </Label>
-            </>
-          ) : null}
+            {view.clue ? (
+              <>
+                <motion.span
+                  key={view.clue.word}
+                  initial={{opacity: 0, y: 8}}
+                  animate={{opacity: 1, y: 0}}
+                  transition={spring.firm}
+                  className="type-marquee text-2xl leading-tight text-text sm:text-3xl"
+                  style={{textShadow: '0 0 20px rgba(255,197,61,.28)'}}
+                >
+                  {view.clue.word}
+                  <span className="ml-3 text-lamp-300">
+                    {view.clue.count === 'unlimited' || view.clue.count === 0 ? '∞' : view.clue.count}
+                  </span>
+                </motion.span>
+                <Label>
+                  {view.unlimited
+                    ? 'unlimited guesses'
+                    : `${Math.max(0, view.guessesLeft)} guess${view.guessesLeft === 1 ? '' : 'es'} left`}
+                </Label>
+              </>
+            ) : null}
+          </div>
+
+          {deadline !== null && timerTotal > 0 && <TimerArc deadline={deadline} total={timerTotal} />}
+
+          <Score team="blue" left={view.remaining.blue} active={view.turn === 'blue'} />
         </div>
 
-        {deadline !== null && timerTotal > 0 && <TimerArc deadline={deadline} total={timerTotal} />}
+        {/* Its own row. Sharing one with the clue meant the clue slid sideways
+            every time a button turned up beside it — and the clue is the thing
+            everyone is reading. */}
+      </Panel>
 
-        <Score team="blue" left={view.remaining.blue} active={view.turn === 'blue'} />
-      </div>
-
-      {/* Its own row. Sharing one with the clue meant the clue slid sideways
-          every time a button turned up beside it — and the clue is the thing
-          everyone is reading. */}
+      {/* Outside the panel and beneath it. What you can do is not part of the
+          readout of what is happening, and keeping it inside meant every button
+          that turned up shoved the clue along. */}
       {(canClue || canAct) && (
-        <div className="flex min-h-11 flex-wrap items-center justify-center gap-2">
+        <div className="flex min-h-11 flex-wrap items-center justify-between gap-2">
           {canClue && <ClueComposer max={Math.max(1, view.remaining[view.turn])} />}
 
           {canAct && (
             <>
-              {/* Held open whether or not a card is picked, so Pass does not
-                  hop across the moment somebody chooses one. */}
-              <span className="flex w-[min(60vw,15rem)] justify-end">
-                <AnimatePresence>
-                  {armed !== null && (
-                    <motion.div
-                      initial={{opacity: 0, scale: 0.92}}
-                      animate={{opacity: 1, scale: 1}}
-                      exit={{opacity: 0, scale: 0.92}}
-                      transition={spring.firm}
-                    >
-                      <Button
-                        size="lg"
-                        onClick={() => {
-                          previewGuess(armed)
-                          intend({kind: 'guess', card: armed})
-                          clearMyMark()
-                        }}
-                        className="max-w-[min(60vw,15rem)] truncate"
-                      >
-                        Lock in {view.cards[armed]?.word}
-                      </Button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </span>
+              {/* Always present, disabled until a card is picked, rather than
+                  appearing and shunting Pass across the row. */}
+              <Button
+                size="lg"
+                disabled={armed === null}
+                onClick={() => {
+                  if (armed === null) return
+                  previewGuess(armed)
+                  intend({kind: 'guess', card: armed})
+                  clearMyMark()
+                }}
+                className="max-w-[min(60vw,18rem)] truncate"
+              >
+                {armed === null ? 'Lock in' : `Lock in ${view.cards[armed]?.word}`}
+              </Button>
 
               <Button
                 variant="ghost"
@@ -246,6 +241,6 @@ export const Hud = ({
           )}
         </div>
       )}
-    </Panel>
+    </div>
   )
 }
