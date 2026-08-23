@@ -26,11 +26,12 @@ const Face = ({slot}: {slot: Slot}) => (
       boxShadow: 'inset 0 -1px 0 rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.12)'
     }}
   >
-    {/* The peg, on the rim the flapper rides. Faces travel down past it, so the
-        pegs cross the blade rather than running along it. */}
+    {/* The peg straddles the seam between this face and the one above, because
+        that seam is what the model counts: a peg passes when the boundary
+        reaches the middle of the window, which is where the blade sits. */}
     <span
       aria-hidden
-      className="absolute top-[16%] right-0 h-[15cqw] w-[7cqw] rounded-l-[2.5cqw]"
+      className="absolute top-0 right-0 h-[9cqw] w-[7cqw] -translate-y-1/2 rounded-l-[2.5cqw]"
       style={{
         background: 'linear-gradient(90deg, #7A5A14 0%, #C9962C 45%, #F2DCA0 100%)',
         boxShadow: '-1px 0 3px rgba(0,0,0,.7), inset -1px 0 0 rgba(0,0,0,.35)'
@@ -58,7 +59,10 @@ const Flapper = ({angle}: {angle: ReturnType<typeof useMotionValue<number>>}) =>
       aria-hidden
       className="pointer-events-none absolute z-40"
       style={{
-        top: '30%',
+        // Centred on the window, which is where a seam is when the model says a
+        // peg has passed. Written as a calc rather than a translate so it does
+        // not fight the rotation for the transform.
+        top: 'calc(50% - 5.5cqw)',
         right: '-3cqw',
         width: '26cqw',
         height: '11cqw',

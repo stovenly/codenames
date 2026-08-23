@@ -124,16 +124,16 @@ export const sfx = {
    */
   peg: (progress: number, dir: -1 | 1) => {
     const strength = (0.7 + 0.3 * progress) * (dir === 1 ? 0.7 : 1)
-    tone({freq: 300, to: 155, type: 'sine', dur: 0.035, gain: 0.1 * strength, attack: 0.001})
-    noise(0.013, 0.07 * strength, 1900)
-    noise(0.004, 0.03 * strength, 7500)
+    tone({freq: 340, to: 190, type: 'sine', dur: 0.021, gain: 0.058 * strength, attack: 0.001})
+    noise(0.008, 0.042 * strength, 2200)
+    noise(0.003, 0.018 * strength, 7500)
   },
 
   /** The wheel coming to rest: the last peg, and the frame taking the weight. */
   wheelStop: () => {
-    tone({freq: 210, to: 90, type: 'sine', dur: 0.1, gain: 0.16, attack: 0.001})
-    noise(0.026, 0.12, 1300)
-    tone({freq: 70, type: 'sine', dur: 0.16, gain: 0.1, delay: 0.01})
+    tone({freq: 240, to: 105, type: 'sine', dur: 0.06, gain: 0.095, attack: 0.001})
+    noise(0.016, 0.07, 1500)
+    tone({freq: 78, type: 'sine', dur: 0.1, gain: 0.06, delay: 0.01})
   },
 
   /** Held under the whole wind-up, climbing as the reel slows. */
