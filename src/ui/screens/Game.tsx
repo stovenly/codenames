@@ -82,11 +82,10 @@ export const Game = () => {
           player?.spymaster ? 'min-h-[calc(100%-1.5rem)]' : 'min-h-full'
         )}
       >
-        {/* Every board is 7:5 whatever its size — square cards would be, too —
-            so the only thing keeping it off the sides was a cap tied to the
-            viewport height. It takes the width it is given, and only falls back
-            to a height limit when the window is too short to hold it. */}
-        <div className="w-full" style={{maxWidth: 'min(100%, calc((100dvh - 15rem) * 1.4))'}}>
+        {/* Width decides it. Every board is 7:5 whatever its size, so a cap
+            tied to the viewport height was the thing holding it in the middle
+            of the page; the column's own max width is the only limit now. */}
+        <div className="w-full">
           <Board
             view={view}
             stage={stage}

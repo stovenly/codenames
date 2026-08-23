@@ -3,15 +3,11 @@ import {memo, useEffect, useRef, useState} from 'react'
 import type {Colour} from '../../game/board'
 import type {Card as CardModel} from '../../game/reducer'
 import type {Player, PlayerId} from '../../game/types'
-import {VenetianMask} from 'lucide-react'
 import {AvatarView} from '../avatar/Avatar'
 import {cx} from '../cx'
 import {spring} from '../motion'
 import {sfx} from '../sound/audio'
-import {Agent, INK, STAMP, SURFACE, Symbol} from './symbols'
-
-const tint = (team: Player['team']) =>
-  team === 'red' ? 'text-red-lit' : team === 'blue' ? 'text-blue-lit' : 'text-text'
+import {INK, STAMP, SURFACE, Symbol} from './symbols'
 
 /** Read off a near-black stamp rather than off the card, so one set works on all four. */
 const STAMP_INK: Record<Colour, string> = {
@@ -114,7 +110,7 @@ const Reel = ({target, ms, settling}: {target: Colour; ms: number; settling: boo
     (() => {
       const drag = 4 / ((ms / 1000) * 0.7)
       const v = -drag * (START - LAND + 1) * (0.95 + Math.random() * 0.1)
-      return {drag, v, launch: Math.abs(v), elapsed: 0, notch: Math.round(START), done: false}
+      return {drag, v, elapsed: 0, done: false}
     })()
   ).current
 
@@ -145,16 +141,6 @@ const Reel = ({target, ms, settling}: {target: Colour; ms: number; settling: boo
     const next = at + sim.v * dt
     p.set(next)
 
-    // One tick per card arriving in the window. Which notch the wheel is on,
-    // not which boundary it last crossed: settling oscillates a hair either
-    // side of the answer, and a boundary test fires on every one of those
-    // wobbles — a dozen ticks in a fifth of a second, which is the rubbery
-    // noise rather than a wheel.
-    const arrived = Math.round(next)
-    if (arrived !== sim.notch) {
-      sim.notch = arrived
-      sfx.reelTick(Math.min(1, 1 - Math.abs(sim.v) / sim.launch))
-    }
 
     if (notch === LAND && Math.abs(sim.v) < 0.8 && Math.abs(next - LAND) < 0.12) {
       p.set(LAND)
@@ -264,7 +250,6 @@ const CardBase = ({
 }) => {
     const ref = useRef<HTMLButtonElement>(null)
   const [sheen, setSheen] = useState<{x: number; y: number} | null>(null)
-  const [pile, setPile] = useState(false)
 
   const shown: Colour | null = card.revealed
     ? card.colour
@@ -354,7 +339,7 @@ const CardBase = ({
 
       <span
         className={cx(
-          'type-plate relative z-20 px-1.5 transition-opacity duration-150',
+          'type-plate relative z-20 max-w-full px-1.5 break-words transition-opacity duration-150',
           !faceUp && 'letterpress',
           // The stamp says what this card is; the word underneath it would only
           // be a second thing printed in the same place.
@@ -421,74 +406,31 @@ const CardBase = ({
       {/* Sized against the card, not in pixels: on a big screen a 20px badge
           in the corner of a 200px plate is a speck. */}
       {!faceUp && marks.size > 0 && (
-        <span
-          className="absolute -top-[2.5cqw] -right-[2.5cqw] z-40"
-          onMouseEnter={() => setPile(true)}
-          onMouseLeave={() => setPile(false)}
-          // The badges sit over a corner of the card, so a click that lands on
-          // one has to mean what a click on the card means.
-          onClick={onPick}
-        >
-          <motion.span
-            animate={{opacity: pile ? 0 : 1, scale: pile ? 0.85 : 1}}
-            transition={spring.firm}
-            className="flex -space-x-[3.5cqw]"
-          >
-            {[...marks].slice(0, 4).map(id => {
-              const who = people.get(id)
-              return who ? (
-                <motion.span
-                  key={id}
-                  initial={{scale: 0, y: -10}}
-                  animate={{scale: 1, y: 0, opacity: 1}}
-                  exit={{scale: 0, opacity: 0}}
-                  transition={spring.firm}
-                  // The badge owns the shape: the border and the clip are here,
-                  // and the face is whatever fills what is left. Rounding the
-                  // avatar itself relied on its own class winning against the
-                  // one it ships with, which is not something to rely on.
-                  className="size-[18cqw] max-h-12 min-h-5 max-w-12 min-w-5 shrink-0 overflow-hidden rounded-full border-solid bg-stage-000"
-                  style={{
-                    borderColor: 'rgba(255,197,61,.9)',
-                    borderWidth: 'clamp(1.5px, 0.7cqw, 4px)',
-                    boxShadow: '0 2px 6px -1px rgba(0,0,0,.7)'
-                  }}
-                >
-                  <AvatarView spec={who.avatar} size={null} className="size-full rounded-full" />
-                </motion.span>
-              ) : null
-            })}
-          </motion.span>
-
-          {/* The same faces, unstacked and named. Grows out of the corner the
-              pile is in, so it reads as the pile opening rather than as a
-              tooltip arriving from somewhere else. */}
-          <AnimatePresence>
-            {pile && (
+        <span className="pointer-events-none absolute -top-[2.5cqw] -right-[2.5cqw] z-40 flex -space-x-[3.5cqw]">
+          {[...marks].slice(0, 4).map(id => {
+            const who = people.get(id)
+            return who ? (
               <motion.span
-                initial={{opacity: 0, scale: 0.8}}
-                animate={{opacity: 1, scale: 1}}
-                exit={{opacity: 0, scale: 0.8}}
+                key={id}
+                initial={{scale: 0, y: -10}}
+                animate={{scale: 1, y: 0, opacity: 1}}
+                exit={{scale: 0, opacity: 0}}
                 transition={spring.firm}
-                className="plate absolute top-0 right-0 flex origin-top-right flex-col gap-1.5 rounded-md p-2 shadow-3"
+                // The badge owns the shape: the border and the clip are here,
+                // and the face is whatever fills what is left. Rounding the
+                // avatar itself relied on its own class winning against the one
+                // it ships with, which is not something to rely on.
+                className="size-[18cqw] max-h-12 min-h-5 max-w-12 min-w-5 shrink-0 overflow-hidden rounded-full border-solid bg-stage-000"
+                style={{
+                  borderColor: 'rgba(255,197,61,.9)',
+                  borderWidth: 'clamp(1.5px, 0.7cqw, 4px)',
+                  boxShadow: '0 2px 6px -1px rgba(0,0,0,.7)'
+                }}
               >
-                {[...marks].map(id => {
-                  const who = people.get(id)
-                  if (!who) return null
-                  const Mark = who.spymaster ? VenetianMask : Agent
-                  return (
-                    <span key={id} className="flex items-center gap-2 whitespace-nowrap">
-                      <span className="size-6 shrink-0 overflow-hidden rounded-full ring-1 ring-gold-500/40">
-                        <AvatarView spec={who.avatar} size={null} className="size-full" />
-                      </span>
-                      <Mark className={cx('size-3.5 shrink-0', tint(who.team))} />
-                      <span className={cx('type-read text-sm', tint(who.team))}>{who.name}</span>
-                    </span>
-                  )
-                })}
+                <AvatarView spec={who.avatar} size={null} className="size-full rounded-full" />
               </motion.span>
-            )}
-          </AnimatePresence>
+            ) : null
+          })}
         </span>
       )}
 

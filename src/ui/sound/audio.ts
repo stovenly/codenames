@@ -113,14 +113,6 @@ export const sfx = {
     noise(0.09, 0.16, 2600)
   },
 
-  /**
-   * One notch of the wheel passing the window. Pitch and weight both track how
-   * far the spin has run, so a fast pass is a light rattle and the last few
-   * land as separate clicks.
-   */
-  reelTick: (progress: number) => {
-    noise(0.008 + progress * 0.004, 0.07 + progress * 0.11, 3600 + progress * 2600)
-  },
 
   /** Held under the whole wind-up, climbing as the reel slows. */
   riser: (dur: number) => {
