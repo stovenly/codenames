@@ -11,6 +11,7 @@ import {Board} from '../board/Board'
 import {ClueReveal, TurnBand} from '../hud/ClueReveal'
 import {Curtain} from '../hud/Curtain'
 import {Hud} from '../hud/Hud'
+import {cx} from '../cx'
 import {AssassinTakeover, BoardBreath, SpymasterChrome} from '../hud/Overlays'
 import {unlockAudio} from '../sound/audio'
 import {GameOver} from './GameOver'
@@ -73,7 +74,14 @@ export const Game = () => {
     <>
       {player?.spymaster && player.team && <SpymasterChrome team={player.team} />}
 
-      <main className="mx-auto flex min-h-full max-w-[1350px] flex-col items-center gap-4 px-4 py-6 sm:px-8">
+      <main
+        className={cx(
+          'mx-auto flex max-w-[1350px] flex-col items-center gap-4 px-4 py-6 sm:px-8',
+          // The band above is 1.5rem of the page, so the screen is that much
+          // shorter rather than that much taller.
+          player?.spymaster ? 'min-h-[calc(100%-1.5rem)]' : 'min-h-full'
+        )}
+      >
         {/* Every board is 7:5 whatever its size — square cards would be, too —
             so the only thing keeping it off the sides was a cap tied to the
             viewport height. It takes the width it is given, and only falls back

@@ -83,12 +83,15 @@ const BAND: Record<Team, string> = {
  * The same band a player card wears, run across the top of the screen: team
  * gradient, the mask, the word in marquee caps. Saying "spymaster" one way in
  * the roster and another way here would be two vocabularies for one fact.
+ *
+ * Sticky rather than fixed, so it takes its own space at the top of the page
+ * instead of sitting on whatever was already there.
  */
 export const SpymasterChrome = ({team}: {team: Team}) => (
   <span
     aria-hidden
     className={cx(
-      'pointer-events-none fixed inset-x-0 top-0 z-30 flex h-6 items-center justify-center gap-2 bg-gradient-to-r pt-[3px] text-white/95',
+      'pointer-events-none sticky top-0 z-30 flex h-6 items-center justify-center gap-2 bg-gradient-to-r pt-[3px] text-white/95',
       BAND[team]
     )}
   >
