@@ -5,67 +5,63 @@ import {on, self, send} from './net'
 import {getRoom, subscribeRoom} from './room'
 
 /**
- * Arm markers are ephemeral and go peer to peer rather than through the host:
- * the point is that everyone sees your avatar land on the card immediately.
- * A lost one costs a stale marker for a second, never a desync.
+ * Where each player says they are looking. Peer to peer rather than through the
+ * host: the point is that everyone sees your avatar land on the card at once,
+ * and a lost one costs a stale marker, never a desync.
+ *
+ * A message says where somebody's mark **is**, not what changed about it.
+ * Deltas cost a mark forever: moving one used to send "off the old" and "on the
+ * new" as two messages, and the mesh guarantees neither delivery nor order, so
+ * one dropped or overtaken "off" left that player holding two marks on every
+ * screen but their own. Stating the whole truth each time cannot drift.
+ *
+ * The sequence number is the other half of it. Two messages from one player can
+ * arrive by different routes in the wrong order, and an older one landing last
+ * would otherwise undo the newer.
  */
+type Arm = {kind?: string; card?: number | null; seq?: number}
 
 const listeners = new Set<() => void>()
-let marks = new Map<number, Set<PlayerId>>()
-let snapshot: ReadonlyMap<number, ReadonlySet<PlayerId>> = marks
+/** One card each, at most. */
+let mark = new Map<PlayerId, number>()
+let heard = new Map<PlayerId, number>()
+let sent = 0
+let snapshot: ReadonlyMap<number, ReadonlySet<PlayerId>> = new Map()
 let lastTurnKey = ''
 let wired = false
 
+/** The render wants it the other way round: who is on each card. */
+const byCard = () => {
+  const out = new Map<number, Set<PlayerId>>()
+  for (const [who, card] of mark) {
+    const at = out.get(card) ?? new Set<PlayerId>()
+    at.add(who)
+    out.set(card, at)
+  }
+  return out
+}
+
 const publish = () => {
-  snapshot = new Map([...marks].map(([k, v]) => [k, new Set(v)]))
+  snapshot = byCard()
   listeners.forEach(l => l())
 }
 
-const apply = (card: number, who: PlayerId, on_: boolean) => {
-  const at = marks.get(card) ?? new Set<PlayerId>()
-  if (on_) at.add(who)
-  else at.delete(who)
-  if (at.size) marks.set(card, at)
-  else marks.delete(card)
-  publish()
-}
-
 export const clearMarks = () => {
-  if (!marks.size) return
-  marks = new Map()
+  if (!mark.size) return
+  mark = new Map()
   publish()
 }
 
-/**
- * Every change goes out. This was throttled to 100ms, which silently swallowed
- * the half that matters: moving your mark clears the old card and sets the new
- * one in the same tick, so the clear went and the set was dropped — everyone
- * else watched marks vanish and never come back.
- *
- * There is nothing to throttle anyway. A mark changes when somebody clicks.
- */
-const broadcast = (card: number, on_: boolean) =>
-  send('presence', {kind: 'arm', card, on: on_}, '*', TTL_DEFAULT)
+export const myMark = () => mark.get(self) ?? null
 
-export const myMark = () => {
-  for (const [card, who] of marks) if (who.has(self)) return card
-  return null
-}
+/** The same snapshot useMarks subscribes to, for anything that is not a component. */
+export const getMarksSnapshot = () => snapshot
 
-/**
- * One card at a time, cleared from the live map rather than from whatever the
- * caller last rendered: two quick clicks used to leave both marked, and the
- * lock-in button then named whichever the Map happened to yield first.
- */
 export const setMyMark = (card: number | null) => {
-  for (const [at, who] of [...marks]) {
-    if (!who.has(self) || at === card) continue
-    apply(at, self, false)
-    broadcast(at, false)
-  }
-  if (card === null) return
-  apply(card, self, true)
-  broadcast(card, true)
+  if (card === null) mark.delete(self)
+  else mark.set(self, card)
+  publish()
+  send('presence', {kind: 'arm', card, seq: ++sent}, '*', TTL_DEFAULT)
 }
 
 export const clearMyMark = () => setMyMark(null)
@@ -75,15 +71,22 @@ export const startPresence = () => {
   wired = true
 
   on('presence', (body, env) => {
-    const msg = (body ?? {}) as {kind?: string; card?: number; on?: boolean}
-    if (msg.kind === 'arm' && typeof msg.card === 'number') {
-      apply(msg.card, env.from, !!msg.on)
-    }
+    const msg = (body ?? {}) as Arm
+    if (msg.kind !== 'arm') return
+
+    const seq = msg.seq ?? 0
+    if (seq <= (heard.get(env.from) ?? 0)) return
+    heard.set(env.from, seq)
+
+    if (typeof msg.card === 'number') mark.set(env.from, msg.card)
+    else mark.delete(env.from)
+    publish()
   })
 
   subscribeRoom(() => {
     const {shared} = getRoom()
     if (!shared) return
+
     // A marker means "I am considering this card, this turn". Only a turn change
     // or a rewind invalidates that — a guess mid-turn leaves it standing.
     const turns = shared.steps.slice(0, shared.cursor).filter(s => s.t === 'endTurn').length
@@ -91,7 +94,19 @@ export const startPresence = () => {
     if (key !== lastTurnKey) {
       lastTurnKey = key
       clearMarks()
+      return
     }
+
+    // Somebody who left the room does not get to keep pointing at a card.
+    const here = new Set(shared.players.map(p => p.id))
+    let dropped = false
+    for (const who of [...mark.keys()]) {
+      if (here.has(who)) continue
+      mark.delete(who)
+      heard.delete(who)
+      dropped = true
+    }
+    if (dropped) publish()
   })
 }
 
