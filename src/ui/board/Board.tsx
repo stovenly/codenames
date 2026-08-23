@@ -2,7 +2,7 @@ import {useCallback} from 'react'
 import type {View} from '../../game/reducer'
 import type {Player, PlayerId} from '../../game/types'
 import {myMark, setMyMark, useMarks} from '../../state/presence'
-import type {Stage} from '../../state/theatre'
+import {settleNow, type Stage} from '../../state/theatre'
 import {sfx} from '../sound/audio'
 import {Card, type CardPhase} from './Card'
 
@@ -73,6 +73,7 @@ export const Board = ({
             marks={marks.get(i) ?? new Set()}
             people={people}
             onPick={() => toggle(i)}
+            onSettled={() => settleNow(i)}
           />
         ))}
       </div>

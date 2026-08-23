@@ -106,12 +106,14 @@ export const Reel = ({
   target,
   team,
   ms,
-  settling
+  settling,
+  onStopped
 }: {
   target: Colour
   team: Team
   ms: number
   settling: boolean
+  onStopped: () => void
 }) => {
   const strip = useRef(buildStrip(target, team)).current
   const sim = useRef(launch(TUNE)).current
@@ -164,6 +166,7 @@ export const Reel = ({
       sfx.wheelStop()
       flash.set(1)
       jolt.set(3.5)
+      onStopped()
     }
   })
 
@@ -178,7 +181,7 @@ export const Reel = ({
       <motion.span
         className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-[inherit]"
         animate={{opacity: settling ? 0 : 1}}
-        transition={{duration: settling ? 0.4 : 0, delay: settling ? 0.25 : 0}}
+        transition={{duration: settling ? 0.16 : 0}}
         style={{y: jolt}}
       >
         <motion.span className="absolute inset-x-0 top-0 flex flex-col" style={{y, filter}}>
@@ -206,7 +209,7 @@ export const Reel = ({
       <motion.span
         className="pointer-events-none absolute inset-0"
         animate={{opacity: settling ? 0 : 1}}
-        transition={{duration: settling ? 0.3 : 0, delay: settling ? 0.25 : 0}}
+        transition={{duration: settling ? 0.16 : 0}}
       >
         <Flapper angle={flap} />
       </motion.span>

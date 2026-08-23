@@ -14,9 +14,14 @@ import type {Team} from '../../game/types'
 
 export type Slot = {kind: 'card'; colour: Colour} | {kind: 'joke'; text: string}
 
-export const FACES = 24
-/** Faces fall, so the reel runs from the far end of the strip back toward the top. */
-export const START = 19
+export const FACES = 18
+/**
+ * Faces fall, so the reel runs from the far end of the strip back toward the
+ * top. Ten of them pass, not sixteen: under constant deceleration the time a
+ * spin takes is set by how far it travels, so a shorter run is a slower one —
+ * and every peg has to be far enough from the last to read as its own card.
+ */
+export const START = 13
 /** Where it comes to rest. The faces either side exist to be overshot into. */
 export const LAND = 3
 
@@ -137,21 +142,22 @@ export type Tune = {
 }
 
 /**
- * Swept, not guessed: 810 combinations, 250 spins each. This one never leaves
- * the strip, always rests on the answer, stops at p99 2.28s of a 2.6s budget so
- * there is a beat before the flip, spaces the pegs 67ms apart at launch and
- * 130ms at the end, and changes direction at least twice on every spin.
+ * Swept, not guessed. Every spin lands on the answer and none leaves the strip;
+ * no two pegs are closer than 150ms, so each one reads as its own card rather
+ * than as a rattle; it rests by 2.33s; and it turns back exactly once, with no
+ * pair of turns inside 220ms of each other — one deliberate near-miss rather
+ * than a wobble.
  */
 export const TUNE: Tune = {
-  friction: 7,
-  visc: 0.35,
-  detent: 95,
-  creep: 60,
-  resting: 6,
-  lateAt: 0.7,
-  lateBrake: 4,
-  throwLow: 0.98,
-  throwHigh: 1.08
+  friction: 4.4,
+  visc: 1.6,
+  detent: 40,
+  creep: 40,
+  resting: 4.5,
+  lateAt: 0.74,
+  lateBrake: 3,
+  throwLow: 0.99,
+  throwHigh: 1.1
 }
 
 export type Sim = {
@@ -224,6 +230,10 @@ export type Outcome = {
   /** Time between the first two pegs, and between the last two. */
   firstGap: number
   lastGap: number
+  /** The tightest gap anywhere in the run: the fastest the ticks ever come. */
+  minGap: number
+  /** Reversals that arrive on top of one another — ringing rather than hesitating. */
+  bounces: number
 }
 
 /** A whole spin at 60fps, for tests and for tuning. */
@@ -231,6 +241,7 @@ export const spin = (budgetS: number, tune: Tune = TUNE, rand: () => number = Ma
   const sim = launch(tune, rand)
   const dt = 1 / 60
   const pegTimes: number[] = []
+  const turnTimes: number[] = []
   let reversals = 0
   let lastSign = Math.sign(sim.v)
 
@@ -240,14 +251,27 @@ export const spin = (budgetS: number, tune: Tune = TUNE, rand: () => number = Ma
     const sign = Math.sign(sim.v)
     if (sign !== 0 && sign !== lastSign) {
       reversals++
+      turnTimes.push(sim.elapsed)
       lastSign = sign
     }
     if (sim.p < -2 || sim.p > FACES + 2) {
-      return {landed: false, escaped: true, restedAt: sim.elapsed, pegs: pegTimes.length, reversals, firstGap: 0, lastGap: 0}
+      return {
+        landed: false,
+        escaped: true,
+        restedAt: sim.elapsed,
+        pegs: pegTimes.length,
+        reversals,
+        firstGap: 0,
+        lastGap: 0,
+        minGap: 0,
+        bounces: 0
+      }
     }
   }
 
   const gaps = pegTimes.slice(1).map((t, i) => t - pegTimes[i]!)
+  const bounces = turnTimes.slice(1).filter((t, i) => t - turnTimes[i]! < 0.22).length
+
   return {
     landed: sim.done && sim.p === LAND,
     escaped: false,
@@ -255,6 +279,8 @@ export const spin = (budgetS: number, tune: Tune = TUNE, rand: () => number = Ma
     pegs: pegTimes.length,
     reversals,
     firstGap: gaps[0] ?? 0,
-    lastGap: gaps[gaps.length - 1] ?? 0
+    lastGap: gaps[gaps.length - 1] ?? 0,
+    minGap: gaps.length ? Math.min(...gaps) : 0,
+    bounces
   }
 }

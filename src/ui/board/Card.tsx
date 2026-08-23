@@ -81,6 +81,7 @@ const CardBase = ({
   landedColour,
   reelColour,
   reelTeam,
+  onSettled,
   windupMs,
   dim,
   spymaster,
@@ -96,6 +97,7 @@ const CardBase = ({
   landedColour: Colour | null
   reelColour: Colour | null
   reelTeam: Team | null
+  onSettled: () => void
   windupMs: number
   dim: boolean
   spymaster: boolean
@@ -222,18 +224,23 @@ const CardBase = ({
           team={reelTeam}
           ms={windupMs}
           settling={phase === 'landing'}
+          onStopped={onSettled}
         />
       )}
 
       <AnimatePresence>
-        {phase === 'aftermath' && shown && (
+        {(phase === 'landing' || phase === 'aftermath') && shown && (
           <motion.span
             key="stamp"
             initial={{opacity: 0, scale: 2.2, rotate: -20}}
             animate={{opacity: 1, scale: 1, rotate: -10}}
             exit={{opacity: 0}}
             transition={{type: 'spring', stiffness: 700, damping: 17}}
-            className="type-marquee pointer-events-none absolute z-30 rounded-xs border-2 whitespace-nowrap"
+            className={cx(
+              'type-marquee pointer-events-none absolute z-30 rounded-xs border-2 whitespace-nowrap',
+              // Pushed clear of the skull rather than printed across it.
+              shown === 'assassin' && 'translate-y-[26cqw]'
+            )}
             style={{
               // Everything in card widths: fixed padding pushed the stamp past
               // the edge on a small board, where it was clipped mid-word.
@@ -252,6 +259,21 @@ const CardBase = ({
           </motion.span>
         )}
       </AnimatePresence>
+
+      {/* The assassin keeps its skull. The wheel stops on it, and taking it away
+          the instant the stamp lands throws out the one image that says what
+          just happened. */}
+      {shown === 'assassin' && phase !== 'idle' && (
+        <motion.span
+          aria-hidden
+          className="pointer-events-none absolute z-10 grid place-items-center"
+          initial={{opacity: 0, scale: 1.25}}
+          animate={{opacity: 1, scale: 1}}
+          transition={spring.firm}
+        >
+          <Symbol colour="assassin" className="size-[46cqw] opacity-90" />
+        </motion.span>
+      )}
 
       {/* Still clipped: sparks crossing into a neighbouring card read as that
           card doing something. */}

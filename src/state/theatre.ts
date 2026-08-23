@@ -28,7 +28,7 @@ export type Stage =
 const FULL = {
   /** Symbols churning on the card, decelerating into the flip. */
   windup: 2600,
-  landing: 1200,
+  landing: 700,
   correct: 1500,
   wrong: 1900,
   assassin: 3400,
@@ -193,6 +193,19 @@ const windUp = (card: number, team: Team, colour: Colour) => {
   publish()
   sfx.riser(t.windup / 1000)
   at(t.windup, () => land(card, team, colour))
+}
+
+/**
+ * The wheel has stopped; there is nothing left to wait for. Without this the
+ * flip came on a fixed timer, so a wheel that settled early sat there having
+ * plainly finished, and the stamp arrived a beat after everyone had read the
+ * answer off it.
+ */
+export const settleNow = (card: number) => {
+  if (stage.kind !== 'windup' || stage.card !== card) return
+  const {team, colour} = stage
+  clearTimers()
+  land(card, team, colour)
 }
 
 const playGuess = (card: number, team: Team) => {
