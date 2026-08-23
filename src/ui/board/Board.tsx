@@ -60,6 +60,11 @@ export const Board = ({
             phase={phaseFor(stage, i)}
             landedColour={stage.kind === 'landing' || stage.kind === 'aftermath' ? stage.colour : null}
             reelColour={stage.kind === 'windup' && stage.card === i ? stage.colour : null}
+            reelTeam={
+              (stage.kind === 'windup' || stage.kind === 'landing') && stage.card === i
+                ? stage.team
+                : null
+            }
             windupMs={stage.kind === 'windup' ? stage.until - stage.from : 0}
             dim={stage.kind === 'windup' && stage.card !== i}
             spymaster={spymaster}

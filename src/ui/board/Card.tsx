@@ -1,12 +1,13 @@
-import {AnimatePresence, motion, useAnimationFrame, useMotionValue, useTransform} from 'motion/react'
-import {memo, useEffect, useRef, useState} from 'react'
+import {AnimatePresence, motion} from 'motion/react'
+import {memo, useRef, useState} from 'react'
 import type {Colour} from '../../game/board'
 import type {Card as CardModel} from '../../game/reducer'
-import type {Player, PlayerId} from '../../game/types'
+import type {Player, PlayerId, Team} from '../../game/types'
 import {AvatarView} from '../avatar/Avatar'
 import {cx} from '../cx'
 import {spring} from '../motion'
 import {sfx} from '../sound/audio'
+import {Reel} from './Reel'
 import {INK, STAMP, SURFACE, Symbol} from './symbols'
 
 /** Read off a near-black stamp rather than off the card, so one set works on all four. */
@@ -29,152 +30,6 @@ const KEY_FACE: Record<Colour, string> = {
   blue: 'linear-gradient(180deg, #1B5AA8 0%, #103B71 100%)',
   neutral: 'linear-gradient(180deg, #3A3527 0%, #26231A 100%)',
   assassin: 'linear-gradient(180deg, #101014 0%, #000 100%)'
-}
-
-const FACES = 26
-/** Faces fall, so the reel runs from the far end of the strip back toward the top. */
-const START = 22
-/** Where it comes to rest. The faces either side exist to be overshot into. */
-const LAND = 3
-
-const POOL: Colour[] = ['red', 'blue', 'neutral', 'assassin']
-
-/** A different run-up every time, with the answer dropped into the resting slot. */
-const buildStrip = (target: Colour): Colour[] => {
-  const strip = Array.from({length: FACES}, () => POOL[Math.floor(Math.random() * POOL.length)]!)
-  strip[LAND] = target
-  // Never sit the answer directly above the window as the reel slows: seeing it
-  // arrive one notch early is the whole tension given away for free.
-  strip[LAND + 1] = POOL.filter(c => c !== target)[Math.floor(Math.random() * 3)]!
-  return strip
-}
-
-const TAU = Math.PI * 2
-
-const Face = ({colour}: {colour: Colour}) => (
-  <span
-    className="relative grid aspect-[7/5] w-full shrink-0 place-items-center"
-    style={{background: SURFACE[colour], boxShadow: 'inset 0 -1px 0 rgba(0,0,0,.55)'}}
-  >
-    <Symbol colour={colour} className="size-[38cqw] drop-shadow-[0_2px_3px_rgba(0,0,0,.45)]" />
-  </span>
-)
-
-/**
- * The wheel, as a wheel.
- *
- * Keyframes were the wrong tool: each notch was its own eased segment, so
- * velocity fell to zero at every one of them and the run read as a series of
- * little stops. The interesting part of a real wheel — coming to rest half a
- * notch short, hanging, and being pulled over the crest — is not something to
- * script. It falls out of a detent and some friction on its own.
- *
- * Integrated in notch units, one notch being one card face:
- *
- *   a = -DRAG·v            the wheel losing speed
- *       -DETENT·sin(2πp)   the sprung pawl, zero on a notch, restoring around it
- *       +creep             a hand's weight, only while resting on the wrong notch
- *
- * The pawl term is what makes it hesitate; whether it hesitates a notch past
- * the answer or a notch short depends on how hard it was thrown, which is
- * jittered per spin. Creep is what guarantees the answer regardless — it is off
- * once the nearest notch is the right one, so the wheel is never dragged past.
- */
-const DETENT = 70
-const CREEP = 70
-/** Above this the wheel is turning; below it, it is resting and a hand can decide. */
-const RESTING = 4
-
-const Reel = ({target, ms, settling}: {target: Colour; ms: number; settling: boolean}) => {
-  const strip = useRef(buildStrip(target)).current
-  const p = useMotionValue(START)
-  const y = useTransform(p, v => `${(-v * 100) / FACES}%`)
-
-  /**
-   * Drag is set from the time available rather than picked: a wheel still
-   * turning when the card is due to flip would be cut off mid-spin, and one
-   * that stopped early leaves the card sitting there. Four time constants is a
-   * stop, aimed at 70% of the windup, which leaves the pawl the last third and
-   * puts the flip just after the wheel lands.
-   *
-   * Simulated over hundreds of spins: never leaves the strip, always comes to
-   * rest on the answer, and changes direction at least twice on the way. A hard
-   * pawl is what makes the last notch arrive as a snap — a soft one oozes the
-   * final fraction of a notch for a quarter-second, which is the part that read
-   * as slow.
-   *
-   * Thrown a notch long, with enough spread that where it runs out is genuinely
-   * in doubt — free travel under drag alone being v0/drag.
-   */
-  const sim = useRef(
-    (() => {
-      const drag = 4 / ((ms / 1000) * 0.7)
-      const v = -drag * (START - LAND + 1) * (0.95 + Math.random() * 0.1)
-      return {drag, v, elapsed: 0, done: false}
-    })()
-  ).current
-
-  useAnimationFrame((_, delta) => {
-    if (settling || sim.done) return
-
-    // A backgrounded tab hands back one enormous frame; integrating it whole
-    // would fire the wheel off the end of the strip.
-    const dt = Math.min(delta, 34) / 1000
-    sim.elapsed += dt
-
-    // Out of time: lean on it so it is stopped before the card turns over,
-    // rather than being cut off wherever it happens to be.
-    const late = sim.elapsed > (ms / 1000) * 0.7
-    const drag = late ? sim.drag * 4 : sim.drag
-
-    const at = p.get()
-    const notch = Math.round(at)
-    // Only ever applied to a wheel that has stopped on the wrong notch. Applied
-    // while it is still turning it would push all the way round the run and
-    // throw it off the end of the strip.
-    const resting = Math.abs(sim.v) < RESTING
-    const pull =
-      resting && notch !== LAND ? Math.sign(LAND - at) * (late ? CREEP * 2 : CREEP) : 0
-
-    const a = -drag * sim.v - DETENT * Math.sin(TAU * at) + pull
-    sim.v += a * dt
-    const next = at + sim.v * dt
-    p.set(next)
-
-
-    if (notch === LAND && Math.abs(sim.v) < 0.8 && Math.abs(next - LAND) < 0.12) {
-      p.set(LAND)
-      sim.done = true
-    }
-  })
-
-  useEffect(() => {
-    if (settling) p.set(LAND)
-  }, [settling, p])
-
-  return (
-    <motion.span
-      className="pointer-events-none absolute inset-0 z-10 overflow-hidden"
-      animate={{opacity: settling ? 0 : 1}}
-      transition={{duration: settling ? 0.4 : 0, delay: settling ? 0.2 : 0}}
-    >
-      <motion.span className="absolute inset-x-0 top-0 flex flex-col" style={{y}}>
-        {strip.map((colour, i) => (
-          <Face key={i} colour={colour} />
-        ))}
-      </motion.span>
-
-      {/* The window's own shadow, so faces arrive out of somewhere. */}
-      <span
-        aria-hidden
-        className="absolute inset-0"
-        style={{
-          background:
-            'linear-gradient(180deg, rgba(0,0,0,.55) 0%, transparent 22%, transparent 78%, rgba(0,0,0,.55) 100%)'
-        }}
-      />
-    </motion.span>
-  )
 }
 
 const Burst = ({colour}: {colour: Colour}) => {
@@ -225,6 +80,7 @@ const CardBase = ({
   phase,
   landedColour,
   reelColour,
+  reelTeam,
   windupMs,
   dim,
   spymaster,
@@ -239,6 +95,7 @@ const CardBase = ({
   phase: CardPhase
   landedColour: Colour | null
   reelColour: Colour | null
+  reelTeam: Team | null
   windupMs: number
   dim: boolean
   spymaster: boolean
@@ -359,9 +216,10 @@ const CardBase = ({
 
       {/* Held through the landing and faded out, so the face it stopped on does
           not blink into the word underneath it. */}
-      {(phase === 'windup' || phase === 'landing') && (reelColour ?? shown) && (
+      {(phase === 'windup' || phase === 'landing') && (reelColour ?? shown) && reelTeam && (
         <Reel
           target={(reelColour ?? shown)!}
+          team={reelTeam}
           ms={windupMs}
           settling={phase === 'landing'}
         />
@@ -456,6 +314,7 @@ export const Card = memo(
     a.phase === b.phase &&
     a.landedColour === b.landedColour &&
     a.reelColour === b.reelColour &&
+    a.reelTeam === b.reelTeam &&
     a.dim === b.dim &&
     a.spymaster === b.spymaster &&
     a.interactive === b.interactive &&

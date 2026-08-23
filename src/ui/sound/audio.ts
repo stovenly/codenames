@@ -32,9 +32,11 @@ type ToneOpts = {
   delay?: number
   sweep?: [number, number]
   q?: number
+  /** Seconds to full level. Defaults to a soft 20ms; a knock wants near zero. */
+  attack?: number
 }
 
-const tone = ({freq, to, type = 'sine', dur, gain = 0.15, delay = 0, sweep, q = 1}: ToneOpts) => {
+const tone = ({freq, to, type = 'sine', dur, gain = 0.15, delay = 0, sweep, q = 1, attack}: ToneOpts) => {
   if (!enabled()) return
   const ac = context()
   const at = ac.currentTime + delay
@@ -46,7 +48,7 @@ const tone = ({freq, to, type = 'sine', dur, gain = 0.15, delay = 0, sweep, q = 
 
   const amp = ac.createGain()
   amp.gain.setValueAtTime(0.0001, at)
-  amp.gain.exponentialRampToValueAtTime(gain, at + Math.min(0.02, dur * 0.2))
+  amp.gain.exponentialRampToValueAtTime(gain, at + (attack ?? Math.min(0.02, dur * 0.2)))
   amp.gain.exponentialRampToValueAtTime(0.0001, at + dur)
 
   let tail: AudioNode = osc
@@ -113,6 +115,26 @@ export const sfx = {
     noise(0.09, 0.16, 2600)
   },
 
+
+  /**
+   * A peg hitting the flapper. Heavy and wooden, with no pitch to it: a low
+   * body that drops as it rings out, a knock on top, and a hair of contact.
+   * Gets fuller as the wheel slows — a fast peg has less time to resonate —
+   * and a peg pushed back over on a rock-back lands lighter than a fall.
+   */
+  peg: (progress: number, dir: -1 | 1) => {
+    const strength = (0.66 + 0.34 * progress) * (dir === 1 ? 0.7 : 1)
+    tone({freq: 150, to: 60, type: 'sine', dur: 0.09, gain: 0.3 * strength, attack: 0.002})
+    noise(0.024, 0.17 * strength, 950)
+    noise(0.005, 0.045 * strength, 7000)
+  },
+
+  /** The wheel coming to rest: the last peg, and the frame taking the weight. */
+  wheelStop: () => {
+    tone({freq: 120, to: 52, type: 'sine', dur: 0.2, gain: 0.36, attack: 0.002})
+    noise(0.04, 0.22, 700)
+    tone({freq: 48, type: 'sine', dur: 0.32, gain: 0.2, delay: 0.02})
+  },
 
   /** Held under the whole wind-up, climbing as the reel slows. */
   riser: (dur: number) => {
