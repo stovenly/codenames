@@ -307,7 +307,9 @@ const CardBase = ({
       style={{
         background: faceUp ? SURFACE[shown] : key ? KEY_FACE[key] : plate,
         containerType: 'inline-size',
-        zIndex: phase === 'windup' ? 30 : armed ? 10 : 1,
+        // Raised for the whole reveal, not just the spin: the stamp hangs off
+        // the edges, and cards later in the grid would paint over it.
+        zIndex: phase === 'idle' ? (armed ? 10 : 1) : 30,
         boxShadow: faceUp
           ? 'inset 0 1px 0 rgba(255,255,255,.22), 0 2px 5px -3px rgba(0,0,0,.9)'
           : phase === 'windup'
@@ -317,7 +319,7 @@ const CardBase = ({
             : 'inset 0 1px 0 rgba(255,255,255,.1), inset 0 -2px 8px rgba(0,0,0,.55), 0 10px 26px -16px rgba(0,0,0,.95)'
       }}
       className={cx(
-        'relative grid aspect-[7/5] w-full place-items-center overflow-hidden rounded-md border text-center transition-[filter,border-color] duration-200',
+        'relative grid aspect-[7/5] w-full place-items-center rounded-md border text-center transition-[filter,border-color] duration-200',
         faceUp ? 'border-black/30' : 'border-gold-500/30 hover:border-gold-500/70',
         interactive ? 'cursor-pointer' : 'cursor-default',
       )}
@@ -380,7 +382,7 @@ const CardBase = ({
             animate={{opacity: 1, scale: 1, rotate: -10}}
             exit={{opacity: 0}}
             transition={{type: 'spring', stiffness: 700, damping: 17}}
-            className="type-marquee pointer-events-none absolute z-20 rounded-xs border-2 whitespace-nowrap"
+            className="type-marquee pointer-events-none absolute z-30 rounded-xs border-2 whitespace-nowrap"
             style={{
               // Everything in card widths: fixed padding pushed the stamp past
               // the edge on a small board, where it was clipped mid-word.
@@ -400,7 +402,13 @@ const CardBase = ({
         )}
       </AnimatePresence>
 
-      {phase === 'aftermath' && shown && shown !== 'neutral' && <Burst colour={shown} />}
+      {/* Still clipped: sparks crossing into a neighbouring card read as that
+          card doing something. */}
+      {phase === 'aftermath' && shown && shown !== 'neutral' && (
+        <span className="pointer-events-none absolute inset-0 overflow-hidden rounded-md">
+          <Burst colour={shown} />
+        </span>
+      )}
 
       {/* Sized against the card, not in pixels: on a big screen a 20px badge
           in the corner of a 200px plate is a speck. */}

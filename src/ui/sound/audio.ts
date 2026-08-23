@@ -119,11 +119,12 @@ export const sfx = {
    * land as separate clicks.
    */
   reelTick: (progress: number) => {
+    noise(0.011 + progress * 0.007, 0.05 + progress * 0.1, 2400 + progress * 3200)
     tone({
-      freq: 560 + progress * 620,
-      type: 'square',
-      dur: 0.022 + progress * 0.016,
-      gain: 0.025 + progress * 0.055
+      freq: 1750 + progress * 950,
+      type: 'triangle',
+      dur: 0.011 + progress * 0.005,
+      gain: 0.018 + progress * 0.03
     })
   },
 
