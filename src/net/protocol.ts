@@ -17,6 +17,11 @@ export type MessageKind =
   | 'words'
   | 'chat'
   | 'echo'
+  /** Link-level only: never dispatched, never forwarded. */
+  | 'ping'
+  | 'pong'
+  /** Host to client, naming the intent it applied. */
+  | 'ack'
 
 export type Envelope = {
   id: string
@@ -25,6 +30,11 @@ export type Envelope = {
   ttl: number
   kind: MessageKind
   body: string
+  /**
+   * Per-sender counter, so a receiver can drop one overtaken in flight.
+   * Optional: a client on an older build neither sends nor reads it.
+   */
+  seq?: number
 }
 
 export const TTL_DEFAULT = 4

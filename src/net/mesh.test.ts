@@ -1,0 +1,231 @@
+import {beforeEach, describe, expect, it, vi} from 'vitest'
+import type {MessageAction} from '@trystero-p2p/core'
+import {createMesh, type MeshRoom, type Spec, type TransportName} from './mesh'
+import {playerId} from './identity'
+import type {Envelope} from './protocol'
+import {pack} from './codec'
+
+const ROOM = 'testroom'
+
+/**
+ * A transport that goes nowhere. Records what the mesh sent, and lets a test
+ * play the other side: bring a peer up, hand an envelope back, take it away.
+ */
+const fakeSpec = (name: TransportName) => {
+  const sent: Array<{env: Envelope; target: string[]}> = []
+  let room: MeshRoom | null = null
+  let onMessage: ((env: Envelope, ctx: {peerId: string}) => void) | null = null
+  const peers: Record<string, RTCPeerConnection> = {}
+  const closed: string[] = []
+
+  const action = {
+    send: (env: Envelope, opts?: {target?: string | string[]}) => {
+      const target = opts?.target
+      sent.push({env, target: target === undefined ? [] : Array.isArray(target) ? target : [target]})
+      return Promise.resolve()
+    },
+    set onMessage(fn: (env: Envelope, ctx: {peerId: string}) => void) {
+      onMessage = fn
+    }
+  } as unknown as MessageAction<Envelope>
+
+  const spec: Spec = {
+    name,
+    urls: null,
+    sockets: () => ({}),
+    join: () => {
+      room = {
+        makeAction: () => action,
+        getPeers: () => peers,
+        ping: () => Promise.resolve(1),
+        leave: () => {}
+      }
+      return room
+    }
+  }
+
+  return {
+    spec,
+    sent,
+    /** Envelopes of one kind, in order. */
+    of: (kind: string) => sent.filter(s => s.env.kind === kind),
+    connect: (peer: string) => {
+      peers[peer] = {close: () => closed.push(peer)} as unknown as RTCPeerConnection
+      room?.onPeerJoin?.(peer)
+    },
+    closed,
+    deliver: (peer: string, env: Partial<Envelope> & {from: string; kind: Envelope['kind']}) =>
+      onMessage?.(
+        {id: `e${Math.random()}`, to: '*', ttl: 0, body: pack(ROOM, null), ...env} as Envelope,
+        {peerId: peer}
+      )
+  }
+}
+
+const build = (specs: ReturnType<typeof fakeSpec>[], chaos?: Parameters<typeof createMesh>[0]['chaos']) => {
+  const got: Envelope[] = []
+  const mesh = createMesh({
+    roomId: ROOM,
+    onEnvelope: env => got.push(env),
+    specs: specs.map(s => s.spec),
+    chaos
+  })
+  return {mesh, got}
+}
+
+/** A peer that has connected and said who it is, which is what names the link. */
+const introduce = (fake: ReturnType<typeof fakeSpec>, peer: string, who: string) => {
+  fake.connect(peer)
+  fake.deliver(peer, {from: who, kind: 'id'})
+}
+
+describe('sending on every link', () => {
+  beforeEach(() => vi.useFakeTimers())
+
+  it('puts an intent on both links to a peer, and a chat on one', () => {
+    const a = fakeSpec('nostr')
+    const b = fakeSpec('torrent')
+    const {mesh} = build([a, b])
+
+    introduce(a, 'pa', 'B')
+    introduce(b, 'pb', 'B')
+
+    mesh.send('intent', {kind: 'pass'}, 'B')
+    expect(a.of('intent')).toHaveLength(1)
+    expect(b.of('intent')).toHaveLength(1)
+    expect(a.of('intent')[0]!.env.id).toBe(b.of('intent')[0]!.env.id)
+
+    mesh.send('chat', {text: 'hi'}, 'B')
+    expect(a.of('chat').length + b.of('chat').length).toBe(1)
+  })
+
+  it('hands the same envelope to the room only once', () => {
+    const a = fakeSpec('nostr')
+    const b = fakeSpec('torrent')
+    const {mesh, got} = build([a, b])
+    introduce(a, 'pa', 'B')
+    introduce(b, 'pb', 'B')
+
+    const twice: Envelope = {
+      id: 'same',
+      from: 'B',
+      to: playerId,
+      ttl: 0,
+      kind: 'chat',
+      body: pack(ROOM, {text: 'once'})
+    }
+    a.deliver('pa', twice)
+    b.deliver('pb', twice)
+
+    expect(got.filter(e => e.id === 'same')).toHaveLength(1)
+    expect(mesh.report().router.dropped).toBe(1)
+  })
+})
+
+describe('link liveness', () => {
+  beforeEach(() => vi.useFakeTimers())
+
+  it('answers a ping on the link it came in on', () => {
+    const a = fakeSpec('nostr')
+    build([a])
+    introduce(a, 'pa', 'B')
+
+    a.deliver('pa', {from: 'B', kind: 'ping', id: 'ping-1'})
+    const pong = a.of('pong')[0]
+    expect(pong).toBeDefined()
+    expect(pong!.target).toEqual(['pa'])
+  })
+
+  it('drops a link that stops answering, and closes it so the transport re-signals', () => {
+    const a = fakeSpec('nostr')
+    const {mesh} = build([a])
+    introduce(a, 'pa', 'B')
+    expect(mesh.peers()).toEqual(['B'])
+
+    // Four intervals with nothing coming back.
+    vi.advanceTimersByTime(2_000 * 5)
+
+    expect(mesh.peers()).toEqual([])
+    expect(a.closed).toEqual(['pa'])
+  })
+
+  it('keeps a link that answers', () => {
+    const a = fakeSpec('nostr')
+    const {mesh} = build([a])
+    introduce(a, 'pa', 'B')
+
+    for (let i = 0; i < 6; i++) {
+      vi.advanceTimersByTime(2_000)
+      a.deliver('pa', {from: 'B', kind: 'pong'})
+    }
+    expect(mesh.peers()).toEqual(['B'])
+  })
+
+  it('prefers the link that most recently carried something', () => {
+    const stale = fakeSpec('nostr')
+    const fresh = fakeSpec('torrent')
+    const {mesh} = build([stale, fresh])
+
+    introduce(stale, 'pa', 'B')
+    vi.advanceTimersByTime(500)
+    introduce(fresh, 'pb', 'B')
+
+    mesh.send('chat', {text: 'hi'}, 'B')
+    expect(fresh.of('chat')).toHaveLength(1)
+    expect(stale.of('chat')).toHaveLength(0)
+  })
+})
+
+describe('messages with nowhere to go', () => {
+  beforeEach(() => vi.useFakeTimers())
+
+  it('holds one until a route appears, then sends it', () => {
+    const a = fakeSpec('nostr')
+    const {mesh} = build([a])
+
+    mesh.send('hello', {name: 'Wren'}, 'HOST')
+    expect(a.of('hello')).toHaveLength(0)
+    expect(mesh.heldCount()).toBe(1)
+
+    introduce(a, 'pa', 'HOST')
+    expect(a.of('hello')).toHaveLength(1)
+    expect(mesh.heldCount()).toBe(0)
+  })
+
+  it('gives up on one nobody ever came for', () => {
+    const a = fakeSpec('nostr')
+    const {mesh} = build([a])
+
+    mesh.send('hello', {name: 'Wren'}, 'HOST')
+    vi.advanceTimersByTime(16_000)
+    expect(mesh.heldCount()).toBe(0)
+
+    introduce(a, 'pa', 'HOST')
+    expect(a.of('hello')).toHaveLength(0)
+  })
+})
+
+describe('chaos', () => {
+  beforeEach(() => vi.useFakeTimers())
+
+  it('drops what it is told to drop', () => {
+    const a = fakeSpec('nostr')
+    const {mesh} = build([a], {drop: 1})
+    introduce(a, 'pa', 'B')
+
+    mesh.send('chat', {text: 'hi'}, 'B')
+    expect(a.of('chat')).toHaveLength(0)
+  })
+
+  it('never joins a transport it is told to kill', () => {
+    const a = fakeSpec('nostr')
+    const b = fakeSpec('torrent')
+    const {mesh} = build([a, b], {kill: ['nostr']})
+    introduce(b, 'pb', 'B')
+
+    mesh.send('intent', {kind: 'pass'}, 'B')
+    expect(a.sent).toHaveLength(0)
+    expect(b.of('intent')).toHaveLength(1)
+    expect(mesh.report().transports.map(t => t.name)).toEqual(['torrent'])
+  })
+})

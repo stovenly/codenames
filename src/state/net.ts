@@ -32,7 +32,7 @@ type Report = ReturnType<Mesh['report']>
 const EMPTY: Report = {
   transports: [],
   peers: [],
-  router: {directPeers: 0, sent: 0, received: 0, forwarded: 0, dropped: 0}
+  router: {directPeers: 0, sent: 0, received: 0, forwarded: 0, dropped: 0, held: 0}
 }
 
 let mesh: Mesh | null = null

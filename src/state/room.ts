@@ -34,9 +34,13 @@ const HERE_MS = 3_000
 const HEARD_WINDOW_MS = 11_000
 
 /**
- * Everyone we can currently reach, by any route. A direct link is proof; so is
- * having heard from them lately, which is the only evidence there is for a
- * player the mesh is forwarding to.
+ * Everyone we can currently reach.
+ *
+ * `peers()` is enough on its own now that every link answers a ping every two
+ * seconds and a silent one is closed: a link in the map is a link that replied.
+ * It used to also count anyone heard from in the last eleven seconds, because
+ * a link could be dead for a minute without anyone noticing — that window was
+ * covering for the mesh rather than describing the room.
  */
 const present = (ids: PlayerId[] = []): Set<PlayerId> => {
   const now = Date.now()
