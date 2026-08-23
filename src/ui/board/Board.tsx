@@ -1,6 +1,6 @@
 import {useCallback} from 'react'
 import type {View} from '../../game/reducer'
-import type {Avatar as AvatarSpec, Player, PlayerId} from '../../game/types'
+import type {Player, PlayerId} from '../../game/types'
 import {myMark, setMyMark, useMarks} from '../../state/presence'
 import type {Stage} from '../../state/theatre'
 import {sfx} from '../sound/audio'
@@ -31,7 +31,7 @@ export const Board = ({
   const marks = useMarks()
   const armedCard = myMark()
 
-  const avatars = new Map<PlayerId, AvatarSpec>(players.map(p => [p.id, p.avatar]))
+  const people = new Map<PlayerId, Player>(players.map(p => [p.id, p]))
   const busy = stage.kind === 'windup' || stage.kind === 'landing' || stage.kind === 'aftermath'
 
   /** Picking is reversible; only the lock-in button spends the guess. */
@@ -66,7 +66,7 @@ export const Board = ({
             interactive={canGuess && !card.revealed && !busy}
             armed={armedCard === i}
             marks={marks.get(i) ?? new Set()}
-            avatars={avatars}
+            people={people}
             onPick={() => toggle(i)}
           />
         ))}

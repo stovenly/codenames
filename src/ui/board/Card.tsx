@@ -2,12 +2,16 @@ import {AnimatePresence, motion, useAnimationFrame, useMotionValue, useTransform
 import {memo, useEffect, useRef, useState} from 'react'
 import type {Colour} from '../../game/board'
 import type {Card as CardModel} from '../../game/reducer'
-import type {Avatar as AvatarSpec, PlayerId} from '../../game/types'
+import type {Player, PlayerId} from '../../game/types'
+import {VenetianMask} from 'lucide-react'
 import {AvatarView} from '../avatar/Avatar'
 import {cx} from '../cx'
 import {spring} from '../motion'
 import {sfx} from '../sound/audio'
-import {INK, STAMP, SURFACE, Symbol} from './symbols'
+import {Agent, INK, STAMP, SURFACE, Symbol} from './symbols'
+
+const tint = (team: Player['team']) =>
+  team === 'red' ? 'text-red-lit' : team === 'blue' ? 'text-blue-lit' : 'text-text'
 
 /** Read off a near-black stamp rather than off the card, so one set works on all four. */
 const STAMP_INK: Record<Colour, string> = {
@@ -241,7 +245,7 @@ const CardBase = ({
   interactive,
   armed,
   marks,
-  avatars,
+  people,
   onPick
 }: {
   card: CardModel
@@ -255,11 +259,12 @@ const CardBase = ({
   interactive: boolean
   armed: boolean
   marks: ReadonlySet<PlayerId>
-  avatars: Map<PlayerId, AvatarSpec>
+  people: Map<PlayerId, Player>
   onPick: () => void
 }) => {
     const ref = useRef<HTMLButtonElement>(null)
   const [sheen, setSheen] = useState<{x: number; y: number} | null>(null)
+  const [pile, setPile] = useState(false)
 
   const shown: Colour | null = card.revealed
     ? card.colour
@@ -416,31 +421,74 @@ const CardBase = ({
       {/* Sized against the card, not in pixels: on a big screen a 20px badge
           in the corner of a 200px plate is a speck. */}
       {!faceUp && marks.size > 0 && (
-        <span className="pointer-events-none absolute -top-[2.5cqw] -right-[2.5cqw] z-20 flex -space-x-[3.5cqw]">
-          {[...marks].slice(0, 4).map(id => {
-            const avatar = avatars.get(id)
-            return avatar ? (
+        <span
+          className="absolute -top-[2.5cqw] -right-[2.5cqw] z-40"
+          onMouseEnter={() => setPile(true)}
+          onMouseLeave={() => setPile(false)}
+          // The badges sit over a corner of the card, so a click that lands on
+          // one has to mean what a click on the card means.
+          onClick={onPick}
+        >
+          <motion.span
+            animate={{opacity: pile ? 0 : 1, scale: pile ? 0.85 : 1}}
+            transition={spring.firm}
+            className="flex -space-x-[3.5cqw]"
+          >
+            {[...marks].slice(0, 4).map(id => {
+              const who = people.get(id)
+              return who ? (
+                <motion.span
+                  key={id}
+                  initial={{scale: 0, y: -10}}
+                  animate={{scale: 1, y: 0, opacity: 1}}
+                  exit={{scale: 0, opacity: 0}}
+                  transition={spring.firm}
+                  // The badge owns the shape: the border and the clip are here,
+                  // and the face is whatever fills what is left. Rounding the
+                  // avatar itself relied on its own class winning against the
+                  // one it ships with, which is not something to rely on.
+                  className="size-[18cqw] max-h-12 min-h-5 max-w-12 min-w-5 shrink-0 overflow-hidden rounded-full border-solid bg-stage-000"
+                  style={{
+                    borderColor: 'rgba(255,197,61,.9)',
+                    borderWidth: 'clamp(1.5px, 0.7cqw, 4px)',
+                    boxShadow: '0 2px 6px -1px rgba(0,0,0,.7)'
+                  }}
+                >
+                  <AvatarView spec={who.avatar} size={null} className="size-full rounded-full" />
+                </motion.span>
+              ) : null
+            })}
+          </motion.span>
+
+          {/* The same faces, unstacked and named. Grows out of the corner the
+              pile is in, so it reads as the pile opening rather than as a
+              tooltip arriving from somewhere else. */}
+          <AnimatePresence>
+            {pile && (
               <motion.span
-                key={id}
-                initial={{scale: 0, y: -10}}
-                animate={{scale: 1, y: 0, opacity: 1}}
-                exit={{scale: 0, opacity: 0}}
+                initial={{opacity: 0, scale: 0.8}}
+                animate={{opacity: 1, scale: 1}}
+                exit={{opacity: 0, scale: 0.8}}
                 transition={spring.firm}
-                // The badge owns the shape: the border and the clip are here,
-                // and the face is whatever fills what is left. Rounding the
-                // avatar itself relied on its own class winning against the one
-                // it ships with, which is not something to rely on.
-                className="size-[18cqw] max-h-12 min-h-5 max-w-12 min-w-5 shrink-0 overflow-hidden rounded-full border-solid bg-stage-000"
-                style={{
-                  borderColor: 'rgba(255,197,61,.9)',
-                  borderWidth: 'clamp(1.5px, 0.7cqw, 4px)',
-                  boxShadow: '0 2px 6px -1px rgba(0,0,0,.7)'
-                }}
+                className="plate absolute top-0 right-0 flex origin-top-right flex-col gap-1.5 rounded-md p-2 shadow-3"
               >
-                <AvatarView spec={avatar} size={null} className="size-full rounded-full" />
+                {[...marks].map(id => {
+                  const who = people.get(id)
+                  if (!who) return null
+                  const Mark = who.spymaster ? VenetianMask : Agent
+                  return (
+                    <span key={id} className="flex items-center gap-2 whitespace-nowrap">
+                      <span className="size-6 shrink-0 overflow-hidden rounded-full ring-1 ring-gold-500/40">
+                        <AvatarView spec={who.avatar} size={null} className="size-full" />
+                      </span>
+                      <Mark className={cx('size-3.5 shrink-0', tint(who.team))} />
+                      <span className={cx('type-read text-sm', tint(who.team))}>{who.name}</span>
+                    </span>
+                  )
+                })}
               </motion.span>
-            ) : null
-          })}
+            )}
+          </AnimatePresence>
         </span>
       )}
 
