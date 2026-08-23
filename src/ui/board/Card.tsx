@@ -171,7 +171,7 @@ const CardBase = ({
             : 'inset 0 1px 0 rgba(255,255,255,.1), inset 0 -2px 8px rgba(0,0,0,.55), 0 10px 26px -16px rgba(0,0,0,.95)'
       }}
       className={cx(
-        'relative grid aspect-[7/5] w-full place-items-center rounded-md border text-center transition-[filter,border-color] duration-200',
+        'relative grid aspect-[7/5] w-full place-items-center rounded-md border text-center transition-[filter,border-color] duration-200 select-none',
         faceUp ? 'border-black/30' : 'border-gold-500/30 hover:border-gold-500/70',
         interactive ? 'cursor-pointer' : 'cursor-default',
       )}
