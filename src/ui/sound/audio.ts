@@ -174,7 +174,7 @@ export const sfx = {
   peg: (progress: number, dir: -1 | 1) => {
     const strength = (0.7 + 0.3 * progress) * (dir === 1 ? 0.72 : 1)
     if (knock) {
-      strike(knock, 1.5 - 0.35 * progress, 0.5 * strength)
+      strike(knock, 2.1 - 0.5 * progress, 0.3 * strength)
       return
     }
     tone({freq: 340, to: 190, type: 'sine', dur: 0.021, gain: 0.058 * strength, attack: 0.001})
@@ -183,16 +183,13 @@ export const sfx = {
   },
 
   /** The wheel coming to rest: the last peg, and the frame taking the weight. */
-  /** The same knock, at its heaviest: the wheel has nothing left to give. */
+  /**
+   * The frame taking the weight once the wheel gives up. No knock in it: the
+   * last peg has just sounded one, and two knocks a frame apart is not a
+   * heavier landing, it is a stutter.
+   */
   wheelStop: () => {
-    if (knock) {
-      strike(knock, 1.05, 0.62)
-      tone({freq: 78, type: 'sine', dur: 0.1, gain: 0.05, delay: 0.01})
-      return
-    }
-    tone({freq: 240, to: 105, type: 'sine', dur: 0.06, gain: 0.095, attack: 0.001})
-    noise(0.016, 0.07, 1500)
-    tone({freq: 78, type: 'sine', dur: 0.1, gain: 0.06, delay: 0.01})
+    tone({freq: 90, to: 58, type: 'sine', dur: 0.16, gain: 0.075, attack: 0.002})
   },
 
   /** Held under the whole wind-up, climbing as the reel slows. */

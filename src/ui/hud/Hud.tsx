@@ -226,7 +226,7 @@ export const Hud = ({
                 }}
                 className="max-w-[min(60vw,18rem)] truncate"
               >
-                {armed === null ? 'Lock in' : `Lock in ${view.cards[armed]?.word}`}
+                {armed === null ? 'Lock in' : `Lock in “${view.cards[armed]?.word}”`}
               </Button>
 
               <Button

@@ -39,8 +39,8 @@ const WEIGHTS = {
 /** The last faces to pass the window before it stops. */
 const NEAR = 4
 
-/** One in this many spins shows a joke card somewhere in the fast part of the run. */
-const JOKE_ONE_IN = 3
+/** How often a spin carries one. */
+const JOKE_ONE_IN = 2
 export const JOKES = ['🍆💦', '💀🔥', '🤡', '🫠', '💩', '🐍', '🎰', '🙈', '👀', '🧨']
 
 const pickWeighted = <T extends string>(weights: Record<T, number>, rand: () => number): T => {
@@ -96,11 +96,11 @@ export const buildStrip = (target: Colour, team: Team, rand: () => number = Math
     prev = colour!
   }
 
-  // A joke face, occasionally, somewhere it is seen at speed and never where the
-  // wheel might come to rest. It replaces a face, so neighbours stay distinct
-  // from each other around it.
+  // A joke face, in the stretch where the wheel has slowed enough to read one
+  // but is nowhere near stopping. Two clear of the answer, because the wheel
+  // can overshoot by one and must never look like it is landing on a joke.
   if (rand() < 1 / JOKE_ONE_IN) {
-    const lo = LAND + NEAR + 2
+    const lo = LAND + 2
     const hi = START - 2
     const at = lo + Math.floor(rand() * (hi - lo + 1))
     strip[at] = {kind: 'joke', text: JOKES[Math.floor(rand() * JOKES.length)]!}
@@ -136,28 +136,34 @@ export type Tune = {
   /** Past this fraction of the budget the brake comes on hard. */
   lateAt: number
   lateBrake: number
-  /** Launch speed, as a multiple of what would carry it exactly to the answer. */
+  /**
+   * Launch speed, as a multiple of what would carry it exactly to the answer.
+   * The spread is the drama: below one it runs out short and has to be inched
+   * in, above one it sails past and gets pulled back, and the wheel does not
+   * know which until it is nearly stopped.
+   */
   throwLow: number
   throwHigh: number
 }
 
 /**
- * Swept, not guessed. Every spin lands on the answer and none leaves the strip;
- * no two pegs are closer than 150ms, so each one reads as its own card rather
- * than as a rattle; it rests by 2.33s; and it turns back exactly once, with no
- * pair of turns inside 220ms of each other — one deliberate near-miss rather
- * than a wobble.
+ * Swept, not guessed. Every spin lands on the answer and none leaves the strip.
+ * It visibly slows — 67ms between the first pegs, 267ms between the last, a
+ * fourfold stretch rather than a constant patter. It rests by 2.35s of a 2.6s
+ * budget. And it has no favourite ending: it sails past the answer and gets
+ * pulled back about as often as it runs out short and has to be inched in,
+ * which is the only reason to watch it twice.
  */
 export const TUNE: Tune = {
-  friction: 4.4,
-  visc: 1.6,
-  detent: 40,
-  creep: 40,
-  resting: 4.5,
-  lateAt: 0.74,
+  friction: 3.5,
+  visc: 1,
+  detent: 26,
+  creep: 55,
+  resting: 3,
+  lateAt: 0.78,
   lateBrake: 3,
-  throwLow: 0.99,
-  throwHigh: 1.1
+  throwLow: 0.95,
+  throwHigh: 1.04
 }
 
 export type Sim = {
@@ -170,10 +176,46 @@ export type Sim = {
   done: boolean
 }
 
-/** Under constant deceleration, v0²/2a is the distance a throw carries. */
+/**
+ * How hard to throw it to just reach the answer, found by throwing it.
+ *
+ * v0²/2a is the answer for constant deceleration alone, and using it meant the
+ * wheel never once sailed past the answer in four hundred spins: the air drag
+ * takes its own cut on top, so every throw fell short and every ending was the
+ * same one. Solved against the actual forces instead — bisection on a coast
+ * with the flapper and the hand taken out, which is what "free travel" means.
+ */
+const calibrated = new Map<Tune, number>()
+
+const coast = (tune: Tune, v0: number) => {
+  let v = -v0
+  let p = 0
+  const dt = 1 / 240
+  for (let i = 0; i < 240 * 20 && Math.abs(v) > 0.01; i++) {
+    const brake = Math.min(Math.abs(v) / dt, tune.friction) * -Math.sign(v)
+    v += (brake - tune.visc * v) * dt
+    p += v * dt
+  }
+  return -p
+}
+
+const reachFor = (tune: Tune, distance: number) => {
+  const cached = calibrated.get(tune)
+  if (cached !== undefined) return cached
+  let lo = 0.1
+  let hi = 200
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2
+    if (coast(tune, mid) < distance) lo = mid
+    else hi = mid
+  }
+  calibrated.set(tune, hi)
+  return hi
+}
+
 export const launch = (tune: Tune, rand: () => number = Math.random): Sim => {
-  const distance = (START - LAND) * (tune.throwLow + rand() * (tune.throwHigh - tune.throwLow))
-  const v = -Math.sqrt(2 * tune.friction * distance)
+  const exact = reachFor(tune, START - LAND)
+  const v = -exact * (tune.throwLow + rand() * (tune.throwHigh - tune.throwLow))
   return {p: START, v, launch: Math.abs(v), elapsed: 0, notch: START, done: false}
 }
 
@@ -193,12 +235,17 @@ export const step = (sim: Sim, dt: number, budgetS: number, tune: Tune = TUNE): 
 
   sim.elapsed += dt
   const late = sim.elapsed > budgetS * tune.lateAt
+  // Past the budget the card is due to turn over, so whatever is left of the
+  // drama is over: put it home rather than letting a wheel that ran out four
+  // notches short inch its way there in its own time.
+  const over = sim.elapsed > budgetS
   const friction = late ? tune.friction * tune.lateBrake : tune.friction
 
   const at = sim.p
   const notch = Math.round(at)
   const resting = Math.abs(sim.v) < tune.resting
-  const pull = resting && notch !== LAND ? Math.sign(LAND - at) * (late ? tune.creep * 2 : tune.creep) : 0
+  const urgency = over ? 8 : late ? 2 : 1
+  const pull = resting && notch !== LAND ? Math.sign(LAND - at) * tune.creep * urgency : 0
 
   // Coulomb friction must not reverse a wheel on its own: clamp the brake so it
   // can only bring v to zero within the frame, never through it.
@@ -218,6 +265,16 @@ export const step = (sim: Sim, dt: number, budgetS: number, tune: Tune = TUNE): 
     sim.done = true
   }
 
+  // Out of time. The card turns over on the budget whatever the wheel is doing,
+  // so a wheel still nudging itself into the notch has run out of anything to
+  // say and is put where it was always going to end up.
+  if (!sim.done && sim.elapsed > budgetS) {
+    sim.p = LAND
+    sim.v = 0
+    sim.notch = LAND
+    sim.done = true
+  }
+
   return {peg, dir, progress: Math.min(1, 1 - Math.abs(sim.v) / sim.launch)}
 }
 
@@ -234,6 +291,14 @@ export type Outcome = {
   minGap: number
   /** Reversals that arrive on top of one another — ringing rather than hesitating. */
   bounces: number
+  /**
+   * Sailed past the answer and had to come back. The other ending is running
+   * out short and being inched in, counted by how many faces creep had to
+   * carry it. Which of the two happens is the whole drama, and it should not
+   * be the same one every time.
+   */
+  wentPast: boolean
+  creepPegs: number
 }
 
 /** A whole spin at 60fps, for tests and for tuning. */
@@ -244,6 +309,8 @@ export const spin = (budgetS: number, tune: Tune = TUNE, rand: () => number = Ma
   const turnTimes: number[] = []
   let reversals = 0
   let lastSign = Math.sign(sim.v)
+  let ranOutAt: number | null = null
+  let minP = START
 
   for (let i = 0; i < 60 * 12 && !sim.done; i++) {
     const tick = step(sim, dt, budgetS, tune)
@@ -254,6 +321,8 @@ export const spin = (budgetS: number, tune: Tune = TUNE, rand: () => number = Ma
       turnTimes.push(sim.elapsed)
       lastSign = sign
     }
+    minP = Math.min(minP, sim.p)
+    if (ranOutAt === null && Math.abs(sim.v) < tune.resting) ranOutAt = pegTimes.length
     if (sim.p < -2 || sim.p > FACES + 2) {
       return {
         landed: false,
@@ -264,7 +333,9 @@ export const spin = (budgetS: number, tune: Tune = TUNE, rand: () => number = Ma
         firstGap: 0,
         lastGap: 0,
         minGap: 0,
-        bounces: 0
+        bounces: 0,
+        wentPast: false,
+        creepPegs: 0
       }
     }
   }
@@ -281,6 +352,8 @@ export const spin = (budgetS: number, tune: Tune = TUNE, rand: () => number = Ma
     firstGap: gaps[0] ?? 0,
     lastGap: gaps[gaps.length - 1] ?? 0,
     minGap: gaps.length ? Math.min(...gaps) : 0,
-    bounces
+    bounces,
+    wentPast: minP < LAND - 0.4,
+    creepPegs: pegTimes.length - (ranOutAt ?? pegTimes.length)
   }
 }

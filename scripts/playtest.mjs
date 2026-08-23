@@ -261,18 +261,33 @@ for (let i = 1; i < PLAYERS; i++) {
   await sleep(1200)
 }
 
-// A different face each run, so screenshots and sessions are told apart at a
-// glance rather than by reading the names.
-for (const tab of tabs) {
-  for (let n = 0; n < 3; n++) {
-    await tab.evaluate(
-      `[...document.querySelectorAll('button')].find(b => b.getAttribute('aria-label') === 'Roll a random one')?.click()`
+// A different face each run, so sessions are told apart at a glance rather than
+// by reading the names. Waited for rather than fired hopefully: a guest that has
+// not finished rendering the lobby has no dice to click, and an optional call
+// on a button that is not there fails quietly.
+const roll = (tab, label) =>
+  tab.evaluate(`(() => {
+    const b = [...document.querySelectorAll('button')].find(
+      b => b.getAttribute('aria-label') === ${JSON.stringify(label)}
     )
+    if (!b) return false
+    b.click()
+    return true
+  })()`)
+
+for (const tab of tabs) {
+  await waitFor(
+    tab,
+    `[...document.querySelectorAll('button')].some(b => b.getAttribute('aria-label') === 'Roll a random one')`,
+    'the avatar picker'
+  )
+  let rolled = 0
+  for (let n = 0; n < 3; n++) {
+    if (await roll(tab, 'Roll a random one')) rolled++
     await sleep(120)
   }
-  await tab.evaluate(
-    `[...document.querySelectorAll('button')].find(b => b.getAttribute('aria-label') === 'Roll a random colour')?.click()`
-  )
+  const tinted = await roll(tab, 'Roll a random colour')
+  if (rolled < 3 || !tinted) console.log(`  ${tab.label}: avatar rolls ${rolled}/3, colour ${tinted}`)
 }
 
 for (const tab of tabs) {

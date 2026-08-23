@@ -377,3 +377,38 @@ describe('roster', () => {
     ).toEqual([])
   })
 })
+
+describe('the assassin', () => {
+  const boardOf = (size: BoardSize, assassins: number) => {
+    const s = settings({size, assassins, teamCards: presetFor(size).teamCards})
+    return {s, cards: buildBoard(s, WORDS, 'seed', 'red')}
+  }
+
+  it('ends the game on the first one, however many are on the board', () => {
+    for (const [size, assassins] of [
+      [5, 1],
+      [7, 6],
+      [7, 1],
+      [3, 1]
+    ] as Array<[BoardSize, number]>) {
+      const {s, cards} = boardOf(size, assassins)
+      const at = cards.findIndex(c => c.colour === 'assassin')
+      expect(at).toBeGreaterThanOrEqual(0)
+
+      const steps = advance(s, WORDS, [{t: 'start', seed: 'seed', startTeam: 'red'}], {
+        t: 'clue',
+        team: 'red',
+        by: 'rs',
+        word: 'ORBIT',
+        count: 2
+      })
+      const after = advance(s, WORDS, steps, {t: 'guess', team: 'red', by: 'rg', card: at})
+
+      expect(after.some(step => step.t === 'end')).toBe(true)
+      const view = derive(s, WORDS, after, after.length)
+      expect(view.phase).toBe('gameover')
+      expect(view.winner).toBe('blue')
+      expect(view.endReason).toBe('assassin')
+    }
+  })
+})

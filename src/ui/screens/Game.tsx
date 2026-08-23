@@ -30,10 +30,21 @@ export const Game = () => {
     syncTheatre()
   }, [])
 
-  if (!shared) return null
+  const list = shared ? words.get(shared.settings.wordListHash) : []
+  const view = shared ? derive(shared.settings, list, shared.steps, shownCursor) : null
 
-  const list = words.get(shared.settings.wordListHash)
-  const view = derive(shared.settings, list, shared.steps, shownCursor)
+  // On the root, because the wash it drives is fixed to the viewport and sits
+  // behind everything — there is no element inside the page to hang it on.
+  const turn = view && (view.phase === 'clue' || view.phase === 'guess') ? view.turn : null
+  useEffect(() => {
+    const el = document.documentElement
+    if (turn) el.setAttribute('data-turn', turn)
+    else el.removeAttribute('data-turn')
+    return () => el.removeAttribute('data-turn')
+  }, [turn])
+
+  if (!shared || !view) return null
+
   const player = shared.players.find(p => p.id === me) ?? null
   const isHost = role === 'host'
   const busy = stage.kind !== 'idle' && stage.kind !== 'finish'

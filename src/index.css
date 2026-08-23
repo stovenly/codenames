@@ -145,9 +145,27 @@ button {
   z-index: -2;
   pointer-events: none;
   background:
-    radial-gradient(120% 70% at 50% 108%, #17233E 0%, transparent 58%),
+    radial-gradient(120% 70% at 50% 108%, var(--floor) 0%, transparent 58%),
     radial-gradient(90% 55% at 50% -8%, #101B33 0%, transparent 60%),
     var(--color-stage-000);
+  transition: background 700ms ease;
+}
+
+/**
+ * The wash off the floor. Neutral until somebody is on the clock, then the
+ * colour of whoever that is — the room lighting follows the turn, the same way
+ * the plates and the score do.
+ */
+:root {
+  --floor: #17233E;
+}
+
+:root[data-turn='red'] {
+  --floor: color-mix(in oklab, var(--color-red-500) 34%, #17233E);
+}
+
+:root[data-turn='blue'] {
+  --floor: color-mix(in oklab, var(--color-blue-500) 34%, #17233E);
 }
 
 /** Haze. One low layer over everything, so flat panels stop reading as flat. */

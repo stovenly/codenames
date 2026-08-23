@@ -39,12 +39,12 @@ describe('the strip', () => {
       if (at < 0) continue
       jokes++
       expect(strip.filter(s => s.kind === 'joke').length).toBe(1)
-      expect(at).toBeGreaterThan(LAND + 5)
+      expect(at).toBeGreaterThanOrEqual(LAND + 2)
       expect(at).toBeLessThan(START - 1)
     }
-    // Roughly one in three, with room for the dice.
-    expect(jokes).toBeGreaterThan(120)
-    expect(jokes).toBeLessThan(280)
+    // Roughly half, with room for the dice.
+    expect(jokes).toBeGreaterThan(240)
+    expect(jokes).toBeLessThan(360)
   })
 
   it('leans on the bad outcomes in the last stretch', () => {
@@ -63,14 +63,36 @@ describe('the strip', () => {
 })
 
 describe('the wheel', () => {
-  it('always rests on the answer, inside the budget, with a beat to spare', () => {
+  it('always rests on the answer, and never past the budget', () => {
     const budget = 2.6
+    const rests: number[] = []
     for (let n = 0; n < 400; n++) {
       const out = spin(budget, TUNE, seeded(n))
       expect(out.escaped).toBe(false)
       expect(out.landed).toBe(true)
-      expect(out.restedAt).toBeLessThan(budget * 0.9)
+      // The card turns over on the budget whatever the wheel is doing, so this
+      // is the one bound that has to hold every single time.
+      expect(out.restedAt).toBeLessThanOrEqual(budget + 0.02)
+      rests.push(out.restedAt)
     }
+
+    // And usually well before it, so the answer sits there a moment first.
+    const p90 = rests.sort((a, b) => a - b)[Math.floor(rests.length * 0.9)]!
+    expect(p90).toBeLessThan(budget * 0.92)
+  })
+
+  it('has no favourite ending', () => {
+    let past = 0
+    let inched = 0
+    for (let n = 0; n < 400; n++) {
+      const out = spin(2.6, TUNE, seeded(600 + n))
+      if (out.wentPast) past++
+      else if (out.creepPegs > 0) inched++
+    }
+    // Sails past and gets pulled back, or runs out short and is inched in —
+    // both often enough that neither is the one you always see.
+    expect(past).toBeGreaterThan(80)
+    expect(inched).toBeGreaterThan(80)
   })
 
   it('passes every face on the way, once each, plus whatever it rocks back over', () => {
