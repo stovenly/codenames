@@ -26,14 +26,14 @@ const Face = ({slot}: {slot: Slot}) => (
       boxShadow: 'inset 0 -1px 0 rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.12)'
     }}
   >
-    {/* The peg. Every face carries one on its leading edge, and the flapper is
-        what it pushes past. */}
+    {/* The peg, on the rim the flapper rides. Faces travel down past it, so the
+        pegs cross the blade rather than running along it. */}
     <span
       aria-hidden
-      className="absolute top-0 left-1/2 h-[3.2cqw] w-[9cqw] -translate-x-1/2 rounded-b-[2cqw]"
+      className="absolute top-[16%] right-0 h-[15cqw] w-[7cqw] rounded-l-[2.5cqw]"
       style={{
-        background: 'linear-gradient(180deg, #F2DCA0 0%, #C9962C 55%, #7A5A14 100%)',
-        boxShadow: '0 1px 2px rgba(0,0,0,.7), inset 0 -1px 0 rgba(0,0,0,.4)'
+        background: 'linear-gradient(90deg, #7A5A14 0%, #C9962C 45%, #F2DCA0 100%)',
+        boxShadow: '-1px 0 3px rgba(0,0,0,.7), inset -1px 0 0 rgba(0,0,0,.35)'
       }}
     />
 
@@ -47,33 +47,45 @@ const Face = ({slot}: {slot: Slot}) => (
   </span>
 )
 
+/**
+ * Mounted on the right rim, blade reaching back across the strip. A peg coming
+ * down catches the tip and drives it down; it springs back and rings out.
+ */
 const Flapper = ({angle}: {angle: ReturnType<typeof useMotionValue<number>>}) => {
   const rotate = useTransform(angle, a => `${a}deg`)
   return (
     <motion.span
       aria-hidden
-      className="pointer-events-none absolute left-1/2 z-40 -translate-x-1/2"
-      style={{top: '-3.2cqw', width: '11cqw', height: '14cqw', rotate, transformOrigin: '50% 8%'}}
+      className="pointer-events-none absolute z-40"
+      style={{
+        top: '30%',
+        right: '-3cqw',
+        width: '26cqw',
+        height: '11cqw',
+        rotate,
+        transformOrigin: '92% 50%'
+      }}
     >
-      <svg viewBox="0 0 22 28" className="size-full overflow-visible">
+      <svg viewBox="0 0 34 14" className="size-full overflow-visible">
         <defs>
-          <linearGradient id="flapper-brass" x1="0" y1="0" x2="1" y2="1">
+          <linearGradient id="flapper-brass" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="#FFE8B0" />
-            <stop offset="0.55" stopColor="#D9A93B" />
+            <stop offset="0.5" stopColor="#D9A93B" />
             <stop offset="1" stopColor="#6E4F10" />
           </linearGradient>
         </defs>
-        {/* The pivot plate. */}
-        <circle cx="11" cy="3" r="3.2" fill="#1B1F2E" stroke="#F2DCA0" strokeWidth="0.8" />
-        {/* The blade, hanging from it. */}
+        {/* The blade, reaching in from the mount. */}
         <path
-          d="M6.2 4.5 L15.8 4.5 L11.6 27 L10.4 27 Z"
+          d="M31 4.6 L31 9.4 L3 8.3 L3 5.7 Z"
           fill="url(#flapper-brass)"
           stroke="#2A1E06"
-          strokeWidth="0.7"
+          strokeWidth="0.8"
           strokeLinejoin="round"
         />
-        <path d="M8 6 L10 6 L10.8 22" fill="none" stroke="rgba(255,255,255,.5)" strokeWidth="0.5" />
+        <path d="M28 6 L6 6.5" fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="0.6" />
+        {/* The pivot it hangs off. */}
+        <circle cx="31" cy="7" r="3.6" fill="#1B1F2E" stroke="#F2DCA0" strokeWidth="0.9" />
+        <circle cx="31" cy="7" r="1.1" fill="#F2DCA0" />
       </svg>
     </motion.span>
   )

@@ -123,17 +123,17 @@ export const sfx = {
    * and a peg pushed back over on a rock-back lands lighter than a fall.
    */
   peg: (progress: number, dir: -1 | 1) => {
-    const strength = (0.66 + 0.34 * progress) * (dir === 1 ? 0.7 : 1)
-    tone({freq: 150, to: 60, type: 'sine', dur: 0.09, gain: 0.3 * strength, attack: 0.002})
-    noise(0.024, 0.17 * strength, 950)
-    noise(0.005, 0.045 * strength, 7000)
+    const strength = (0.7 + 0.3 * progress) * (dir === 1 ? 0.7 : 1)
+    tone({freq: 300, to: 155, type: 'sine', dur: 0.035, gain: 0.1 * strength, attack: 0.001})
+    noise(0.013, 0.07 * strength, 1900)
+    noise(0.004, 0.03 * strength, 7500)
   },
 
   /** The wheel coming to rest: the last peg, and the frame taking the weight. */
   wheelStop: () => {
-    tone({freq: 120, to: 52, type: 'sine', dur: 0.2, gain: 0.36, attack: 0.002})
-    noise(0.04, 0.22, 700)
-    tone({freq: 48, type: 'sine', dur: 0.32, gain: 0.2, delay: 0.02})
+    tone({freq: 210, to: 90, type: 'sine', dur: 0.1, gain: 0.16, attack: 0.001})
+    noise(0.026, 0.12, 1300)
+    tone({freq: 70, type: 'sine', dur: 0.16, gain: 0.1, delay: 0.01})
   },
 
   /** Held under the whole wind-up, climbing as the reel slows. */
