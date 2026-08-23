@@ -230,6 +230,43 @@ export const catalogue = (
   out.push(...teamLeaders(seated, tallies))
   out.push(...thinkers(steps, seated))
 
+  // Marks and messages are reported by the player, not read off the steps, so
+  // both are last in a tie: there is no moment in the game to pin them to.
+  const LAST = Number.MAX_SAFE_INTEGER
+
+  const dithered = seated
+    .filter(p => !p.spymaster)
+    .map(p => ({who: p.id, marks: p.marks ?? 0, picks: tallies.get(p.id)?.picks ?? 0}))
+    .filter(x => x.marks >= 5 && x.marks >= 3 * x.picks)
+    .sort((x, y) => y.marks - x.marks)[0]
+  if (dithered) {
+    out.push({
+      id: 'dither',
+      title: 'Indecisive',
+      detail: dithered.picks
+        ? `${dithered.marks} cards eyed up, ${dithered.picks} locked in`
+        : `${dithered.marks} cards eyed up, nothing locked in`,
+      who: dithered.who,
+      weight: 37,
+      at: LAST
+    })
+  }
+
+  const chatty = [...seated]
+    .map(p => ({who: p.id, n: p.chats ?? 0}))
+    .filter(x => x.n >= 8)
+    .sort((x, y) => y.n - x.n)[0]
+  if (chatty) {
+    out.push({
+      id: 'chatty',
+      title: 'Keyboard Warrior',
+      detail: `${chatty.n} messages sent`,
+      who: chatty.who,
+      weight: 34,
+      at: LAST
+    })
+  }
+
   const idle = seated
     .filter(p => !p.spymaster && (tallies.get(p.id)?.picks ?? 0) === 0)
     .map(p => ({who: p.id, n: 1, at: Number.MAX_SAFE_INTEGER}))[0]

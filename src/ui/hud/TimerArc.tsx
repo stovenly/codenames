@@ -16,7 +16,9 @@ export const TimerArc = ({deadline, total}: {deadline: number; total: number}) =
     return () => clearInterval(id)
   }, [deadline])
 
-  const seconds = Math.ceil(left / 1000)
+  // A deadline can sit beyond the timer's own length while a splash plays out,
+  // so the face holds at full rather than counting down from a number nobody set.
+  const seconds = Math.min(total, Math.ceil(left / 1000))
   const urgent = left <= 10_000
 
   useEffect(() => {

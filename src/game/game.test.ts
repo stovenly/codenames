@@ -4,6 +4,7 @@ import {advance, derive, followUps} from './reducer'
 import {composition, defaultSettings, isDegenerate, presetFor, validate, type BoardSize} from './settings'
 import {mulberry32, seedFrom, shuffle} from './prng'
 import {hashWords, normalize, validateCustom} from './wordlist'
+import {readLog} from './log'
 import type {Step} from './steps'
 import {rosterProblems, type Player, type Team} from './types'
 
@@ -410,5 +411,32 @@ describe('the assassin', () => {
       expect(view.winner).toBe('blue')
       expect(view.endReason).toBe('assassin')
     }
+  })
+})
+
+describe('a clue nobody gave', () => {
+  const WORDS_80 = WORDS
+  const s = settings()
+
+  it('puts the team in to guess with nothing to go on', () => {
+    const steps: Step[] = [
+      {t: 'start', seed: 'seed', startTeam: 'red'},
+      {t: 'clue', team: 'red', by: 'rs', word: '', count: 'unlimited'}
+    ]
+    const view = derive(s, WORDS_80, steps, steps.length)
+    expect(view.phase).toBe('guess')
+    expect(view.turn).toBe('red')
+    expect(view.clue?.word).toBe('')
+    expect(view.unlimited).toBe(true)
+  })
+
+  it('is still a clue in the log, with nothing where the word goes', () => {
+    const steps: Step[] = [
+      {t: 'start', seed: 'seed', startTeam: 'red'},
+      {t: 'clue', team: 'red', by: 'rs', word: '', count: 'unlimited'}
+    ]
+    const entries = readLog(s, WORDS_80, steps, steps.length)
+    expect(entries).toHaveLength(1)
+    expect(entries[0]).toMatchObject({kind: 'clue', word: '', by: 'rs'})
   })
 })

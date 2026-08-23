@@ -3,6 +3,7 @@ import type {Team} from '../game/types'
 import type {PlayerId} from '../net/protocol'
 import {TTL_DEFAULT} from '../net/protocol'
 import {on, self, send} from './net'
+import {noteChat} from './tally'
 import {getRoom} from './room'
 
 export type Channel = 'all' | 'team' | 'spymasters'
@@ -111,6 +112,7 @@ export const say = (channel: Channel, body: string) => {
     spymaster: !!mine?.spymaster
   }
   push(msg)
+  noteChat()
   seenAt = log.length
 
   for (const to of readersOf(channel)) {

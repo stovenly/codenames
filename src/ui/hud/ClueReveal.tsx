@@ -8,8 +8,13 @@ import {sfx} from '../sound/audio'
 export const ClueReveal = ({clue}: {clue: Clue}) => {
   const [typed, setTyped] = useState('')
   const [showCount, setShowCount] = useState(false)
+  const none = clue.word === ''
 
   useEffect(() => {
+    if (none) {
+      setShowCount(true)
+      return
+    }
     let i = 0
     const id = setInterval(() => {
       i++
@@ -21,7 +26,7 @@ export const ClueReveal = ({clue}: {clue: Clue}) => {
       }
     }, 95)
     return () => clearInterval(id)
-  }, [clue.word])
+  }, [clue.word, none])
 
   const tint = clue.team === 'red' ? 'text-red-lit' : 'text-blue-lit'
 
@@ -52,8 +57,12 @@ export const ClueReveal = ({clue}: {clue: Clue}) => {
         </span>
 
         <div className="flex flex-wrap items-center justify-center gap-5">
-          <span className="type-marquee text-5xl tracking-wider text-text sm:text-7xl">
-            {typed}
+          <span
+            className={`type-marquee text-5xl tracking-wider sm:text-7xl ${
+              none ? 'text-text-dim' : 'text-text'
+            }`}
+          >
+            {none ? 'NO CLUE' : typed}
             {typed.length < clue.word.length && (
               <motion.span
                 animate={{opacity: [1, 0]}}
@@ -83,9 +92,11 @@ export const ClueReveal = ({clue}: {clue: Clue}) => {
           transition={{delay: 0.5}}
           className="type-marquee text-base tracking-[0.12em] text-text-dim sm:text-xl"
         >
-          {clue.count === 'unlimited' || clue.count === 0
-            ? 'unlimited guesses'
-            : `${clue.count} card${clue.count === 1 ? '' : 's'}, ${Number(clue.count) + 1} guesses`}
+          {none
+            ? 'ran out of time — guess anything'
+            : clue.count === 'unlimited' || clue.count === 0
+              ? 'unlimited guesses'
+              : `${clue.count} card${clue.count === 1 ? '' : 's'}, ${Number(clue.count) + 1} guesses`}
         </motion.span>
       </div>
     </motion.div>

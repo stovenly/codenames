@@ -17,6 +17,7 @@ type Stamped = {at?: number}
 /** Steps carry no derived data: a guess records the card clicked, never its colour. */
 export type Step =
   | ({t: 'start'; seed: string; startTeam: Team} & Stamped)
+  /** An empty word is a clue phase that ran out: the team guesses with nothing to go on. */
   | ({t: 'clue'; team: Team; by: PlayerId; word: string; count: ClueCount} & Stamped)
   | ({t: 'guess'; team: Team; by: PlayerId; card: number} & Stamped)
   /** `by` only when somebody chose it: a turn that ran out has nobody to name. */

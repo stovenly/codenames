@@ -191,3 +191,48 @@ describe('thinking time', () => {
     expect(titles(one).some(t => t.startsWith('Quick Draw'))).toBe(false)
   })
 })
+
+describe('what the steps never saw', () => {
+  const played: Step[] = [
+    START,
+    {t: 'clue', team: 'red', by: 'rs', word: 'ORBIT', count: 2},
+    {t: 'guess', team: 'red', by: 'rg', card: firstOf('red')},
+    {t: 'guess', team: 'red', by: 'rg', card: firstOf('neutral')},
+    {t: 'endTurn', team: 'red', reason: 'wrong'}
+  ]
+
+  const withCounts = (id: string, counts: {marks?: number; chats?: number}) =>
+    PLAYERS.map(p => (p.id === id ? {...p, ...counts} : p))
+
+  const cards = (steps: Step[], players: Player[]) =>
+    catalogue(settings, WORDS, steps, players).map(a => `${a.title}:${a.who}:${a.detail}`)
+
+  it('teases the player who pointed at everything and picked almost none of it', () => {
+    const out = cards(played, withCounts('bg', {marks: 9}))
+    expect(out).toContain('Indecisive:bg:9 cards eyed up, nothing locked in')
+  })
+
+  it('leaves alone someone who picked as much as they pointed', () => {
+    const out = cards(played, withCounts('rg', {marks: 5}))
+    expect(out.some(c => c.startsWith('Indecisive'))).toBe(false)
+  })
+
+  it('says nothing about a few idle marks', () => {
+    const out = cards(played, withCounts('bg', {marks: 4}))
+    expect(out.some(c => c.startsWith('Indecisive'))).toBe(false)
+  })
+
+  it('counts the messages of whoever would not stop typing', () => {
+    const out = cards(played, withCounts('bs', {chats: 14}))
+    expect(out).toContain('Keyboard Warrior:bs:14 messages sent')
+  })
+
+  it('takes the loudest of several talkers, and ignores a quiet one', () => {
+    const loud = PLAYERS.map(p =>
+      p.id === 'bs' ? {...p, chats: 14} : p.id === 'rg' ? {...p, chats: 20} : {...p, chats: 3}
+    )
+    const out = cards(played, loud)
+    expect(out).toContain('Keyboard Warrior:rg:20 messages sent')
+    expect(out.filter(c => c.startsWith('Keyboard Warrior'))).toHaveLength(1)
+  })
+})

@@ -5,6 +5,7 @@ import {on, self, send} from './net'
 import {derive} from '../game/reducer'
 import * as words from './words'
 import {getRoom, subscribeRoom} from './room'
+import {noteMark} from './tally'
 
 /**
  * Where each player says they are looking. Peer to peer rather than through the
@@ -86,7 +87,10 @@ export const setMyMark = (card: number | null) => {
   if (!allowed) return
 
   if (card === null) mark.delete(self)
-  else mark.set(self, card)
+  else {
+    if (mark.get(self) !== card) noteMark()
+    mark.set(self, card)
+  }
   publish()
   send('presence', {kind: 'arm', card, seq: ++sent}, '*', TTL_DEFAULT)
 }

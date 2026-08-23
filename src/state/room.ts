@@ -6,8 +6,10 @@ import {advance} from '../game/reducer'
 import {defaultSettings, validate, type BoardSize, type Settings} from '../game/settings'
 import type {ClueCount, Step} from '../game/steps'
 import type {Avatar, Player, Shared, Team} from '../game/types'
-import {AVATAR_VARIANTS, otherTeam, rosterProblems} from '../game/types'
+import {AVATAR_VARIANTS, otherTeam, rosterProblems, spymasterOf} from '../game/types'
 import {joinedExisting, lastHeardFrom, on, openRoom, peers, roomId, self, send, startMesh, subscribe as onNetChange} from './net'
+import {PACE} from './pace'
+import {takeTally} from './tally'
 import {getPrefs, setPrefs} from './prefs'
 import * as words from './words'
 
@@ -83,6 +85,8 @@ const SPLIT_GRACE_MS = 25_000
 const BEAT_LATE_MS = 5_000
 export const AWAY_NOTICE_MS = 20_000
 const AWAY_TRANSFER_MS = 60_000
+const TIMEOUT_GRACE_MS = 900
+const TALLY_MS = 4_000
 const SETTLED_MS = 2_500
 const RIVAL_HOST_WINDOW_MS = 5_000
 /**
@@ -286,17 +290,41 @@ const upsertPlayer = (id: PlayerId, patch: Partial<Player>, name?: string) => {
   })
 }
 
+/**
+ * How long the splashes for the steps just applied hold the screen. Nobody can
+ * act under them, so the clock does not start until they are over.
+ */
+const SPLASH: Partial<Record<Step['t'], number>> = {
+  start: PACE.deal,
+  clue: PACE.clue,
+  guess: PACE.windup + PACE.landing + PACE.correct,
+  endTurn: PACE.turn
+}
+
+/** A rewind snaps rather than replaying, so a long jump does not bank its splashes. */
+const LEAD_CAP_MS = 8_000
+
+export const leadIn = (state: Shared, from: number): number =>
+  Math.min(
+    LEAD_CAP_MS,
+    state.steps.slice(from, state.cursor).reduce((ms, step) => ms + (SPLASH[step.t] ?? 0), 0)
+  )
+
 /** Wall-clock deadlines are not derivable from steps, so they are recomputed on every phase change. */
-const deadlineFor = (settings: Settings, view: View): number | null => {
-  if (view.phase === 'clue' && settings.clueTimer) return Date.now() + settings.clueTimer * 1000
-  if (view.phase === 'guess' && settings.guessTimer) return Date.now() + settings.guessTimer * 1000
+const deadlineFor = (settings: Settings, view: View, lead: number): number | null => {
+  const now = Date.now() + lead
+  if (view.phase === 'clue' && settings.clueTimer) return now + settings.clueTimer * 1000
+  if (view.phase === 'guess' && settings.guessTimer) return now + settings.guessTimer * 1000
   return null
 }
 
 const commit = (mutate: (draft: Shared) => Shared) => {
   hostMutate(draft => {
     const next = mutate(draft)
-    return {...next, deadline: deadlineFor(next.settings, viewOf(next))}
+    return {
+      ...next,
+      deadline: deadlineFor(next.settings, viewOf(next), leadIn(next, draft.cursor))
+    }
   })
 }
 
@@ -524,9 +552,23 @@ const monitor = () => {
       }
     }
 
-    if (shared.deadline !== null && now >= shared.deadline) {
+    // A move sent just before the buzzer is still crossing the mesh. The
+    // grace is how long it gets to arrive: a guess that lands inside it appends
+    // a step, which sets a fresh deadline, and no turn is taken away.
+    if (shared.deadline !== null && now >= shared.deadline + TIMEOUT_GRACE_MS) {
       const view = viewOf(shared)
-      if (view.phase === 'clue' || view.phase === 'guess') {
+      // A spymaster who ran out of time still put their team in: they get a
+      // clue with nothing in it and the whole board to work from. Losing the
+      // turn outright punishes four people for one person's clock.
+      if (view.phase === 'clue') {
+        appendStep({
+          t: 'clue',
+          team: view.turn,
+          by: spymasterOf(shared.players, view.turn)?.id ?? '',
+          word: '',
+          count: 'unlimited'
+        })
+      } else if (view.phase === 'guess') {
         appendStep({t: 'endTurn', team: view.turn, reason: 'timeout'})
       } else {
         hostMutate(draft => ({...draft, deadline: null}))
@@ -942,6 +984,11 @@ export const start = () => {
     publish()
   })
 
+  on('tally', (body, env) => {
+    if (!isHost()) return
+    recordTally(env.from, (body ?? {}) as {chats: number; marks: number})
+  })
+
   on('presence', body => {
     const msg = (body ?? {}) as {kind?: string; undone?: string}
     if (msg.kind !== 'rewound' || isHost()) return
@@ -982,6 +1029,7 @@ export const start = () => {
   setInterval(monitor, 500)
   setInterval(nagUntilSeated, 500)
   setInterval(chaseIntents, 500)
+  setInterval(reportTally, TALLY_MS)
   setInterval(() => {
     if (!isHost() && shared) send('presence', {kind: 'here'}, shared.hostId)
   }, HERE_MS)
@@ -1066,6 +1114,28 @@ const sayHello = () => {
  * message and nothing else.
  */
 const HELLO_AGAIN_MS = 1_500
+
+/**
+ * Chat and marks are reported rather than observed: the host is the one copy
+ * everybody reads, so everyone ends the game looking at the same numbers.
+ *
+ * Not an intent. Nothing in the game turns on it, and an unacknowledged intent
+ * is reported to the player as a move that is not getting through.
+ */
+const reportTally = () => {
+  if (!shared) return
+  const start = shared.steps.find(s => s.t === 'start')
+  const counts = takeTally(start?.t === 'start' ? start.seed : '')
+  if (!counts) return
+  if (isHost()) recordTally(self, counts)
+  else send('tally', counts, shared.hostId)
+}
+
+const recordTally = (from: PlayerId, counts: {chats: number; marks: number}) => {
+  if (!shared?.players.some(p => p.id === from)) return
+  const bounded = (n: unknown) => Math.max(0, Math.min(9_999, Math.floor(Number(n) || 0)))
+  upsertPlayer(from, {chats: bounded(counts.chats), marks: bounded(counts.marks)})
+}
 
 const nagUntilSeated = () => {
   if (isHost() || role === 'rejected' || !joinedExisting) return

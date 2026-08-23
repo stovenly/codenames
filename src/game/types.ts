@@ -23,6 +23,9 @@ export type Player = {
   ready: boolean
   avatar: Avatar
   connected: boolean
+  /** Self-reported and only for the end-game cards: messages sent, cards pointed at. */
+  chats?: number
+  marks?: number
 }
 
 /** Broadcast on every change. The board is not here: it derives from steps. */

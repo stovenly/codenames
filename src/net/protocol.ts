@@ -16,6 +16,8 @@ export type MessageKind =
   | 'resync'
   | 'words'
   | 'chat'
+  /** Client to host: what it did that the step log does not record. */
+  | 'tally'
   | 'echo'
   /** Link-level only: never dispatched, never forwarded. */
   | 'ping'

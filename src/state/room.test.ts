@@ -1,5 +1,7 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import type {Envelope} from '../net/protocol'
+import type {Step} from '../game/steps'
+import {PACE} from './pace'
 
 /**
  * The handful of browser globals room.ts touches on the way in. Stubbed rather
@@ -230,5 +232,51 @@ describe('answering a peer that has fallen behind', () => {
     deliver('beat', {version: 99, hostId: 'host', hostEpoch: 1}, 'host')
     const ask = sent.find(s => s.kind === 'resync')
     expect((ask?.body as {have?: {version: number}}).have?.version).toBe(5)
+  })
+})
+
+describe('the clock waits for the splash', () => {
+  beforeEach(async () => {
+    vi.useFakeTimers()
+    await load()
+    asClient()
+  })
+
+  const state = (steps: Step[], cursor = steps.length) =>
+    ({...(room.getRoom().shared as object), steps, cursor}) as never
+
+  it('banks the clue splash before the guessers are on the clock', () => {
+    const steps: Step[] = [
+      {t: 'start', seed: 's', startTeam: 'red'},
+      {t: 'clue', team: 'red', by: 'host', word: 'ORBIT', count: 2}
+    ]
+    expect(room.leadIn(state(steps), 1)).toBe(PACE.clue)
+  })
+
+  it('adds up a reveal and the turn band that follows it', () => {
+    const steps: Step[] = [
+      {t: 'start', seed: 's', startTeam: 'red'},
+      {t: 'clue', team: 'red', by: 'host', word: 'ORBIT', count: 2},
+      {t: 'guess', team: 'red', by: 'me', card: 0},
+      {t: 'endTurn', team: 'red', reason: 'wrong'}
+    ]
+    const reveal = PACE.windup + PACE.landing + PACE.correct
+    expect(room.leadIn(state(steps), 2)).toBe(reveal + PACE.turn)
+  })
+
+  it('does not bank anything for a rewind', () => {
+    const steps: Step[] = [
+      {t: 'start', seed: 's', startTeam: 'red'},
+      {t: 'clue', team: 'red', by: 'host', word: 'ORBIT', count: 2}
+    ]
+    expect(room.leadIn(state(steps, 1), 2)).toBe(0)
+  })
+
+  it('caps a long jump rather than banking every splash in the game', () => {
+    const steps: Step[] = [
+      {t: 'start', seed: 's', startTeam: 'red'},
+      ...Array.from({length: 12}, () => ({t: 'clue', team: 'red', by: 'host', word: 'X', count: 1}) as Step)
+    ]
+    expect(room.leadIn(state(steps), 0)).toBe(8_000)
   })
 })

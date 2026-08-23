@@ -1,7 +1,7 @@
 import {motion} from 'motion/react'
 import NumberFlow from '@number-flow/react'
 import {Minus, Plus} from 'lucide-react'
-import {useState} from 'react'
+import {useEffect, useRef, useState} from 'react'
 import type {View} from '../../game/reducer'
 import type {Player, Team} from '../../game/types'
 import {clearMyMark, useMyMark} from '../../state/presence'
@@ -91,7 +91,9 @@ const Score = ({team, left, active}: {team: Team; left: number; active: boolean}
  * it up to 49 made the dial a long scroll past every number nobody would pick.
  * Unlimited still sits one past the top, where it belongs.
  */
-const ClueComposer = ({max}: {max: number}) => {
+const LAST_CALL_MS = 700
+
+const ClueComposer = ({max, deadline}: {max: number; deadline: number | null}) => {
   const [word, setWord] = useState('')
   const [count, setCount] = useState<number | 'unlimited'>(1)
 
@@ -102,6 +104,17 @@ const ClueComposer = ({max}: {max: number}) => {
     setWord('')
     setCount(1)
   }
+
+  // Whatever is in the box when the clock is nearly up is sent as though the
+  // button had been pressed. Just before the deadline, not on it: the host
+  // ends the phase itself the moment it passes.
+  const latest = useRef(submit)
+  latest.current = submit
+  useEffect(() => {
+    if (deadline === null) return
+    const id = setTimeout(() => latest.current(), Math.max(0, deadline - LAST_CALL_MS - Date.now()))
+    return () => clearTimeout(id)
+  }, [deadline])
 
   const step = (delta: 1 | -1) =>
     setCount(c => {
@@ -179,10 +192,13 @@ export const Hud = ({
                   initial={{opacity: 0, y: 8}}
                   animate={{opacity: 1, y: 0}}
                   transition={spring.firm}
-                  className="type-marquee text-2xl leading-tight text-text sm:text-3xl"
-                  style={{textShadow: '0 0 20px rgba(255,197,61,.28)'}}
+                  className={cx(
+                    'type-marquee text-2xl leading-tight sm:text-3xl',
+                    view.clue.word ? 'text-text' : 'text-text-dim'
+                  )}
+                  style={view.clue.word ? {textShadow: '0 0 20px rgba(255,197,61,.28)'} : undefined}
                 >
-                  {view.clue.word}
+                  {view.clue.word || 'NO CLUE'}
                   <span className="ml-3 text-lamp-300">
                     {view.clue.count === 'unlimited' || view.clue.count === 0 ? '∞' : view.clue.count}
                   </span>
@@ -211,7 +227,9 @@ export const Hud = ({
           that turned up shoved the clue along. */}
       {(canClue || canAct) && (
         <div className="flex min-h-11 flex-wrap items-center justify-between gap-2">
-          {canClue && <ClueComposer max={Math.max(1, view.remaining[view.turn])} />}
+          {canClue && (
+            <ClueComposer max={Math.max(1, view.remaining[view.turn])} deadline={deadline} />
+          )}
 
           {canAct && (
             <>

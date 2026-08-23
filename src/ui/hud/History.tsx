@@ -12,7 +12,7 @@ const why = (reason: string) =>
     : reason === 'wrong'
       ? 'wrong pick'
       : reason === 'timeout'
-        ? 'out of time'
+        ? 'ran out of time'
         : 'out of guesses'
 
 const tint = (team: string) => (team === 'red' ? 'text-red-lit' : 'text-blue-lit')
@@ -53,12 +53,18 @@ export const History = ({entries, players}: {entries: Entry[]; players: Player[]
           return (
             <div key={entry.index} className="flex items-center gap-2">
               <Who id={entry.by} team={entry.team} />
-              <span className="type-plate text-lg text-text">
-                {entry.word}
-                <span className="ml-2 text-lamp-300">
-                  {entry.count === 'unlimited' || entry.count === 0 ? '∞' : entry.count}
+              {entry.word ? (
+                <span className="type-plate text-lg text-text">
+                  {entry.word}
+                  <span className="ml-2 text-lamp-300">
+                    {entry.count === 'unlimited' || entry.count === 0 ? '∞' : entry.count}
+                  </span>
                 </span>
-              </span>
+              ) : (
+                <span className="type-read text-sm text-text-dim">
+                  ran out of time — empty clue
+                </span>
+              )}
             </div>
           )
         }

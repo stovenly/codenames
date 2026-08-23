@@ -3,6 +3,7 @@ import type {Colour} from '../game/board'
 import {derive, type Clue} from '../game/reducer'
 import type {Team} from '../game/types'
 import {sfx} from '../ui/sound/audio'
+import {PACE} from './pace'
 import {getRoom, subscribeRoom} from './room'
 import * as words from './words'
 
@@ -21,22 +22,7 @@ export type Stage =
   | {kind: 'turn'; team: Team}
   | {kind: 'finish'; winner: Team; reason: 'cards' | 'assassin'}
 
-/**
- * Milliseconds. Every player is reading a board they did not touch, so each
- * beat has to last long enough to notice, register and look up.
- */
-const FULL = {
-  /** Symbols churning on the card, decelerating into the flip. */
-  windup: 2800,
-  landing: 700,
-  correct: 1500,
-  wrong: 1900,
-  assassin: 3400,
-  clue: 3600,
-  turn: 1800,
-  /** The board arriving, so the first card is not simply there one frame later. */
-  deal: 2800
-}
+const FULL = PACE
 
 /**
  * How far behind we are willing to catch up by playing, once we are following
