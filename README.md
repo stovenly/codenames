@@ -1,18 +1,17 @@
 # codenames
 
-Peer-to-peer Codenames. Static, no backend, no accounts.
+Codenames for four or more, played peer-to-peer in the browser — no server, no
+accounts, nothing to install. Share the link, take a seat, give a clue.
 
-- Spec: [`specs/`](specs/README.md), build order 01 to 15
-- Play: https://stovenly.github.io/codenames/
+**Play:** https://stovenly.github.io/codenames/
 
 ## Development
 
 ```
 npm install
-npm run dev          # vite dev server
-npm run build        # builds into docs/, which GitHub Pages serves
-npm test             # reducer, board, and word-list unit tests
+npm run dev      # vite dev server
+npm run build    # builds into docs/, which GitHub Pages serves
+npm test
 ```
 
-`docs/` is build output and is committed. Never hand-edit it, and rebuild before
-pushing or the deployed site goes stale.
+`docs/` is build output and is committed — rebuild before pushing.
