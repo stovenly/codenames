@@ -110,7 +110,7 @@ const Reel = ({target, ms, settling}: {target: Colour; ms: number; settling: boo
     (() => {
       const drag = 4 / ((ms / 1000) * 0.7)
       const v = -drag * (START - LAND + 1) * (0.95 + Math.random() * 0.1)
-      return {drag, v, launch: Math.abs(v), elapsed: 0, done: false}
+      return {drag, v, launch: Math.abs(v), elapsed: 0, notch: Math.round(START), done: false}
     })()
   ).current
 
@@ -141,11 +141,14 @@ const Reel = ({target, ms, settling}: {target: Colour; ms: number; settling: boo
     const next = at + sim.v * dt
     p.set(next)
 
-    // One tick per card squaring up with the window, and no more: the rate is
-    // the wheel's rate, so it rattles while it is quick and clicks once a beat
-    // while it crawls. Rate limiting it broke that — the sound stopped tracking
-    // the thing it was supposed to be the sound of.
-    if (Math.floor(at) !== Math.floor(next)) {
+    // One tick per card arriving in the window. Which notch the wheel is on,
+    // not which boundary it last crossed: settling oscillates a hair either
+    // side of the answer, and a boundary test fires on every one of those
+    // wobbles — a dozen ticks in a fifth of a second, which is the rubbery
+    // noise rather than a wheel.
+    const arrived = Math.round(next)
+    if (arrived !== sim.notch) {
+      sim.notch = arrived
       sfx.reelTick(Math.min(1, 1 - Math.abs(sim.v) / sim.launch))
     }
 
@@ -423,19 +426,18 @@ const CardBase = ({
                 animate={{scale: 1, y: 0, opacity: 1}}
                 exit={{scale: 0, opacity: 0}}
                 transition={spring.firm}
-                className="rounded-full bg-stage-000"
-                // The ring is in card widths like the face inside it. Left at a
-                // flat 2px it turned into a hairline as the board grew.
+                // The badge owns the shape: the border and the clip are here,
+                // and the face is whatever fills what is left. Rounding the
+                // avatar itself relied on its own class winning against the one
+                // it ships with, which is not something to rely on.
+                className="size-[18cqw] max-h-12 min-h-5 max-w-12 min-w-5 shrink-0 overflow-hidden rounded-full border-solid bg-stage-000"
                 style={{
-                  boxShadow:
-                    '0 0 0 clamp(1.5px, 0.7cqw, 4px) rgba(255,197,61,.85), 0 2px 6px -1px rgba(0,0,0,.7)'
+                  borderColor: 'rgba(255,197,61,.9)',
+                  borderWidth: 'clamp(1.5px, 0.7cqw, 4px)',
+                  boxShadow: '0 2px 6px -1px rgba(0,0,0,.7)'
                 }}
               >
-                <AvatarView
-                  spec={avatar}
-                  size={null}
-                  className="size-[18cqw] max-h-9 min-h-4 max-w-9 min-w-4 rounded-full"
-                />
+                <AvatarView spec={avatar} size={null} className="size-full rounded-full" />
               </motion.span>
             ) : null
           })}

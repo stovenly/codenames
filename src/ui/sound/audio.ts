@@ -119,13 +119,7 @@ export const sfx = {
    * land as separate clicks.
    */
   reelTick: (progress: number) => {
-    noise(0.011 + progress * 0.007, 0.05 + progress * 0.1, 2400 + progress * 3200)
-    tone({
-      freq: 1750 + progress * 950,
-      type: 'triangle',
-      dur: 0.011 + progress * 0.005,
-      gain: 0.018 + progress * 0.03
-    })
+    noise(0.008 + progress * 0.004, 0.07 + progress * 0.11, 3600 + progress * 2600)
   },
 
   /** Held under the whole wind-up, climbing as the reel slows. */
