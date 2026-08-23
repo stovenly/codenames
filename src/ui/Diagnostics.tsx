@@ -17,6 +17,49 @@ const advice = (report: ReturnType<typeof useNet>['report']) => {
   return 'Everything looks healthy.'
 }
 
+const CREDITS = 'https://github.com/stovenly/codenames/blob/main/CREDITS.md'
+
+const Link = ({href, children}: {href: string; children: string}) => (
+  <a
+    href={href}
+    target="_blank"
+    rel="noreferrer"
+    className="text-lamp-300 underline underline-offset-2 hover:text-lamp-200"
+  >
+    {children}
+  </a>
+)
+
+/**
+ * The attributions travel with the thing they are attached to. Three avatar
+ * sets are CC BY, which asks for credit wherever the work is served, and the
+ * repository is not where the work is served.
+ */
+const Credits = () => (
+  <section className="flex flex-col gap-1.5">
+    <Heading>Credits</Heading>
+    <p className="type-body">
+      Peer-to-peer over <Link href="https://github.com/dmotz/trystero">Trystero</Link>, on
+      nostr, MQTT and BitTorrent at once. No server holds the game.
+    </p>
+    <p className="type-body">
+      Avatars generated with <Link href="https://www.dicebear.com">DiceBear</Link>. Nomad
+      by{' '}
+      <Link href="https://www.instagram.com/illustration_by_lisa/">Lisa Wischofsky</Link>,
+      Micah by <Link href="https://dribbble.com/micahlanier">Micah Lanier</Link> and Dylan
+      by <Link href="https://dribbble.com/Nataliaspivak">Natalia Spivak</Link>, under CC BY
+      4.0.
+    </p>
+    <p className="type-body">
+      OpenDyslexic by Abbie Gonzalez. Silhouettes and the peg knock from Pixabay, by
+      mohamed_hassan and universfield.
+    </p>
+    <p className="type-body">
+      <Link href={CREDITS}>Everything, in full</Link>
+    </p>
+  </section>
+)
+
 const Toggle = ({label, on, onClick}: {label: string; on: boolean; onClick: () => void}) => (
   <button
     type="button"
@@ -186,6 +229,10 @@ export const SettingsSheet = ({onClose}: {onClose: () => void}) => {
         {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
         {copied ? 'Copied' : 'Copy details'}
       </Button>
+
+      <Rule className="my-3" />
+
+      <Credits />
     </Panel>
   )
 }

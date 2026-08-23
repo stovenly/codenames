@@ -1,5 +1,15 @@
 # Credits
 
+## Networking
+
+[Trystero](https://github.com/dmotz/trystero) by Dan Motzenbecker, under the MIT
+licence, does the part with no server in it: peers find each other over public
+nostr relays, MQTT brokers and BitTorrent trackers, and talk directly by WebRTC.
+Three of its transports run at once here and are merged into one mesh.
+
+When two peers cannot reach each other directly, ICE falls back to
+[Open Relay](https://www.metered.ca/tools/openrelay/)'s free public TURN servers.
+
 ## Avatar styles
 
 Generated locally with [DiceBear](https://www.dicebear.com). Nothing is fetched

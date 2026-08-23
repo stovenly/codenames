@@ -1,6 +1,6 @@
 import {AnimatePresence, motion} from 'motion/react'
 import {Check, CheckSquare, Link2, Square, VenetianMask} from 'lucide-react'
-import {useEffect, useState} from 'react'
+import {useEffect, useRef, useState} from 'react'
 import {shareLink} from '../../net/identity'
 import {roomId, useNet} from '../../state/net'
 import {intend, rename, setAvatar, useRoom} from '../../state/room'
@@ -62,15 +62,28 @@ const HostNotice = () => {
 const NameField = ({name}: {name: string}) => {
   const [draft, setDraft] = useState(name)
   const [editing, setEditing] = useState(false)
+  /** The name we asked for, until the room comes back agreeing. */
+  const asked = useRef<string | null>(null)
 
   useEffect(() => {
-    if (!editing) setDraft(name)
+    if (editing) return
+    // A rename takes a round trip through the host. Falling back to the old
+    // name in the meantime shows the player their change being undone.
+    if (asked.current !== null && asked.current !== name) return
+    asked.current = null
+    setDraft(name)
   }, [name, editing])
 
   const commit = () => {
     setEditing(false)
-    if (!draft.trim()) setDraft(name)
-    else rename(draft)
+    const next = draft.trim()
+    if (!next) {
+      setDraft(name)
+      return
+    }
+    asked.current = next
+    setDraft(next)
+    rename(next)
   }
 
   return (
