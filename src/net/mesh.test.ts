@@ -209,6 +209,41 @@ describe('messages with nowhere to go', () => {
   })
 })
 
+describe('who is on the other end of a link', () => {
+  beforeEach(() => vi.useFakeTimers())
+
+  it('does not take the name off a message the peer was only passing along', () => {
+    const a = fakeSpec('nostr')
+    const {mesh} = build([a])
+    introduce(a, 'pa', 'B')
+
+    // B forwards something of C's: same link, someone else's name on it.
+    a.deliver('pa', {from: 'C', kind: 'state', ttl: 3})
+    expect(mesh.peers()).toEqual(['B'])
+  })
+
+  it('keeps two links apart when each is relaying for the other', () => {
+    const a = fakeSpec('nostr')
+    const {mesh} = build([a])
+    introduce(a, 'pa', 'B')
+    introduce(a, 'pb', 'C')
+
+    a.deliver('pa', {from: 'C', kind: 'state', ttl: 3})
+    a.deliver('pb', {from: 'B', kind: 'state', ttl: 3})
+    expect(mesh.peers().sort()).toEqual(['B', 'C'])
+  })
+
+  it('learns a name from a pong when the introduction went missing', () => {
+    const a = fakeSpec('nostr')
+    const {mesh} = build([a])
+    a.connect('pa')
+    expect(mesh.peers()).toEqual([])
+
+    a.deliver('pa', {from: 'B', kind: 'pong'})
+    expect(mesh.peers()).toEqual(['B'])
+  })
+})
+
 describe('a peer ICE cannot reach', () => {
   beforeEach(() => vi.useFakeTimers())
 

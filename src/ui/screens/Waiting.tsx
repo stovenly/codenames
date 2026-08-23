@@ -3,12 +3,12 @@ import {Check, CheckSquare, Link2, Square, VenetianMask} from 'lucide-react'
 import {useEffect, useState} from 'react'
 import {shareLink} from '../../net/identity'
 import {roomId, useNet} from '../../state/net'
-import {intend, setAvatar, useRoom} from '../../state/room'
+import {intend, rename, setAvatar, useRoom} from '../../state/room'
 import * as words from '../../state/words'
 import {validate} from '../../game/settings'
 import {rosterProblems, type Player, type Team} from '../../game/types'
 import {AvatarPicker} from '../avatar/Picker'
-import {Bulbs, Button, Enter, Heading, Item, Label, Panel, Rule} from '../atoms'
+import {Bulbs, Button, Enter, Field, Heading, Item, Label, Panel, Rule, input} from '../atoms'
 import {cx} from '../cx'
 import {HostLink} from '../hud/HostLink'
 import {SettingsPanel} from '../host/SettingsPanel'
@@ -51,6 +51,48 @@ const HostNotice = () => {
         Got it
       </Button>
     </div>
+  )
+}
+
+/**
+ * Renaming without leaving the room, because the name a player arrived under is
+ * not always the one they meant — a joiner seated before they typed anything is
+ * called Agent, and had no other way out of it.
+ */
+const NameField = ({name}: {name: string}) => {
+  const [draft, setDraft] = useState(name)
+  const [editing, setEditing] = useState(false)
+
+  useEffect(() => {
+    if (!editing) setDraft(name)
+  }, [name, editing])
+
+  const commit = () => {
+    setEditing(false)
+    if (!draft.trim()) setDraft(name)
+    else rename(draft)
+  }
+
+  return (
+    <Field label="Your name">
+      <input
+        value={draft}
+        maxLength={24}
+        placeholder="Agent"
+        onFocus={() => setEditing(true)}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => {
+          if (e.key === 'Enter') e.currentTarget.blur()
+          if (e.key === 'Escape') {
+            setDraft(name)
+            setEditing(false)
+            e.currentTarget.blur()
+          }
+        }}
+        className={input}
+      />
+    </Field>
   )
 }
 
@@ -129,8 +171,9 @@ export const Waiting = () => {
         <Item className="grid gap-7 lg:grid-cols-[1fr_23rem]">
           <div className="flex flex-col gap-7">
             <section className="flex flex-col gap-3">
-              <Heading>Your avatar</Heading>
+              <Heading>You</Heading>
               <Rule />
+              <NameField name={mine?.name ?? ''} />
               {mine && <AvatarPicker value={mine.avatar} onChange={setAvatar} />}
             </section>
 

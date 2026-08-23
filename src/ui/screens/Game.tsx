@@ -1,4 +1,4 @@
-import {AnimatePresence} from 'motion/react'
+import {AnimatePresence, motion} from 'motion/react'
 import {Suspense, lazy, useEffect} from 'react'
 import {accolades} from '../../game/accolades'
 import {derive} from '../../game/reducer'
@@ -12,7 +12,7 @@ import {ClueReveal, TurnBand} from '../hud/ClueReveal'
 import {Curtain} from '../hud/Curtain'
 import {Hud} from '../hud/Hud'
 import {cx} from '../cx'
-import {AssassinTakeover, BoardBreath, SpymasterChrome} from '../hud/Overlays'
+import {AssassinTakeover, BoardBreath, MissFlare, SpymasterChrome} from '../hud/Overlays'
 import {unlockAudio} from '../sound/audio'
 import {GameOver} from './GameOver'
 
@@ -81,11 +81,18 @@ export const Game = () => {
   const timerTotal =
     view.phase === 'clue' ? (shared.settings.clueTimer ?? 0) : (shared.settings.guessTimer ?? 0)
 
+  const miss = stage.kind === 'aftermath' && !stage.correct && stage.colour !== 'assassin'
+
   return (
     <>
       {player?.spymaster && player.team && <SpymasterChrome team={player.team} />}
 
-      <main
+      <motion.main
+        // The knock of turning over someone else's card. Keyed off the miss
+        // itself, so it runs once when the plate lands and not on any other
+        // render.
+        animate={miss ? {x: [0, -8, 7, -5, 3, 0]} : {x: 0}}
+        transition={{duration: 0.42, ease: 'easeOut'}}
         className={cx(
           'mx-auto flex max-w-[1350px] flex-col items-center gap-4 px-4 py-6 sm:px-8',
           // The band above is 1.5rem of the page, so the screen is that much
@@ -116,7 +123,7 @@ export const Game = () => {
             busy={busy}
           />
         </div>
-      </main>
+      </motion.main>
 
       <AnimatePresence>
         {stage.kind === 'deal' && <Curtain key="deal" team={stage.team} />}
@@ -127,6 +134,9 @@ export const Game = () => {
         )}
         {stage.kind === 'aftermath' && stage.correct && (
           <BoardBreath key={`breath-${stage.card}`} team={stage.team} />
+        )}
+        {stage.kind === 'aftermath' && !stage.correct && stage.colour !== 'assassin' && (
+          <MissFlare key={`miss-${stage.card}`} colour={stage.colour} />
         )}
       </AnimatePresence>
 

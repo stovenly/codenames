@@ -164,7 +164,7 @@ const land = (card: number, team: Team, colour: Colour) => {
     publish()
     if (colour === 'assassin') sfx.assassin()
     else if (correct) sfx.correct(team)
-    else sfx.wrong()
+    else sfx.wrong(colour === 'red' || colour === 'blue')
 
     const hold = colour === 'assassin' ? t.assassin : correct ? t.correct : t.wrong
     at(hold, () => {

@@ -9,6 +9,7 @@ export type StyleId =
   | 'notionists'
   | 'thumbs'
   | 'pixel-art'
+  | 'bunny'
 
 type Entry = {
   id: StyleId
@@ -77,6 +78,12 @@ export const STYLES: Entry[] = [
     name: 'Pixel',
     note: 'Retro, reads well small',
     load: async () => (await import('@dicebear/pixel-art')) as unknown as Style<never>
+  },
+  {
+    id: 'bunny',
+    name: 'Bunny',
+    note: 'Rabbits, ears every way',
+    load: async () => (await import('./bunny')) as unknown as Style<never>
   }
 ]
 

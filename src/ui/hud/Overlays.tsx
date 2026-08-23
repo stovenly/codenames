@@ -73,6 +73,31 @@ export const BoardBreath = ({team}: {team: 'red' | 'blue'}) => {
   )
 }
 
+const WASH: Record<'red' | 'blue' | 'neutral', string> = {
+  red: 'var(--glow-red-wash)',
+  blue: 'rgba(46,134,255,.34)',
+  neutral: 'rgba(214,199,166,.22)'
+}
+
+/**
+ * A card that was not theirs. The wash comes in from the edges in the colour of
+ * whatever they actually turned over, so the mistake is legible from across the
+ * room before anyone reads the plate — and it clears in a second, because this
+ * is a bad turn, not the end of the game.
+ */
+export const MissFlare = ({colour}: {colour: 'red' | 'blue' | 'neutral'}) => (
+  <motion.span
+    aria-hidden
+    initial={{opacity: 0}}
+    animate={{opacity: [0, 0.95, 0.3, 0.62, 0]}}
+    transition={{duration: 1.15, times: [0, 0.07, 0.32, 0.5, 1], ease: 'easeOut'}}
+    className="pointer-events-none fixed inset-0 z-30"
+    style={{
+      background: `radial-gradient(125% 90% at 50% 50%, transparent 32%, ${WASH[colour]} 100%)`
+    }}
+  />
+)
+
 /** The spymaster is in the booth: hazard bands, and a watermark a screen-share cannot hide. */
 const BAND: Record<Team, string> = {
   red: 'from-red-500 to-red-deep',

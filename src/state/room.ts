@@ -1168,6 +1168,17 @@ export const setWordSource = async (source: words.Source, label: string) => {
 export const setBoardSize = (size: BoardSize, preset: {teamCards: number; assassins: number}) =>
   intend({kind: 'updateSettings', patch: {size, ...preset}})
 
+/** The name follows the player: into the room, into prefs, and onto the held seat. */
+export const rename = (name: string) => {
+  const trimmed = name.trim().slice(0, 24)
+  if (!trimmed || trimmed === myName) return
+  myName = trimmed
+  saveSession({name: trimmed})
+  setPrefs({name: trimmed})
+  rememberSeat(trimmed)
+  intend({kind: 'setName', name: trimmed})
+}
+
 export const setAvatar = (avatar: Avatar) => {
   myAvatar = avatar
   setPrefs({avatar})

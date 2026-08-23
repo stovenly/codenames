@@ -78,6 +78,9 @@ const SEEN_SWEEP_MS = 10_000
 const SEEN_TTL_MS = 30_000
 
 /** A link answers this often, and is dead after missing this many in a row. */
+/** Sent on one link and never forwarded, so the sender is who is on the other end. */
+const DIRECT: ReadonlySet<MessageKind> = new Set<MessageKind>(['id', 'ping', 'pong'])
+
 const PING_MS = 2_000
 const PING_DEAD_AFTER = 3
 
@@ -315,7 +318,10 @@ export const createMesh = (opts: {
     if (link) {
       link.heard = Date.now()
       link.missed = 0
-      if (link.playerId !== raw.from) {
+      // Only link-level traffic names a link. Everything else may have been
+      // forwarded on somebody else's behalf, and taking the sender's name off
+      // one of those relabels the link with whoever the flood came from.
+      if (DIRECT.has(raw.kind) && link.playerId !== raw.from) {
         link.playerId = raw.from
         // A link that just got a name may be the route something is waiting on.
         flush()

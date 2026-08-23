@@ -237,9 +237,44 @@ export const sfx = {
     })
   },
 
-  wrong: () => {
-    tone({freq: 190, to: 90, type: 'sine', dur: 0.34, gain: 0.22})
-    tone({freq: 96, to: 60, type: 'square', dur: 0.3, gain: 0.09, delay: 0.03})
+  /**
+   * The game-show horn: a thud, then blats walking down through a closing
+   * filter over a sub. Handing the enemy a card gets a third blat and more of
+   * everything — it is the worse mistake, and it should sound like it — while
+   * still stopping well short of the klaxon the assassin gets.
+   */
+  wrong: (enemy: boolean) => {
+    noise(0.18, enemy ? 0.09 : 0.055, 900)
+    const root = enemy ? 220 : 262
+    const steps = enemy ? [0, -2, -5] : [0, -3]
+    steps.forEach((semi, i) => {
+      const freq = root * Math.pow(2, semi / 12)
+      tone({
+        freq,
+        to: freq * 0.94,
+        type: 'sawtooth',
+        dur: 0.3,
+        gain: enemy ? 0.13 : 0.095,
+        delay: i * 0.16,
+        sweep: [1200, 380],
+        q: 3
+      })
+      tone({
+        freq: freq / 2,
+        to: (freq / 2) * 0.94,
+        type: 'triangle',
+        dur: 0.34,
+        gain: enemy ? 0.12 : 0.08,
+        delay: i * 0.16
+      })
+    })
+    tone({
+      freq: enemy ? 80 : 96,
+      to: enemy ? 52 : 64,
+      type: 'sine',
+      dur: enemy ? 0.9 : 0.6,
+      gain: enemy ? 0.2 : 0.14
+    })
   },
 
   /**
