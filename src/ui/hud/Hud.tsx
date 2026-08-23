@@ -84,10 +84,15 @@ const Score = ({team, left, active}: {team: Team; left: number; active: boolean}
   </motion.div>
 )
 
-const ClueComposer = ({size}: {size: number}) => {
+/**
+ * `max` is what the team has left on the board, not the size of it. A clue for
+ * five when four of yours remain is a number that cannot be right, and offering
+ * it up to 49 made the dial a long scroll past every number nobody would pick.
+ * Unlimited still sits one past the top, where it belongs.
+ */
+const ClueComposer = ({max}: {max: number}) => {
   const [word, setWord] = useState('')
   const [count, setCount] = useState<number | 'unlimited'>(1)
-  const max = size * size
 
   const submit = () => {
     const trimmed = word.trim()
@@ -139,15 +144,13 @@ export const Hud = ({
   me,
   deadline,
   timerTotal,
-  busy,
-  size
+  busy
 }: {
   view: View
   me: Player | null
   deadline: number | null
   timerTotal: number
   busy: boolean
-  size: number
 }) => {
     const armed = useMyMark()
   const myTurn = me?.team === view.turn
@@ -200,7 +203,7 @@ export const Hud = ({
           everyone is reading. */}
       {(canClue || canAct) && (
         <div className="flex min-h-11 flex-wrap items-center justify-center gap-2">
-          {canClue && <ClueComposer size={size} />}
+          {canClue && <ClueComposer max={Math.max(1, view.remaining[view.turn])} />}
 
           {canAct && (
             <>

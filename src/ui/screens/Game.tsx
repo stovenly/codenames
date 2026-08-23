@@ -92,7 +92,6 @@ export const Game = () => {
             deadline={shared.deadline}
             timerTotal={timerTotal}
             busy={busy}
-            size={shared.settings.size}
           />
         </div>
       </main>

@@ -80,10 +80,10 @@ const Face = ({colour}: {colour: Colour}) => (
  * jittered per spin. Creep is what guarantees the answer regardless — it is off
  * once the nearest notch is the right one, so the wheel is never dragged past.
  */
-const DETENT = 34
-const CREEP = 30
+const DETENT = 70
+const CREEP = 70
 /** Above this the wheel is turning; below it, it is resting and a hand can decide. */
-const RESTING = 5
+const RESTING = 4
 
 const Reel = ({target, ms, settling}: {target: Colour; ms: number; settling: boolean}) => {
   const strip = useRef(buildStrip(target)).current
@@ -92,20 +92,23 @@ const Reel = ({target, ms, settling}: {target: Colour; ms: number; settling: boo
 
   /**
    * Drag is set from the time available rather than picked: a wheel still
-   * turning when the card is due to flip would be cut off mid-spin. Four time
-   * constants is a stop, so aiming them at the first 40% of the windup leaves
-   * the rest for whatever the pawl decides to do.
+   * turning when the card is due to flip would be cut off mid-spin, and one
+   * that stopped early leaves the card sitting there. Four time constants is a
+   * stop, aimed at 70% of the windup, which leaves the pawl the last third and
+   * puts the flip just after the wheel lands.
    *
    * Simulated over hundreds of spins: never leaves the strip, always comes to
-   * rest on the answer, settles inside the budget, and changes direction at
-   * least three times on the way.
+   * rest on the answer, and changes direction at least twice on the way. A hard
+   * pawl is what makes the last notch arrive as a snap — a soft one oozes the
+   * final fraction of a notch for a quarter-second, which is the part that read
+   * as slow.
    *
    * Thrown a notch long, with enough spread that where it runs out is genuinely
    * in doubt — free travel under drag alone being v0/drag.
    */
   const sim = useRef(
     (() => {
-      const drag = 4 / ((ms / 1000) * 0.4)
+      const drag = 4 / ((ms / 1000) * 0.7)
       return {
         drag,
         v: -drag * (START - LAND + 1) * (0.95 + Math.random() * 0.1),
@@ -126,7 +129,7 @@ const Reel = ({target, ms, settling}: {target: Colour; ms: number; settling: boo
     // Out of time: lean on it so it is stopped before the card turns over,
     // rather than being cut off wherever it happens to be.
     const late = sim.elapsed > (ms / 1000) * 0.7
-    const drag = late ? sim.drag * 2.5 : sim.drag
+    const drag = late ? sim.drag * 4 : sim.drag
 
     const at = p.get()
     const notch = Math.round(at)
@@ -142,7 +145,7 @@ const Reel = ({target, ms, settling}: {target: Colour; ms: number; settling: boo
     const next = at + sim.v * dt
     p.set(next)
 
-    if (notch === LAND && Math.abs(sim.v) < 0.3 && Math.abs(next - LAND) < 0.05) {
+    if (notch === LAND && Math.abs(sim.v) < 0.8 && Math.abs(next - LAND) < 0.12) {
       p.set(LAND)
       sim.done = true
     }

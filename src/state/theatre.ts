@@ -27,7 +27,7 @@ export type Stage =
  */
 const FULL = {
   /** Symbols churning on the card, decelerating into the flip. */
-  windup: 2600,
+  windup: 2200,
   landing: 1200,
   correct: 1500,
   wrong: 1900,
