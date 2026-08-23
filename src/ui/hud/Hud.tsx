@@ -10,6 +10,7 @@ import {previewGuess} from '../../state/theatre'
 import {Bulbs, Button, Glyph, Label, Panel, input} from '../atoms'
 import {cx} from '../cx'
 import {spring} from '../motion'
+import {HostLink} from './HostLink'
 import {TimerArc} from './TimerArc'
 
 const TONE: Record<Team, string> = {
@@ -169,6 +170,7 @@ export const Hud = ({
               which is where anyone looking for it already is. */}
           <div className="flex min-w-44 flex-1 flex-col items-center justify-center gap-1 text-center">
             <Standing view={view} me={me} />
+          <HostLink />
 
             {view.clue ? (
               <>

@@ -23,12 +23,41 @@ export type RoomSnapshot = {
   /** Host-local: how long our own tab has been backgrounded, for the title and favicon ladder. */
   hiddenMs: number
   degrading: boolean
+  /** The oldest move still waiting to be acknowledged, and how many are waiting. */
+  unacked: {oldestMs: number; count: number} | null
+  /** Since the host was last heard from. Null when we are the host. */
+  hostHeardMsAgo: number | null
 }
 
 /** Widened while the host advertises a hidden tab, whose timers the browser throttles. */
 const MISSING_HOST_MS = 6_000
 const MISSING_HOST_HIDDEN_MS = 30_000
 const BEAT_MS = 2_000
+/**
+ * A move is repeated until the host says it arrived.
+ *
+ * An intent was sent once and forgotten, so a lost one looked exactly like a
+ * player who had not moved: the board did not change and nothing said why. The
+ * host answers every intent by name, including one it has already applied, so
+ * a retry that crossed an acknowledgement in flight is answered rather than
+ * replayed.
+ */
+const ACK_RETRY_MS = 1_000
+export const ACK_WORRY_MS = 3_000
+export const ACK_GIVE_UP_MS = 10_000
+/** Enough to cover any plausible retry window; the oldest fall off the end. */
+const APPLIED_MEMORY = 500
+
+/**
+ * The host sends the whole room this often whether or not anything changed.
+ *
+ * A few kilobytes against a client that missed a delta, missed the resync it
+ * asked for, missed the answer, and missed the beat that would have prompted
+ * it again. Deltas stay for responsiveness; this is the floor under them, and
+ * it converges without anyone having to notice they are behind.
+ */
+const FULL_EVERY_MS = 5_000
+
 /** Clients say so periodically, so a relayed player is not mistaken for a lost one. */
 const HERE_MS = 3_000
 const HEARD_WINDOW_MS = 11_000
@@ -116,6 +145,10 @@ let myAvatar: Avatar = getPrefs().avatar ?? {
   bg: '141C30'
 }
 let announcedAvatar = false
+type Pending = {id: string; intent: Intent; sentAt: number; triedAt: number}
+const pending = new Map<string, Pending>()
+/** Intent ids the host has already carried out, so a repeat is not applied twice. */
+const applied = new Set<string>()
 let passwordHash: string | null = null
 /** Kept so the introduction can be repeated; the mesh does not promise delivery. */
 let myProof: string | null = null
@@ -133,6 +166,7 @@ const rivalHosts = new Map<PlayerId, number>()
 let rivalsSince = 0
 let hiddenSince = 0
 let lastBeatAt = 0
+let lastFullAt = 0
 let lastStepAt = 0
 let degrading = false
 
@@ -144,7 +178,9 @@ let snapshot: RoomSnapshot = {
   me: self,
   wordsReady: false,
   hiddenMs: 0,
-  degrading: false
+  degrading: false,
+  unacked: null,
+  hostHeardMsAgo: null
 }
 
 const publish = () => {
@@ -156,7 +192,9 @@ const publish = () => {
     me: self,
     wordsReady: shared ? words.have(shared.settings.wordListHash) : false,
     hiddenMs: hiddenSince ? Date.now() - hiddenSince : 0,
-    degrading
+    degrading,
+    unacked: waiting(),
+    hostHeardMsAgo: isHost() || !shared ? null : Date.now() - lastHostAt
   }
   listeners.forEach(l => l())
 }
@@ -201,6 +239,9 @@ export type StateMsg =
   | {meta: Omit<Shared, 'steps'>; base: number; add: Step[]}
 
 let broadcastBase = 0
+
+const whereWeAre = () =>
+  shared ? {epoch: shared.hostEpoch, version: shared.version} : {epoch: 0, version: 0}
 
 const sendFull = (state: Shared, to: PlayerId | '*' = '*') => {
   send('state', {full: state} satisfies StateMsg, to)
@@ -292,6 +333,11 @@ const startBeat = () => {
       hostEpoch: shared.hostEpoch,
       hostHidden: shared.hostHidden
     })
+
+    if (now - lastFullAt > FULL_EVERY_MS) {
+      lastFullAt = now
+      sendFull(shared)
+    }
   }
   beatWorker.postMessage({type: 'start', ms: BEAT_MS})
 }
@@ -447,10 +493,17 @@ const monitor = () => {
   if (isHost() && shared) {
     const connected = present(shared.players.map(p => p.id))
     if (shared.players.some(p => p.connected !== connected.has(p.id))) {
+      // Anyone who has just come back gets the room outright. They would
+      // otherwise receive deltas they cannot apply, ask for a resync, and wait
+      // on the answer — two more messages to lose at the worst moment for it.
+      const returning = shared.players.filter(p => !p.connected && connected.has(p.id)).map(p => p.id)
+
       hostMutate(draft => ({
         ...draft,
         players: draft.players.map(p => ({...p, connected: connected.has(p.id)}))
       }))
+
+      if (shared) for (const id of returning) sendFull(shared, id)
     }
 
     // Rung four: hand the room to someone whose tab is actually in front. It is
@@ -708,8 +761,45 @@ const applyIntent = (from: PlayerId, intent: Intent) => {
 }
 
 export const intend = (intent: Intent) => {
-  if (isHost()) applyIntent(self, intent)
-  else send('intent', intent, shared?.hostId ?? '*')
+  if (isHost()) {
+    applyIntent(self, intent)
+    return
+  }
+  const id = newRoomId()
+  pending.set(id, {id, intent, sentAt: Date.now(), triedAt: Date.now()})
+  send('intent', {id, ...intent}, shared?.hostId ?? '*')
+  publish()
+}
+
+const waiting = () => {
+  if (!pending.size) return null
+  const now = Date.now()
+  let oldest = 0
+  for (const p of pending.values()) oldest = Math.max(oldest, now - p.sentAt)
+  return {oldestMs: oldest, count: pending.size}
+}
+
+/**
+ * Anything unanswered goes again, addressed to whoever we believe the host is
+ * right now — so a retry that spans a host change reaches the new one.
+ */
+const chaseIntents = () => {
+  if (isHost() || !pending.size) return
+  const now = Date.now()
+  let changed = false
+
+  for (const [id, p] of [...pending]) {
+    if (now - p.sentAt > ACK_GIVE_UP_MS) {
+      pending.delete(id)
+      changed = true
+      continue
+    }
+    if (now - p.triedAt < ACK_RETRY_MS) continue
+    p.triedAt = now
+    send('intent', {id, ...p.intent}, shared?.hostId ?? '*')
+    changed = true
+  }
+  if (changed || pending.size) publish()
 }
 
 // -------------------------------------------------------------------- wiring
@@ -764,7 +854,7 @@ export const start = () => {
     } else {
       const have = shared?.steps ?? []
       if (have.length < msg.base) {
-        send('resync', {want: 'state'}, msg.meta.hostId)
+        send('resync', {want: 'state', have: whereWeAre()}, msg.meta.hostId)
         return
       }
       next = {...msg.meta, steps: [...have.slice(0, msg.base), ...msg.add]}
@@ -794,7 +884,8 @@ export const start = () => {
     // room rather than sitting on a stale one until a state broadcast happens
     // to reach us — this is what settles two hosts without anyone being told.
     if (env.from !== shared.hostId) {
-      if ((beat.hostEpoch ?? 0) > shared.hostEpoch) send('resync', {want: 'state'}, env.from)
+      if ((beat.hostEpoch ?? 0) > shared.hostEpoch)
+        send('resync', {want: 'state', have: whereWeAre()}, env.from)
       return
     }
     lastHostAt = Date.now()
@@ -802,7 +893,8 @@ export const start = () => {
       shared = {...shared, hostHidden: !!beat.hostHidden}
       publish()
     }
-    if ((beat.version ?? 0) > shared.version) send('resync', {want: 'state'}, shared.hostId)
+    if ((beat.version ?? 0) > shared.version)
+      send('resync', {want: 'state', have: whereWeAre()}, shared.hostId)
   })
 
   on('claim', body => {
@@ -825,7 +917,30 @@ export const start = () => {
     promoteSelf(epoch ?? (shared?.hostEpoch ?? 0) + 1)
   })
 
-  on('intent', (body, env) => applyIntent(env.from, body as Intent))
+  on('intent', (body, env) => {
+    if (!isHost()) return
+    const {id, ...intent} = (body ?? {}) as {id?: string} & Intent
+
+    // No id is a client on an older build: carry it out, with nobody to tell.
+    if (!id) {
+      applyIntent(env.from, intent as Intent)
+      return
+    }
+    // Already done. The acknowledgement is what went missing, so send it again
+    // rather than doing the thing twice.
+    if (!applied.has(id)) {
+      applied.add(id)
+      if (applied.size > APPLIED_MEMORY) applied.delete(applied.values().next().value as string)
+      applyIntent(env.from, intent as Intent)
+    }
+    send('ack', {id}, env.from)
+  })
+
+  on('ack', body => {
+    const {id} = (body ?? {}) as {id?: string}
+    if (!id || !pending.delete(id)) return
+    publish()
+  })
 
   on('presence', body => {
     const msg = (body ?? {}) as {kind?: string; undone?: string}
@@ -833,20 +948,40 @@ export const start = () => {
     flash(msg.undone ? `The host took back ${msg.undone}` : 'The host rewound the game')
   })
 
+  /**
+   * Answered by anyone holding something newer, not only by the host.
+   *
+   * Every client keeps the whole room, stamped with an epoch and a version, so
+   * a peer who can reach you when the host cannot is a perfectly good source
+   * for it. adopt() already refuses anything not newer than what it holds, so
+   * an answer from a peer that turns out to be behind costs one message.
+   */
   on('resync', (body, env) => {
-    if (!isHost() || !shared) return
-    const {want, hash} = (body ?? {}) as {want?: string; hash?: string}
+    if (!shared) return
+    const {want, hash, have} = (body ?? {}) as {
+      want?: string
+      hash?: string
+      have?: {epoch: number; version: number}
+    }
+
     if (want === 'words') {
       const key = hash ?? shared.settings.wordListHash
-      send('words', {hash: key, words: words.get(key)}, env.from)
+      if (words.get(key).length) send('words', {hash: key, words: words.get(key)}, env.from)
       return
     }
+
+    const newer =
+      !have ||
+      shared.hostEpoch > have.epoch ||
+      (shared.hostEpoch === have.epoch && shared.version > have.version)
+    if (!isHost() && !newer) return
     sendFull(shared, env.from)
   })
 
   onNetChange(monitor)
   setInterval(monitor, 500)
   setInterval(nagUntilSeated, 500)
+  setInterval(chaseIntents, 500)
   setInterval(() => {
     if (!isHost() && shared) send('presence', {kind: 'here'}, shared.hostId)
   }, HERE_MS)

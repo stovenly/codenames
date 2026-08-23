@@ -1,7 +1,7 @@
 import * as Slider from '@radix-ui/react-slider'
 import {Check, Copy, X} from 'lucide-react'
 import {useEffect, useState} from 'react'
-import {refreshStats, roomId, self, useNet} from '../state/net'
+import {chaos, refreshStats, roomId, self, useNet} from '../state/net'
 import {getPrefs, setPrefs, usePrefs} from '../state/prefs'
 import {Button, Heading, IconButton, Label, Panel, Rule} from './atoms'
 import {cx} from './cx'
@@ -122,6 +122,12 @@ export const SettingsSheet = ({onClose}: {onClose: () => void}) => {
       <Rule className="my-3" />
 
       <Label>Connection</Label>
+
+      {chaos && (
+        <p className="type-body mt-1 text-kill-lit">
+          Sabotage is on: {JSON.stringify(chaos)}. Nothing here is a real fault.
+        </p>
+      )}
 
       <section className="mt-2 flex flex-col gap-2">
         {report.transports.map(t => (

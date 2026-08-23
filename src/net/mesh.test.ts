@@ -229,3 +229,51 @@ describe('chaos', () => {
     expect(mesh.report().transports.map(t => t.name)).toEqual(['torrent'])
   })
 })
+
+describe('getting through a lossy wire', () => {
+  beforeEach(() => vi.useFakeTimers())
+
+  it('keeps holding a message while there is still no route', () => {
+    const a = fakeSpec('nostr')
+    const {mesh} = build([a])
+
+    mesh.send('intent', {kind: 'pass'}, 'HOST')
+    vi.advanceTimersByTime(5_000)
+    expect(mesh.heldCount()).toBe(1)
+
+    introduce(a, 'pa', 'HOST')
+    expect(a.of('intent')).toHaveLength(1)
+  })
+
+  it('still reaches a peer when one of two transports is dead', () => {
+    const dead = fakeSpec('nostr')
+    const alive = fakeSpec('torrent')
+    const {mesh} = build([dead, alive])
+
+    introduce(dead, 'pa', 'B')
+    introduce(alive, 'pb', 'B')
+
+    // The nostr link stops answering; the torrent one keeps up.
+    for (let i = 0; i < 6; i++) {
+      vi.advanceTimersByTime(2_000)
+      alive.deliver('pb', {from: 'B', kind: 'pong'})
+    }
+
+    expect(mesh.peers()).toEqual(['B'])
+    const before = alive.of('intent').length
+    mesh.send('intent', {kind: 'pass'}, 'B')
+    expect(alive.of('intent')).toHaveLength(before + 1)
+  })
+
+  it('loses roughly what it is told to lose, and no more', () => {
+    const a = fakeSpec('nostr')
+    const {mesh} = build([a], {drop: 0.5})
+    introduce(a, 'pa', 'B')
+
+    for (let i = 0; i < 400; i++) mesh.send('chat', {text: i}, 'B')
+
+    const got = a.of('chat').length
+    expect(got).toBeGreaterThan(140)
+    expect(got).toBeLessThan(260)
+  })
+})

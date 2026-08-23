@@ -9,6 +9,7 @@
  *   npm run playtest -- --auto --seat=1 you keep seat 1 instead of seat 0
  *   npm run playtest -- --auto --seat=none   nobody is yours; it plays itself
  *   npm run playtest -- --headless      no windows; watch the log instead
+ *   npm run playtest -- --chaos=drop:0.3     break the mesh on purpose
  *   npm run playtest -- --url=http://localhost:4173/codenames/
  *
  * Every player gets its own browser context, because localStorage holds the
@@ -40,6 +41,14 @@ const HEADLESS = flag('headless')
 const SHOT = arg('shot', '')
 /** Board size to set in the lobby before starting, as "3" for a 3x3. */
 const SIZE = arg('size', '')
+/** Passed through to the app as ?chaos=…; seat 0 is spared unless --chaos-host. */
+const CHAOS = arg('chaos', '')
+const CHAOS_HOST = flag('chaos-host')
+
+const withChaos = (url, index) =>
+  CHAOS && (index > 0 || CHAOS_HOST)
+    ? `${url}${url.includes('?') ? '&' : '?'}chaos=${encodeURIComponent(CHAOS)}`
+    : url
 const PORT = Number(arg('port', 9455))
 
 const CHROME =
@@ -244,7 +253,7 @@ ${String(screen ?? '').slice(0, 400)}`
 
 console.log(`opening ${PLAYERS} players against ${URL_BASE}`)
 
-const host = await open(URL_BASE, 0, NAMES[0])
+const host = await open(withChaos(URL_BASE, 0), 0, NAMES[0])
 await waitFor(host, `document.querySelectorAll('input').length > 0`, 'the landing screen')
 await type(host, 0, NAMES[0])
 await click(host, 'Start a game')
@@ -255,7 +264,7 @@ console.log(`room ${link}`)
 
 const tabs = [host]
 for (let i = 1; i < PLAYERS; i++) {
-  const tab = await open(link, i, NAMES[i % NAMES.length])
+  const tab = await open(withChaos(link, i), i, NAMES[i % NAMES.length])
   await waitFor(tab, `document.querySelectorAll('input').length > 0`, 'the landing screen')
   await type(tab, 0, tab.label)
   await click(tab, 'Take a seat')

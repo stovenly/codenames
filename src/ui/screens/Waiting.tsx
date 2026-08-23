@@ -10,6 +10,7 @@ import {rosterProblems, type Player, type Team} from '../../game/types'
 import {AvatarPicker} from '../avatar/Picker'
 import {Bulbs, Button, Enter, Heading, Item, Label, Panel, Rule} from '../atoms'
 import {cx} from '../cx'
+import {HostLink} from '../hud/HostLink'
 import {SettingsPanel} from '../host/SettingsPanel'
 import {PlayerCard} from '../room/PlayerCard'
 
@@ -173,6 +174,8 @@ export const Waiting = () => {
                     {readyCount}{' '}
                     <span className="text-text-dim">/ {shared.players.length} ready</span>
                   </span>
+                  <HostLink />
+
                   <AnimatePresence initial={false}>
                     {faults.length === 0 && (
                       <motion.span

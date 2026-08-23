@@ -69,11 +69,38 @@ const dispatch = (env: Envelope, body: unknown) => {
  * The transport stack is a third of the bundle, so it loads as its own chunk
  * after first paint. Anything sent before it lands waits in the outbox.
  */
+/**
+ * `?chaos=drop:0.3,delay:800,kill:nostr+mqtt`, development only.
+ *
+ * Recovery paths that are never exercised are recovery paths nobody knows the
+ * state of, and a mesh is not something you can break on purpose by waiting.
+ * Production ignores the parameter entirely.
+ */
+export const chaos = (() => {
+  if (!import.meta.env.DEV) return undefined
+  const raw = new URLSearchParams(location.search).get('chaos')
+  if (!raw) return undefined
+
+  const out: {drop?: number; delay?: number; kill?: string[]} = {}
+  for (const part of raw.split(',')) {
+    const [key, value] = part.split(':')
+    if (key === 'drop') out.drop = Number(value)
+    else if (key === 'delay') out.delay = Number(value)
+    else if (key === 'kill') out.kill = (value ?? '').split('+').filter(Boolean)
+  }
+  return out
+})()
+
 export const startMesh = () => {
   if (!roomId) throw new Error('no room')
   if (booting) return booting
   booting = import('../net/mesh').then(({createMesh}) => {
-    mesh = createMesh({roomId, onEnvelope: dispatch, onChange: publish})
+    mesh = createMesh({
+      roomId,
+      onEnvelope: dispatch,
+      onChange: publish,
+      chaos: chaos as Parameters<typeof createMesh>[0]['chaos']
+    })
     for (const [kind, body, to, ttl] of outbox.splice(0)) mesh.send(kind, body, to, ttl)
     publish()
     return mesh

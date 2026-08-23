@@ -1,0 +1,234 @@
+import {beforeEach, describe, expect, it, vi} from 'vitest'
+import type {Envelope} from '../net/protocol'
+
+/**
+ * The handful of browser globals room.ts touches on the way in. Stubbed rather
+ * than pulling in a DOM, because the room is not a DOM thing — it reads whether
+ * the tab is visible and remembers a session, and that is the whole of it.
+ */
+const store = new Map<string, string>()
+vi.stubGlobal('document', {
+  hidden: false,
+  addEventListener: () => {},
+  documentElement: {setAttribute: () => {}, removeAttribute: () => {}}
+})
+vi.stubGlobal('addEventListener', () => {})
+vi.stubGlobal('sessionStorage', {
+  getItem: (k: string) => store.get(k) ?? null,
+  setItem: (k: string, v: string) => store.set(k, v),
+  removeItem: (k: string) => store.delete(k)
+})
+vi.stubGlobal('localStorage', {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {}
+})
+vi.stubGlobal('Worker', class {
+  onmessage: unknown = null
+  postMessage() {}
+  terminate() {}
+})
+
+type Sent = {kind: string; body: unknown; to: string}
+
+const sent: Sent[] = []
+const handlers = new Map<string, (body: unknown, env: Envelope) => void>()
+let livePeers: string[] = []
+
+vi.mock('./net', () => ({
+  self: 'me',
+  roomId: 'r',
+  joinedExisting: true,
+  openRoom: () => 'r',
+  startMesh: () => {},
+  peers: () => livePeers,
+  lastHeardFrom: () => 0,
+  on: (kind: string, fn: (body: unknown, env: Envelope) => void) => {
+    handlers.set(kind, fn)
+  },
+  send: (kind: string, body: unknown, to = '*') => sent.push({kind, body, to}),
+  subscribe: () => () => {}
+}))
+vi.mock('./words', () => ({
+  get: () => Array.from({length: 80}, (_, i) => `W${i}`),
+  have: () => true,
+  useWords: () => {},
+  resolve: () => Promise.resolve({hash: 'h', words: []}),
+  put: () => {},
+  rememberSource: () => {},
+  lastSource: () => null
+}))
+vi.mock('../net/identity', () => ({
+  playerId: 'me',
+  newRoomId: () => `id-${count++}`,
+  newEnvelopeId: () => `env-${count++}`,
+  rememberSeat: () => {},
+  startSeatClaim: () => {},
+  sha256Hex: () => Promise.resolve('hash'),
+  shareLink: () => '',
+  offeredSeat: () => null,
+  resumedSeat: false,
+  takeSeat: () => {},
+  abandonSeat: () => {}
+}))
+
+let count = 0
+
+/**
+ * The room is one module holding one game, which is right for a tab and wrong
+ * for a suite: pending moves and an adopted state would carry from test to
+ * test, and adopt refuses anything older than what it already has. Each test
+ * gets the module fresh.
+ */
+type Room = typeof import('./room')
+let room: Room
+
+const load = async () => {
+  vi.resetModules()
+  handlers.clear()
+  sent.length = 0
+  livePeers = []
+  room = await import('./room')
+  room.start()
+}
+
+const deliver = (kind: string, body: unknown, from = 'host') =>
+  handlers.get(kind)?.(body, {from} as Envelope)
+
+/**
+ * Time passing with the host still there. Advancing in one jump instead would
+ * take the room past the missing-host window and into an election, which is a
+ * different test.
+ */
+const tick = (ms: number) => {
+  for (let left = ms; left > 0; left -= 1_000) {
+    vi.advanceTimersByTime(Math.min(1_000, left))
+    deliver('beat', {version: 5, hostId: 'host', hostEpoch: 1, hostHidden: false}, 'host')
+  }
+}
+
+/** Acknowledge everything outstanding, so a test starts with a quiet queue. */
+const settle = () => {
+  for (const s of sent.filter(s => s.kind === 'intent')) {
+    deliver('ack', {id: (s.body as {id: string}).id})
+  }
+}
+
+/**
+ * A room where we are a client and `host` is in charge. Adopting a state we are
+ * named in makes the room announce our avatar, which is a move like any other —
+ * acknowledged here so it is not still in the queue when a test looks.
+ */
+const asClient = () => {
+  deliver('state', {
+    full: {
+      version: 5,
+      hostId: 'host',
+      hostEpoch: 1,
+      hostHidden: false,
+      hostDegraded: false,
+      roster: ['host', 'me'],
+      sentAt: Date.now(),
+      players: [
+        {id: 'host', name: 'Host', team: 'red', spymaster: true, ready: true, connected: true, avatar: {style: 'lorelei', seed: '0', bg: '141C30'}},
+        {id: 'me', name: 'Me', team: 'red', spymaster: false, ready: true, connected: true, avatar: {style: 'lorelei', seed: '1', bg: '141C30'}}
+      ],
+      settings: {size: 5, teamCards: 8, assassins: 1, clueTimer: null, guessTimer: null, wordListHash: 'h', wordListName: 'x'},
+      steps: [],
+      cursor: 0,
+      deadline: null
+    }
+  })
+  settle()
+}
+
+describe('a move that has to arrive', () => {
+  beforeEach(async () => {
+    vi.useFakeTimers()
+    await load()
+    asClient()
+    sent.length = 0
+  })
+
+  it('goes again until it is acknowledged', () => {
+    room.intend({kind: 'ready', ready: true})
+    const first = sent.filter(s => s.kind === 'intent')
+    expect(first).toHaveLength(1)
+
+    const id = (first[0]!.body as {id: string}).id
+    expect(id).toBeTruthy()
+
+    tick(1_100)
+    const again = sent.filter(s => s.kind === 'intent')
+    expect(again).toHaveLength(2)
+    // The same move, not a second one.
+    expect((again[1]!.body as {id: string}).id).toBe(id)
+
+    deliver('ack', {id})
+    tick(5_000)
+    expect(sent.filter(s => s.kind === 'intent')).toHaveLength(2)
+  })
+
+  it('gives up rather than trying for ever', () => {
+    room.intend({kind: 'ready', ready: true})
+    tick(12_000)
+    const tries = sent.filter(s => s.kind === 'intent').length
+    expect(tries).toBeGreaterThan(2)
+
+    tick(10_000)
+    expect(sent.filter(s => s.kind === 'intent')).toHaveLength(tries)
+    expect(room.getRoom().unacked).toBeNull()
+  })
+
+  it('says so once it has been waiting a while', () => {
+    expect(room.getRoom().unacked).toBeNull()
+    room.intend({kind: 'ready', ready: true})
+    tick(4_000)
+
+    const waiting = room.getRoom().unacked
+    expect(waiting?.count).toBe(1)
+    expect(waiting?.oldestMs).toBeGreaterThan(room.ACK_WORRY_MS)
+  })
+
+  it('sends the retry to whoever is host now, not who was', () => {
+    room.intend({kind: 'ready', ready: true})
+    deliver('state', {
+      full: {
+        ...(room.getRoom().shared as object),
+        hostId: 'other',
+        hostEpoch: 2,
+        version: 9,
+        sentAt: Date.now()
+      }
+    }, 'other')
+
+    vi.advanceTimersByTime(1_100)
+    const last = sent.filter(s => s.kind === 'intent').at(-1)
+    expect(last?.to).toBe('other')
+  })
+})
+
+describe('answering a peer that has fallen behind', () => {
+  beforeEach(async () => {
+    vi.useFakeTimers()
+    await load()
+    asClient()
+    sent.length = 0
+  })
+
+  it('hands over the room when we hold something newer', () => {
+    deliver('resync', {want: 'state', have: {epoch: 1, version: 2}}, 'peer')
+    expect(sent.filter(s => s.kind === 'state' && s.to === 'peer')).toHaveLength(1)
+  })
+
+  it('stays quiet when the asker is further ahead', () => {
+    deliver('resync', {want: 'state', have: {epoch: 1, version: 99}}, 'peer')
+    expect(sent.filter(s => s.kind === 'state')).toHaveLength(0)
+  })
+
+  it('says where it is when it asks', () => {
+    deliver('beat', {version: 99, hostId: 'host', hostEpoch: 1}, 'host')
+    const ask = sent.find(s => s.kind === 'resync')
+    expect((ask?.body as {have?: {version: number}}).have?.version).toBe(5)
+  })
+})
