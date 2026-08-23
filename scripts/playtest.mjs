@@ -50,7 +50,14 @@ const CHROME =
 
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 
-const NAMES = ['You', 'Marlow', 'Vesper', 'Cobb', 'Rook', 'Sable', 'Pike', 'Wren']
+/** Seat 0 is always You, so you can find your own window; the rest are dealt. */
+const POOL = [
+  'Marlow', 'Vesper', 'Cobb', 'Rook', 'Sable', 'Pike', 'Wren', 'Bex', 'Halloway',
+  'Nadia', 'Ozzy', 'Quill', 'Fen', 'Tallis', 'Juno', 'Mercer', 'Kestrel', 'Dov',
+  'Sunny', 'Bramble', 'Otto', 'Marisol', 'Zeke', 'Lark', 'Rennick', 'Pip'
+]
+
+const NAMES = ['You', ...[...POOL].sort(() => Math.random() - 0.5)]
 
 /**
  * Red spymaster, red spy, blue spymaster, blue spy, then alternating spies —
@@ -252,6 +259,20 @@ for (let i = 1; i < PLAYERS; i++) {
   await click(tab, 'Take a seat')
   tabs.push(tab)
   await sleep(1200)
+}
+
+// A different face each run, so screenshots and sessions are told apart at a
+// glance rather than by reading the names.
+for (const tab of tabs) {
+  for (let n = 0; n < 3; n++) {
+    await tab.evaluate(
+      `[...document.querySelectorAll('button')].find(b => b.getAttribute('aria-label') === 'Roll a random one')?.click()`
+    )
+    await sleep(120)
+  }
+  await tab.evaluate(
+    `[...document.querySelectorAll('button')].find(b => b.getAttribute('aria-label') === 'Roll a random colour')?.click()`
+  )
 }
 
 for (const tab of tabs) {
