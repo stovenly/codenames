@@ -38,6 +38,8 @@ const SEAT = arg('seat', '0')
 const HEADLESS = flag('headless')
 /** Directory to drop one screenshot per player into, for checking a change landed. */
 const SHOT = arg('shot', '')
+/** Board size to set in the lobby before starting, as "3" for a 3x3. */
+const SIZE = arg('size', '')
 const PORT = Number(arg('port', 9455))
 
 const CHROME =

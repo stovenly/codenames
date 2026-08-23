@@ -113,6 +113,9 @@ let myAvatar: Avatar = getPrefs().avatar ?? {
 }
 let announcedAvatar = false
 let passwordHash: string | null = null
+/** Kept so the introduction can be repeated; the mesh does not promise delivery. */
+let myProof: string | null = null
+let saidHelloAt = 0
 let lastHostAt = 0
 let clockOffset = 0
 let claims: Claim[] = []
@@ -839,6 +842,7 @@ export const start = () => {
 
   onNetChange(monitor)
   setInterval(monitor, 500)
+  setInterval(nagUntilSeated, 500)
   setInterval(() => {
     if (!isHost() && shared) send('presence', {kind: 'here'}, shared.hostId)
   }, HERE_MS)
@@ -899,7 +903,36 @@ export const joinRoom = async (name: string, password: string | null) => {
   rememberSeat(name)
   role = 'joining'
   publish()
-  send('hello', {name, proof: await proofFor(password)})
+  myProof = await proofFor(password)
+  sayHello()
+}
+
+const sayHello = () => {
+  saidHelloAt = Date.now()
+  send('hello', {name: myName, proof: myProof})
+}
+
+/**
+ * Keep introducing ourselves until the host has us in the room.
+ *
+ * Hello went out exactly once, and the mesh promises neither delivery nor a
+ * route — so losing that one message left a player in a room that did not know
+ * they were there. The state broadcasts still arrive, so the lobby renders and
+ * everything looks fine, but the host has no player for them: their team cannot
+ * be set, their intents are dropped on the floor because there is no player to
+ * check them against, and chat addressed from a roster they are not on skips
+ * them. A spymaster in that state can watch the game and not give a clue.
+ *
+ * The host answers a repeat with the same welcome, so saying it twice costs a
+ * message and nothing else.
+ */
+const HELLO_AGAIN_MS = 1_500
+
+const nagUntilSeated = () => {
+  if (isHost() || role === 'rejected' || !joinedExisting) return
+  if (shared?.players.some(p => p.id === self)) return
+  if (Date.now() - saidHelloAt < HELLO_AGAIN_MS) return
+  sayHello()
 }
 
 export const setPassword = async (password: string | null) => {
