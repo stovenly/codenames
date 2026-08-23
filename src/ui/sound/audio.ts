@@ -50,19 +50,31 @@ export const loadSamples = () => {
     })
 }
 
-/** `rate` is playback speed, which moves pitch and length together — as a real knock does. */
-const strike = (buffer: AudioBuffer, rate: number, gain: number) => {
+/**
+ * `rate` is playback speed, which moves pitch and length together as a real
+ * knock does. `seconds` is how much of the result is wanted, and it matters:
+ * the recording rings for 288ms, and the pegs at the start of a spin arrive
+ * 67ms apart, so playing it whole stacked three knocks on top of each other
+ * and the wheel hissed instead of clicking. Cut short, with the tail taken
+ * down rather than chopped, so the cut itself makes no noise.
+ */
+const strike = (buffer: AudioBuffer, rate: number, gain: number, seconds: number) => {
   if (!enabled()) return
   const ac = context()
+  const at = ac.currentTime
+  const heard = Math.min(seconds, buffer.duration / rate)
+
   const src = ac.createBufferSource()
   src.buffer = buffer
   src.playbackRate.value = rate
 
   const amp = ac.createGain()
-  amp.gain.value = gain
+  amp.gain.setValueAtTime(gain, at)
+  amp.gain.setValueAtTime(gain, at + heard * 0.6)
+  amp.gain.exponentialRampToValueAtTime(0.0001, at + heard)
 
   src.connect(amp).connect(out())
-  src.start(ac.currentTime)
+  src.start(at, 0, heard * rate)
 }
 
 type ToneOpts = {
@@ -174,7 +186,9 @@ export const sfx = {
   peg: (progress: number, dir: -1 | 1) => {
     const strength = (0.7 + 0.3 * progress) * (dir === 1 ? 0.72 : 1)
     if (knock) {
-      strike(knock, 2.1 - 0.5 * progress, 0.3 * strength)
+      // Short enough to be over before the next peg at launch, opening out as
+      // the wheel slows and the gaps stretch to a quarter-second.
+      strike(knock, 2.1 - 0.5 * progress, 0.3 * strength, 0.05 + 0.13 * progress)
       return
     }
     tone({freq: 340, to: 190, type: 'sine', dur: 0.021, gain: 0.058 * strength, attack: 0.001})

@@ -152,19 +152,22 @@ button {
 }
 
 /**
- * The wash off the floor. Neutral until somebody is on the clock, then the
- * colour of whoever that is — the room lighting follows the turn, the same way
- * the plates and the score do.
+ * The wash off the floor: the colour of the side you are playing for, so your
+ * own screen tells you whose you are without being read.
+ *
+ * Not whose turn it is — that changes every minute and is already said in
+ * words, and following it would light every player's room the same way at the
+ * same time, which tells nobody anything about themselves.
  */
 :root {
   --floor: #17233E;
 }
 
-:root[data-turn='red'] {
+:root[data-team='red'] {
   --floor: color-mix(in oklab, var(--color-red-500) 34%, #17233E);
 }
 
-:root[data-turn='blue'] {
+:root[data-team='blue'] {
   --floor: color-mix(in oklab, var(--color-blue-500) 34%, #17233E);
 }
 

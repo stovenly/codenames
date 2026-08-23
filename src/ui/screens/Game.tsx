@@ -35,13 +35,13 @@ export const Game = () => {
 
   // On the root, because the wash it drives is fixed to the viewport and sits
   // behind everything — there is no element inside the page to hang it on.
-  const turn = view && (view.phase === 'clue' || view.phase === 'guess') ? view.turn : null
+  const myTeam = shared?.players.find(p => p.id === me)?.team ?? null
   useEffect(() => {
     const el = document.documentElement
-    if (turn) el.setAttribute('data-turn', turn)
-    else el.removeAttribute('data-turn')
-    return () => el.removeAttribute('data-turn')
-  }, [turn])
+    if (myTeam) el.setAttribute('data-team', myTeam)
+    else el.removeAttribute('data-team')
+    return () => el.removeAttribute('data-team')
+  }, [myTeam])
 
   if (!shared || !view) return null
 
