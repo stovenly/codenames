@@ -22,7 +22,7 @@ export const Accolades = ({cards, players}: {cards: Accolade[]; players: Player[
   if (!cards.length) return null
 
   return (
-    <div className="relative z-20 mt-8 flex w-full max-w-4xl flex-wrap items-stretch justify-center gap-3">
+    <div className="relative z-20 mt-8 flex w-full max-w-5xl flex-wrap items-stretch justify-center gap-4">
       {cards.map((card, i) => {
         const player = players.find(p => p.id === card.who)
         return (
@@ -31,18 +31,21 @@ export const Accolades = ({cards, players}: {cards: Accolade[]; players: Player[
             initial={{opacity: 0, y: 26, rotate: i % 2 ? 2.5 : -2.5}}
             animate={{opacity: 1, y: 0, rotate: 0}}
             transition={{type: 'spring', stiffness: 260, damping: 22, delay: 0.7 + i * 0.35}}
-            className="w-[min(44vw,11rem)]"
+            className="max-w-72 flex-1 basis-[min(44vw,13rem)]"
           >
             <Panel
               level={2}
               glossy
               className={cx(
-                'flex h-full flex-col items-center gap-2 px-3 py-4 text-center',
+                'flex h-full flex-col items-center gap-2.5 px-4 py-5 text-center',
                 player?.team && TINT[player.team]
               )}
             >
-              <span className="rounded-sm bg-stage-000 p-[3px] ring-1 ring-gold-500/35">
-                {player && <AvatarView spec={player.avatar} size={52} />}
+              <span
+                className="overflow-hidden rounded-sm ring-1 ring-gold-500/35"
+                style={{background: player && `#${player.avatar.bg.replace('#', '')}`}}
+              >
+                {player && <AvatarView spec={player.avatar} size={72} />}
               </span>
               <span
                 className={cx(
@@ -51,16 +54,16 @@ export const Accolades = ({cards, players}: {cards: Accolade[]; players: Player[
                 )}
               >
                 {player?.spymaster ? (
-                  <VenetianMask className="size-3.5 shrink-0" />
+                  <VenetianMask className="size-4 shrink-0" />
                 ) : (
-                  <Agent className="size-3.5 shrink-0" />
+                  <Agent className="size-4 shrink-0" />
                 )}
-                <span className="type-plate truncate text-lg leading-none">
+                <span className="type-plate truncate text-xl leading-none">
                   {player?.name ?? 'someone'}
                 </span>
               </span>
-              <Rule className="max-w-16" lit />
-              <span className="type-marquee text-[11px] leading-tight tracking-[0.1em] text-lamp-300">
+              <Rule className="max-w-20" lit />
+              <span className="type-marquee text-xs leading-tight tracking-[0.1em] text-lamp-300">
                 {card.title}
               </span>
               <Label className="leading-tight">{card.detail}</Label>

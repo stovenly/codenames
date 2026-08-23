@@ -11,7 +11,15 @@ vi.mock('./net', () => ({
   },
   send: (_kind: string, body: unknown) => sent.push(body)
 }))
-vi.mock('./room', () => ({getRoom: () => ({shared: null}), subscribeRoom: () => {}}))
+/** What the authoritative view says the room is doing; marks only count in a guess. */
+let phase = 'guess'
+
+vi.mock('./room', () => ({
+  getRoom: () => ({shared: {settings: {wordListHash: 'h'}, steps: [], cursor: 0}}),
+  subscribeRoom: () => {}
+}))
+vi.mock('../game/reducer', () => ({derive: () => ({phase})}))
+vi.mock('./words', () => ({get: () => []}))
 
 const {clearMarks, getMarksSnapshot: getMarks, myMark, setMyMark, startPresence} = await import(
   './presence'
@@ -21,6 +29,7 @@ const from = (who: string, body: unknown) => handler?.(body, {from: who} as Enve
 
 describe('marks', () => {
   beforeEach(() => {
+    phase = 'guess'
     clearMarks()
     sent.length = 0
     startPresence()
@@ -70,5 +79,25 @@ describe('marks', () => {
     setMyMark(9)
     expect(myMark()).toBe(9)
     expect([...getMarks().keys()]).toEqual([9])
+  })
+
+  it('refuses one that arrives after the turn is over', () => {
+    phase = 'clue'
+    from('late', {kind: 'arm', card: 6, seq: 1})
+    expect(getMarks().size).toBe(0)
+  })
+
+  it('refuses to make one of my own once the turn is over', () => {
+    phase = 'clue'
+    setMyMark(3)
+    expect(myMark()).toBeNull()
+    expect(sent).toEqual([])
+  })
+
+  it('still lets a mark be taken back between turns', () => {
+    setMyMark(2)
+    phase = 'clue'
+    setMyMark(null)
+    expect(myMark()).toBeNull()
   })
 })

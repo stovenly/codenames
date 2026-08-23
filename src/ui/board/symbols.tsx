@@ -2,23 +2,40 @@ import type {Colour} from '../../game/board'
 import {cx} from '../cx'
 
 /** One symbol set, used on the reels, the composition row and the revealed plate. */
+/**
+ * One silhouette: a pinched fedora over a jaw, and a coat with the collar
+ * turned up. It was a circle with a rule through it, which is a person wearing
+ * a line — the brim has to overhang the head and the crown has to have a dent
+ * in it before any of it says hat, let alone spy.
+ *
+ * Drawn as solid shapes with the gaps left open, so it reads at 14px on a
+ * roster row and at a third of a card on the wheel.
+ */
 export const Agent = ({className}: {className?: string}) => (
-  <svg viewBox="0 0 24 24" aria-hidden className={cx('size-6', className)}>
-    <circle cx="12" cy="7.2" r="4.4" fill="currentColor" />
-    <path d="M2.6 22.6c0-5 4.2-8.4 9.4-8.4s9.4 3.4 9.4 8.4Z" fill="currentColor" />
-    <path d="M4.4 8.6h15.2" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+  <svg viewBox="0 0 24 24" aria-hidden className={cx('size-6', className)} fill="currentColor">
+    {/* Coat, with the lapels meeting under the chin. */}
+    <path d="M2.4 22.6c0-3.9 2.6-6.6 6.3-7.5l3.3 3.6 3.3-3.6c3.7.9 6.3 3.6 6.3 7.5Z" />
+    {/* Jaw, under the brim. */}
+    <path d="M8.5 10.2h7v2.6a3.5 3.5 0 0 1-7 0Z" />
+    {/* Crown, dented along the top the way a felt hat sits. */}
+    <path d="M7.2 9.9c-.5-3.9 1-6.1 2.5-6.6.9-.3 1.4.6 2.3.6s1.4-.9 2.3-.6c1.5.5 3 2.7 2.5 6.6Z" />
+    {/* Brim, wide enough to put the eyes in shadow. */}
+    <ellipse cx="12" cy="10" rx="9.5" ry="2.05" />
   </svg>
 )
 
 export const Skull = ({className}: {className?: string}) => (
-  <svg viewBox="0 0 24 24" aria-hidden className={cx('size-6', className)}>
+  <svg viewBox="0 0 24 24" aria-hidden className={cx('size-6', className)} fill="currentColor">
+    <path d="M12 1.4C6.4 1.4 2.4 5.4 2.4 10.7c0 3 1.3 5.4 3.4 6.9l.5 3c.15.85.9 1.5 1.8 1.5h7.8c.9 0 1.65-.65 1.8-1.5l.5-3c2.1-1.5 3.4-3.9 3.4-6.9 0-5.3-4-9.3-9.6-9.3Z" />
+    <ellipse cx="8" cy="10.6" rx="3.1" ry="3.4" fill="#05060B" />
+    <ellipse cx="16" cy="10.6" rx="3.1" ry="3.4" fill="#05060B" />
+    <path d="M12 13.1l1.7 3.1h-3.4Z" fill="#05060B" />
     <path
-      d="M12 1.6C6.6 1.6 2.8 5.4 2.8 10.4c0 3 1.4 5 3.2 6.2v2.9c0 1.4 1.2 2.6 2.6 2.6h6.8c1.4 0 2.6-1.2 2.6-2.6v-2.9c1.8-1.2 3.2-3.2 3.2-6.2 0-5-3.8-8.8-9.2-8.8Z"
-      fill="currentColor"
+      d="M9 18.1v3.9M12 18.1v3.9M15 18.1v3.9"
+      stroke="#05060B"
+      strokeWidth="1.5"
+      strokeLinecap="round"
     />
-    <circle cx="8.4" cy="10.4" r="2.4" fill="#05060B" />
-    <circle cx="15.6" cy="10.4" r="2.4" fill="#05060B" />
-    <path d="M10.6 16.4h2.8" stroke="#05060B" strokeWidth="1.8" strokeLinecap="round" />
   </svg>
 )
 

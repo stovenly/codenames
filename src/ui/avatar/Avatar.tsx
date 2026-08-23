@@ -1,6 +1,7 @@
 import {createAvatar} from '@dicebear/core'
 import {useEffect, useMemo, useState} from 'react'
 import type {Avatar as AvatarSpec} from '../../game/types'
+import {Agent} from '../board/symbols'
 import {ensureStyle, styleFor} from './styles'
 
 const cache = new Map<string, string>()
@@ -58,10 +59,7 @@ const Placeholder = ({bg}: {bg: string}) => (
     className="grid size-full place-items-center"
     style={{background: `#${bg.replace('#', '')}`}}
   >
-    <svg viewBox="0 0 24 24" className="w-3/5 opacity-25">
-      <circle cx="12" cy="9" r="4" fill="currentColor" />
-      <path d="M3.5 23c0-4.7 3.8-8 8.5-8s8.5 3.3 8.5 8z" fill="currentColor" />
-    </svg>
+    <Agent className="w-3/5 opacity-25" />
   </span>
 )
 

@@ -308,7 +308,7 @@ const thinkers = (steps: Step[], seated: Player[]): Accolade[] => {
     {
       id: 'slow',
       title: 'Kept Us Waiting',
-      detail: took(slow.avg),
+      detail: `${took(slow.avg)}. We aged.`,
       who: slow.who,
       weight: weight - 1,
       at: slow.at
@@ -369,22 +369,11 @@ const teamLeaders = (seated: Player[], tallies: Map<PlayerId, Tally>): Accolade[
   return out
 }
 
-/** Highest weight first, and one card each while there are people left to name. */
+/** One card per person — their best — and the best of those, up to the limit. */
 const pick = (all: Accolade[], limit: number): Accolade[] => {
-  const ranked = [...all].sort((a, b) => b.weight - a.weight || a.at - b.at)
-  const taken: Accolade[] = []
-  const named = new Set<PlayerId>()
-
-  for (const one of ranked) {
-    if (taken.length === limit) break
-    if (named.has(one.who)) continue
-    taken.push(one)
-    named.add(one.who)
+  const best = new Map<PlayerId, Accolade>()
+  for (const one of [...all].sort((a, b) => b.weight - a.weight || a.at - b.at)) {
+    if (!best.has(one.who)) best.set(one.who, one)
   }
-  for (const one of ranked) {
-    if (taken.length === limit) break
-    if (taken.includes(one)) continue
-    taken.push(one)
-  }
-  return taken.sort((a, b) => b.weight - a.weight)
+  return [...best.values()].sort((a, b) => b.weight - a.weight || a.at - b.at).slice(0, limit)
 }

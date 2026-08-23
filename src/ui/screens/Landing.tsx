@@ -220,6 +220,18 @@ export const Landing = ({rejected}: {rejected: boolean}) => {
         <Item className="w-full">
           {/* Opaque, and nothing animates behind it — the lighting stays a backdrop. */}
           <Panel level={2} glossy className="flex flex-col gap-5 p-6 text-left">
+            {seat && (
+              <>
+                <div className="flex flex-col gap-3 rounded-md border border-lamp-500/40 bg-lamp-500/[.07] p-4">
+                  <Label className="text-lamp-300">Join your previous session</Label>
+                  <Button size="lg" onClick={() => takeSeat(seat)}>
+                    Rejoin as {seat.name}
+                  </Button>
+                </div>
+                <Rule />
+              </>
+            )}
+
             <Field label="Your name">
               <input
                 autoFocus
@@ -256,21 +268,14 @@ export const Landing = ({rejected}: {rejected: boolean}) => {
               />
             </Field>
 
-            <Button size="lg" onClick={() => void go()} disabled={!name.trim() || busy}>
+            <Button
+              size="lg"
+              variant={seat ? 'ghost' : undefined}
+              onClick={() => void go()}
+              disabled={!name.trim() || busy}
+            >
               {joinedExisting ? 'Take a seat' : 'Start a game'}
             </Button>
-
-            {seat && (
-              <>
-                <Rule />
-                <div className="flex flex-col gap-2">
-                  <Label>Been here before?</Label>
-                  <Button variant="ghost" onClick={() => takeSeat(seat)}>
-                    Rejoin as {seat.name}
-                  </Button>
-                </div>
-              </>
-            )}
 
             {resumedSeat && !seat && (
               <>

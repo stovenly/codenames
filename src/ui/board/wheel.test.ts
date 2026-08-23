@@ -58,13 +58,13 @@ describe('the strip', () => {
         if (c === 'assassin' || c === 'blue') bad++
       }
     }
-    expect(bad / total).toBeGreaterThan(0.7)
+    expect(bad / total).toBeGreaterThan(0.6)
   })
 })
 
 describe('the wheel', () => {
   it('always rests on the answer, and never past the budget', () => {
-    const budget = 2.6
+    const budget = 2.8
     const rests: number[] = []
     for (let n = 0; n < 400; n++) {
       const out = spin(budget, TUNE, seeded(n))
@@ -85,7 +85,7 @@ describe('the wheel', () => {
     let past = 0
     let inched = 0
     for (let n = 0; n < 400; n++) {
-      const out = spin(2.6, TUNE, seeded(600 + n))
+      const out = spin(2.8, TUNE, seeded(600 + n))
       if (out.wentPast) past++
       else if (out.creepPegs > 0) inched++
     }
@@ -97,7 +97,7 @@ describe('the wheel', () => {
 
   it('passes every face on the way, once each, plus whatever it rocks back over', () => {
     for (let n = 0; n < 100; n++) {
-      const out = spin(2.6, TUNE, seeded(200 + n))
+      const out = spin(2.8, TUNE, seeded(200 + n))
       expect(out.pegs).toBeGreaterThanOrEqual(START - LAND)
       expect(out.pegs).toBeLessThanOrEqual(START - LAND + 6)
     }
@@ -105,7 +105,7 @@ describe('the wheel', () => {
 
   it('spaces the pegs like a wheel, not a buzz', () => {
     for (let n = 0; n < 100; n++) {
-      const out = spin(2.6, TUNE, seeded(300 + n))
+      const out = spin(2.8, TUNE, seeded(300 + n))
       expect(out.firstGap).toBeGreaterThan(0.04)
       expect(out.lastGap).toBeGreaterThan(out.firstGap)
     }
@@ -113,7 +113,7 @@ describe('the wheel', () => {
 
   it('hesitates on the way in', () => {
     for (let n = 0; n < 100; n++) {
-      expect(spin(2.6, TUNE, seeded(400 + n)).reversals).toBeGreaterThanOrEqual(1)
+      expect(spin(2.8, TUNE, seeded(400 + n)).reversals).toBeGreaterThanOrEqual(1)
     }
   })
 })

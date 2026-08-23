@@ -17,11 +17,11 @@ export type Slot = {kind: 'card'; colour: Colour} | {kind: 'joke'; text: string}
 export const FACES = 18
 /**
  * Faces fall, so the reel runs from the far end of the strip back toward the
- * top. Ten of them pass, not sixteen: under constant deceleration the time a
+ * top. Eleven of them pass, not sixteen: under constant deceleration the time a
  * spin takes is set by how far it travels, so a shorter run is a slower one —
  * and every peg has to be far enough from the last to read as its own card.
  */
-export const START = 13
+export const START = 14
 /** Where it comes to rest. The faces either side exist to be overshot into. */
 export const LAND = 3
 
@@ -96,13 +96,13 @@ export const buildStrip = (target: Colour, team: Team, rand: () => number = Math
     prev = colour!
   }
 
-  // A joke face, in the stretch where the wheel has slowed enough to read one
-  // but is nowhere near stopping. Two clear of the answer, because the wheel
-  // can overshoot by one and must never look like it is landing on a joke.
+  // A joke face, in the last few before it stops — where the wheel is slow
+  // enough to read one. Anywhere earlier and it goes by in a frame or two,
+  // which is how the first version of this managed to be dealt half the time
+  // and seen by nobody. Two clear of the answer, because the wheel can
+  // overshoot by one and must never look like it is landing on a joke.
   if (rand() < 1 / JOKE_ONE_IN) {
-    const lo = LAND + 2
-    const hi = START - 2
-    const at = lo + Math.floor(rand() * (hi - lo + 1))
+    const at = LAND + 2 + Math.floor(rand() * 3)
     strip[at] = {kind: 'joke', text: JOKES[Math.floor(rand() * JOKES.length)]!}
   }
 
@@ -149,10 +149,11 @@ export type Tune = {
 /**
  * Swept, not guessed. Every spin lands on the answer and none leaves the strip.
  * It visibly slows — 67ms between the first pegs, 267ms between the last, a
- * fourfold stretch rather than a constant patter. It rests by 2.35s of a 2.6s
- * budget. And it has no favourite ending: it sails past the answer and gets
- * pulled back about as often as it runs out short and has to be inched in,
- * which is the only reason to watch it twice.
+ * fourfold stretch rather than a constant patter. Eleven faces rest by 2.28s of
+ * a 2.8s budget, and five spins in six hundred need the hard stop. And it has
+ * no favourite ending: it sails past the answer and gets pulled back about as
+ * often as it runs out short and has to be inched in, which is the only reason
+ * to watch it twice.
  */
 export const TUNE: Tune = {
   friction: 3.5,

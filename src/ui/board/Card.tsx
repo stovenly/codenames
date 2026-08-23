@@ -198,7 +198,7 @@ const CardBase = ({
 
       <span
         className={cx(
-          'type-plate relative z-20 max-w-full px-1.5 break-words transition-opacity duration-150',
+          'type-plate relative z-20 max-w-full px-1 break-words transition-opacity duration-150',
           !faceUp && 'letterpress',
           // The stamp says what this card is; the word underneath it would only
           // be a second thing printed in the same place.
@@ -207,7 +207,7 @@ const CardBase = ({
         style={{
           // Long words shrink rather than run off the card, which the wider
           // dyslexia-friendly face makes obvious.
-          fontSize: `clamp(9px, ${Math.min(13, 66 / Math.max(5, card.word.length))}cqw, 44px)`,
+          fontSize: `clamp(10px, ${Math.min(20, 105 / Math.max(5, card.word.length))}cqw, 56px)`,
           // A spent card keeps white type: dark ink on a faded plate is a
           // second thing to read past, not a card that has stopped mattering.
           color: spent ? 'var(--color-text)' : faceUp ? INK[shown] : key ? '#F5F1E6' : 'var(--color-text)'

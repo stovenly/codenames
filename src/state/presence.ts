@@ -2,6 +2,8 @@ import {useSyncExternalStore} from 'react'
 import type {PlayerId} from '../net/protocol'
 import {TTL_DEFAULT} from '../net/protocol'
 import {on, self, send} from './net'
+import {derive} from '../game/reducer'
+import * as words from './words'
 import {getRoom, subscribeRoom} from './room'
 
 /**
@@ -22,6 +24,28 @@ import {getRoom, subscribeRoom} from './room'
 type Arm = {kind?: string; card?: number | null; seq?: number}
 
 const listeners = new Set<() => void>()
+/**
+ * Whether a mark means anything right now, read from the authoritative cursor
+ * rather than the visual one.
+ *
+ * The two disagree for the length of a reveal, and that gap is a race: a player
+ * whose wrong guess has already ended the turn is still watching the wheel, so
+ * their board still invites a pick, and the mark they make lands on everyone
+ * else's board after the turn change has swept it. Nothing clears it again
+ * until the next turn ends, so an avatar sits on a card nobody is considering.
+ */
+const marksAllowed = () => {
+  const {shared} = getRoom()
+  if (!shared) return false
+  const view = derive(
+    shared.settings,
+    words.get(shared.settings.wordListHash),
+    shared.steps,
+    shared.cursor
+  )
+  return view.phase === 'guess'
+}
+
 /** One card each, at most. */
 let mark = new Map<PlayerId, number>()
 let heard = new Map<PlayerId, number>()
@@ -58,6 +82,9 @@ export const myMark = () => mark.get(self) ?? null
 export const getMarksSnapshot = () => snapshot
 
 export const setMyMark = (card: number | null) => {
+  const allowed = card === null || marksAllowed()
+  if (!allowed) return
+
   if (card === null) mark.delete(self)
   else mark.set(self, card)
   publish()
@@ -78,7 +105,9 @@ export const startPresence = () => {
     if (seq <= (heard.get(env.from) ?? 0)) return
     heard.set(env.from, seq)
 
-    if (typeof msg.card === 'number') mark.set(env.from, msg.card)
+    // Clearing is always honoured; setting one is not, because the sender may
+    // still have been looking at a turn that is over.
+    if (typeof msg.card === 'number' && marksAllowed()) mark.set(env.from, msg.card)
     else mark.delete(env.from)
     publish()
   })
@@ -96,6 +125,10 @@ export const startPresence = () => {
       clearMarks()
       return
     }
+
+    // Nobody is considering anything between turns, so nothing should be shown
+    // as considered — including a mark that arrived just after the sweep.
+    if (mark.size && !marksAllowed()) clearMarks()
 
     // Somebody who left the room does not get to keep pointing at a card.
     const here = new Set(shared.players.map(p => p.id))
