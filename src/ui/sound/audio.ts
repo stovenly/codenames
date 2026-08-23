@@ -172,12 +172,22 @@ export const sfx = {
     tone({freq: 96, to: 60, type: 'square', dur: 0.3, gain: 0.09, delay: 0.03})
   },
 
+  /**
+   * A klaxon, not a smoke alarm. The shrillness was a bare sawtooth at 760Hz
+   * with a square under it — all upper harmonics and nothing holding them down.
+   * This wails an octave lower through a closing filter, with two triangles a
+   * few cents apart so they beat against each other, and a sub underneath doing
+   * the actual frightening.
+   */
   assassin: () => {
     for (let i = 0; i < 4; i++) {
-      tone({freq: 760, to: 430, type: 'sawtooth', dur: 0.42, gain: 0.16, delay: i * 0.44})
-      tone({freq: 380, to: 215, type: 'square', dur: 0.42, gain: 0.08, delay: i * 0.44})
+      const at = i * 0.46
+      tone({freq: 440, to: 300, type: 'sawtooth', dur: 0.44, gain: 0.09, delay: at, sweep: [1500, 480], q: 2})
+      tone({freq: 442, to: 302, type: 'triangle', dur: 0.44, gain: 0.12, delay: at})
+      tone({freq: 435, to: 296, type: 'triangle', dur: 0.44, gain: 0.08, delay: at})
     }
-    noise(1.9, 0.06, 700)
+    tone({freq: 72, to: 46, type: 'sine', dur: 2.2, gain: 0.24})
+    noise(2, 0.035, 420)
   },
 
   turn: (team: 'red' | 'blue') => {
