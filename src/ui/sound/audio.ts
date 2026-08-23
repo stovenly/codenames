@@ -1,6 +1,10 @@
 import {getPrefs} from '../../state/prefs'
 
-/** Synthesized, so there are no audio assets and no download weight. */
+/**
+ * Synthesized, with one exception: the peg knock is a recording, because a
+ * struck wooden thing is all transient and body and a synth makes a poor fist
+ * of it. See CREDITS.md.
+ */
 let ctx: AudioContext | null = null
 let master: GainNode | null = null
 
@@ -22,6 +26,44 @@ const out = () => {
 }
 
 const enabled = () => getPrefs().volume > 0
+
+/**
+ * One sample, fetched once and decoded once. Anything that asks before it has
+ * landed gets nothing back and falls through to a synthesized stand-in, so the
+ * first peg of the first spin is never silence.
+ */
+const KNOCK = `${import.meta.env.BASE_URL}sfx/peg-knock.mp3`
+let knock: AudioBuffer | null = null
+let knocking: Promise<void> | null = null
+
+export const loadSamples = () => {
+  if (knock || knocking) return
+  knocking = fetch(KNOCK)
+    .then(res => res.arrayBuffer())
+    .then(buf => context().decodeAudioData(buf))
+    .then(decoded => {
+      knock = decoded
+    })
+    .catch(() => {
+      // A missing sample is not worth taking the room down for; the synth
+      // stand-in covers it.
+    })
+}
+
+/** `rate` is playback speed, which moves pitch and length together — as a real knock does. */
+const strike = (buffer: AudioBuffer, rate: number, gain: number) => {
+  if (!enabled()) return
+  const ac = context()
+  const src = ac.createBufferSource()
+  src.buffer = buffer
+  src.playbackRate.value = rate
+
+  const amp = ac.createGain()
+  amp.gain.value = gain
+
+  src.connect(amp).connect(out())
+  src.start(ac.currentTime)
+}
 
 type ToneOpts = {
   freq: number
@@ -94,6 +136,7 @@ const noise = (dur: number, gain = 0.12, cutoff = 1400, delay = 0) => {
 export const unlockAudio = () => {
   try {
     context()
+    loadSamples()
   } catch {
     /* no WebAudio; the game is silent */
   }
@@ -122,15 +165,31 @@ export const sfx = {
    * Gets fuller as the wheel slows — a fast peg has less time to resonate —
    * and a peg pushed back over on a rock-back lands lighter than a fall.
    */
+  /**
+   * A peg passing the blade. The recording is a shade long and low on its own,
+   * so it is always played faster than recorded — and faster still early in the
+   * spin, where a peg is moving quickest. `progress` runs 0 at launch to 1 at
+   * rest, so the run tightens and drops as the wheel slows.
+   */
   peg: (progress: number, dir: -1 | 1) => {
-    const strength = (0.7 + 0.3 * progress) * (dir === 1 ? 0.7 : 1)
+    const strength = (0.7 + 0.3 * progress) * (dir === 1 ? 0.72 : 1)
+    if (knock) {
+      strike(knock, 1.5 - 0.35 * progress, 0.5 * strength)
+      return
+    }
     tone({freq: 340, to: 190, type: 'sine', dur: 0.021, gain: 0.058 * strength, attack: 0.001})
     noise(0.008, 0.042 * strength, 2200)
     noise(0.003, 0.018 * strength, 7500)
   },
 
   /** The wheel coming to rest: the last peg, and the frame taking the weight. */
+  /** The same knock, at its heaviest: the wheel has nothing left to give. */
   wheelStop: () => {
+    if (knock) {
+      strike(knock, 1.05, 0.62)
+      tone({freq: 78, type: 'sine', dur: 0.1, gain: 0.05, delay: 0.01})
+      return
+    }
     tone({freq: 240, to: 105, type: 'sine', dur: 0.06, gain: 0.095, attack: 0.001})
     noise(0.016, 0.07, 1500)
     tone({freq: 78, type: 'sine', dur: 0.1, gain: 0.06, delay: 0.01})

@@ -42,6 +42,14 @@ under the [SIL Open Font License 1.1](https://opendyslexic.org).
 Everything else is bundled from Fontsource: Archivo Black, Oswald and Chivo,
 all under the SIL Open Font License 1.1.
 
+## Sound
+
+Every cue is synthesized at runtime except one: the knock a peg makes passing
+the wheel's flapper, `public/sfx/peg-knock.mp3`. Trimmed from
+[Door knock](https://pixabay.com/sound-effects/film-special-effects-door-knock-291150/)
+by **universfield**, under the Pixabay Content Licence. Attribution is not
+required; it is here because it costs nothing.
+
 ## Word lists
 
 See [`src/data/wordlists/SOURCES.md`](src/data/wordlists/SOURCES.md).
