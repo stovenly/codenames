@@ -1,39 +1,16 @@
 # Credits
 
-## Networking
+## Software
 
-[Trystero](https://github.com/dmotz/trystero) by Dan Motzenbecker, under the MIT
-licence, does the part with no server in it: peers find each other over public
-nostr relays, MQTT brokers and BitTorrent trackers, and talk directly by WebRTC.
-Three of its transports run at once here and are merged into one mesh.
-
-When two peers cannot reach each other directly, ICE falls back to
-[Open Relay](https://www.metered.ca/tools/openrelay/)'s free public TURN servers.
+| Work | Author | Licence |
+|---|---|---|
+| [Trystero](https://github.com/dmotz/trystero) | Dan Motzenbecker | MIT |
+| [DiceBear](https://www.dicebear.com) | Florian Körner | MIT |
+| [Open Relay](https://www.metered.ca/tools/openrelay/) TURN servers | Metered | Free public use |
 
 ## Avatar styles
 
-Generated locally with [DiceBear](https://www.dicebear.com). Nothing is fetched
-at runtime; each style is a lazily-imported package. Bunny, Dog and Squid are
-drawn in this repository against the same interface.
-
-Under **CC0 1.0** — no attribution required, listed for completeness:
-
-| Style | Author |
-|---|---|
-| Lorelei | [Lisa Wischofsky](https://www.instagram.com/lischi_art/) |
-| Open Peeps | Pablo Stanley |
-| Notionists | Zoish |
-| Thumbs | DiceBear |
-| Pixel Art | DiceBear |
-| Bunny | this repository |
-| Dog | this repository |
-| Squid | this repository |
-
-Under **[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)** — attribution
-required, which is what this section is for:
-
-Each artist is linked as they are named in the style's own package metadata,
-alongside the Figma community file the set was published from.
+Under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/):
 
 | Style | Artist | Published |
 |---|---|---|
@@ -41,31 +18,34 @@ alongside the Figma community file the set was published from.
 | Micah (*Avatar Illustration System*) | [Micah Lanier](https://dribbble.com/micahlanier) | [Figma](https://www.figma.com/community/file/829741575478342595) |
 | Dylan (*Dylan! The Avatar Generator*) | [Natalia Spivak](https://nataspvk.tilda.ws/) | [Figma](https://www.figma.com/community/file/1356575240759683500) |
 
-The CC0 pool holds only three people-style sets, which is why the other three
-are CC BY.
+Under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/):
 
-## Silhouettes
-
-The two spy silhouettes on the landing screen are from
-[Pixabay](https://pixabay.com) by **mohamed_hassan**, under the Pixabay Content
-Licence. Attribution is not required; it is here because it costs nothing.
+| Style | Artist |
+|---|---|
+| Lorelei | [Lisa Wischofsky](https://www.instagram.com/lischi_art/) |
+| Open Peeps | Pablo Stanley |
+| Notionists | Zoish |
+| Thumbs | DiceBear |
+| Pixel Art | DiceBear |
+| Bunny, Dog, Squid | this repository |
 
 ## Typefaces
 
-**OpenDyslexic** ships in `public/fonts/` and powers the dyslexia-friendly
-setting. It is fetched only when that switch is turned on. By Abbie Gonzalez,
-under the [SIL Open Font License 1.1](https://opendyslexic.org).
+All under the [SIL Open Font License 1.1](https://openfontlicense.org).
 
-Everything else is bundled from Fontsource: Archivo Black, Oswald and Chivo,
-all under the SIL Open Font License 1.1.
+| Face | Copyright |
+|---|---|
+| Archivo Black | 2017 The Archivo Black Project Authors ([Omnibus-Type](https://github.com/Omnibus-Type/ArchivoBlack)) |
+| Chivo | 2019 The Chivo Project Authors ([Omnibus-Type](https://github.com/Omnibus-Type/Chivo)) |
+| Oswald | 2016 The Oswald Project Authors ([Google Fonts](https://github.com/googlefonts/OswaldFont)) |
+| OpenDyslexic | Abbie Gonzalez ([opendyslexic.org](https://opendyslexic.org)) |
 
-## Sound
+## Images and sound
 
-Every cue is synthesized at runtime except one: the knock a peg makes passing
-the wheel's flapper, `public/sfx/peg-knock.mp3`. Trimmed from
-[Door knock](https://pixabay.com/sound-effects/film-special-effects-door-knock-291150/)
-by **universfield**, under the Pixabay Content Licence. Attribution is not
-required; it is here because it costs nothing.
+| Work | Author | Licence |
+|---|---|---|
+| Landing screen silhouettes | mohamed_hassan, via [Pixabay](https://pixabay.com) | Pixabay Content Licence |
+| [Door knock](https://pixabay.com/sound-effects/film-special-effects-door-knock-291150/), trimmed for `public/sfx/peg-knock.mp3` | universfield, via [Pixabay](https://pixabay.com) | Pixabay Content Licence |
 
 ## Word lists
 
