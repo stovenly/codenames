@@ -47,12 +47,12 @@ export const ClueReveal = ({clue}: {clue: Clue}) => {
       />
 
       <div className="flex flex-col items-center gap-5 px-6 text-center">
-        <span className={`type-read text-xs tracking-[0.4em] ${tint}`}>
+        <span className={`type-read text-sm tracking-[0.4em] sm:text-base ${tint}`}>
           {clue.team === 'red' ? 'RED' : 'BLUE'} SPYMASTER
         </span>
 
         <div className="flex flex-wrap items-center justify-center gap-5">
-          <span className="type-marquee text-3xl tracking-wider text-text sm:text-5xl">
+          <span className="type-marquee text-5xl tracking-wider text-text sm:text-7xl">
             {typed}
             {typed.length < clue.word.length && (
               <motion.span
@@ -70,7 +70,7 @@ export const ClueReveal = ({clue}: {clue: Clue}) => {
               initial={{scale: 2.6, opacity: 0, rotate: -14}}
               animate={{scale: 1, opacity: 1, rotate: 0}}
               transition={{type: 'spring', stiffness: 620, damping: 18}}
-              className="type-marquee grid size-16 place-items-center rounded-lg border-2 border-lamp-500 bg-lamp-500/10 text-3xl text-lamp-300 sm:size-20 sm:text-4xl"
+              className="type-marquee grid size-20 place-items-center rounded-lg border-2 border-lamp-500 bg-lamp-500/10 text-4xl text-lamp-300 sm:size-28 sm:text-6xl"
             >
               {clue.count === 'unlimited' ? '∞' : clue.count}
             </motion.span>
@@ -81,7 +81,7 @@ export const ClueReveal = ({clue}: {clue: Clue}) => {
           initial={{opacity: 0}}
           animate={{opacity: 1}}
           transition={{delay: 0.5}}
-          className="type-label"
+          className="type-marquee text-base tracking-[0.12em] text-text-dim sm:text-xl"
         >
           {clue.count === 'unlimited' || clue.count === 0
             ? 'unlimited guesses'

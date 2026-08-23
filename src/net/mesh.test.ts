@@ -29,11 +29,14 @@ const fakeSpec = (name: TransportName) => {
     }
   } as unknown as MessageAction<Envelope>
 
+  let fail: ((e: {error: string; peerId?: string}) => void) | null = null
+
   const spec: Spec = {
     name,
     urls: null,
     sockets: () => ({}),
-    join: () => {
+    join: (_config, _roomId, hooks) => {
+      fail = hooks?.onJoinError ?? null
       room = {
         makeAction: () => action,
         getPeers: () => peers,
@@ -47,6 +50,7 @@ const fakeSpec = (name: TransportName) => {
   return {
     spec,
     sent,
+    fail: (error: string, peerId?: string) => fail?.({error, peerId}),
     /** Envelopes of one kind, in order. */
     of: (kind: string) => sent.filter(s => s.env.kind === kind),
     connect: (peer: string) => {
@@ -202,6 +206,45 @@ describe('messages with nowhere to go', () => {
 
     introduce(a, 'pa', 'HOST')
     expect(a.of('hello')).toHaveLength(0)
+  })
+})
+
+describe('a peer ICE cannot reach', () => {
+  beforeEach(() => vi.useFakeTimers())
+
+  it('counts the peer without failing the transport', () => {
+    const a = fakeSpec('mqtt')
+    const {mesh} = build([a])
+    introduce(a, 'pa', 'B')
+
+    a.fail('could not connect to peer pz after exchanging SDP; check your TURN', 'pz')
+
+    const t = mesh.report().transports[0]!
+    expect(t.status).toBe('ready')
+    expect(t.error).toBeNull()
+    expect(t.unreachable).toBe(1)
+  })
+
+  it('still fails the transport when nothing named a peer', () => {
+    const a = fakeSpec('mqtt')
+    const {mesh} = build([a])
+
+    a.fail('no relay accepted the room')
+
+    const t = mesh.report().transports[0]!
+    expect(t.status).toBe('failed')
+    expect(t.error).toBe('no relay accepted the room')
+  })
+
+  it('forgets the peer once it does connect', () => {
+    const a = fakeSpec('mqtt')
+    const {mesh} = build([a])
+
+    a.fail('could not connect to peer pa after exchanging SDP', 'pa')
+    expect(mesh.report().transports[0]!.unreachable).toBe(1)
+
+    introduce(a, 'pa', 'B')
+    expect(mesh.report().transports[0]!.unreachable).toBe(0)
   })
 })
 

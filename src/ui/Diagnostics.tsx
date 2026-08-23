@@ -131,20 +131,27 @@ export const SettingsSheet = ({onClose}: {onClose: () => void}) => {
 
       <section className="mt-2 flex flex-col gap-2">
         {report.transports.map(t => (
-          <div key={t.name} className="flex items-center justify-between gap-2">
-            <span
-              className={cx(
-                'type-label',
-                t.status === 'ready'
-                  ? 'text-lamp-300'
-                  : t.status === 'failed'
-                    ? 'text-kill-lit'
-                    : ''
-              )}
-            >
-              {t.name}
-            </span>
-            <Label>{t.error ?? `${t.relaysOpen}/${t.relaysTotal} · ${t.peers} links`}</Label>
+          <div key={t.name} className="flex flex-col gap-1">
+            <div className="flex items-baseline justify-between gap-2">
+              <span
+                className={cx(
+                  'type-label',
+                  t.status === 'ready'
+                    ? 'text-lamp-300'
+                    : t.status === 'failed'
+                      ? 'text-kill-lit'
+                      : ''
+                )}
+              >
+                {t.name}
+              </span>
+              <Label className="text-right">
+                {t.relaysOpen}/{t.relaysTotal} · {t.peers} links
+                {t.unreachable ? ` · ${t.unreachable} unreachable` : ''}
+              </Label>
+            </div>
+            {/* Long enough to need the full width — Trystero's ICE failures name a peer and a fix. */}
+            {t.error && <p className="type-body break-words text-kill-lit">{t.error}</p>}
           </div>
         ))}
       </section>

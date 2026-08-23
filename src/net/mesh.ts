@@ -25,7 +25,11 @@ export type MeshRoom = {
 
 export type Spec = {
   name: TransportName
-  join: (config: JoinRoomConfig, roomId: string, hooks?: {onJoinError: (e: {error: string}) => void}) => MeshRoom
+  join: (
+    config: JoinRoomConfig,
+    roomId: string,
+    hooks?: {onJoinError: (e: {error: string; peerId?: string}) => void}
+  ) => MeshRoom
   sockets: () => Record<string, WebSocket>
   urls: string[] | null
 }
@@ -112,6 +116,8 @@ type Live = {
   action: MessageAction<Envelope> | null
   status: TransportReport['status']
   error: string | null
+  /** Peers this transport exchanged SDP with and still could not reach. */
+  unreachable: Set<string>
 }
 
 type Held = {env: Envelope; to: PlayerId | '*'; wide: boolean; until: number}
@@ -123,6 +129,8 @@ export type TransportReport = {
   relaysOpen: number
   relaysTotal: number
   peers: number
+  /** Peers signalling reached but ICE could not, which is a NAT away, not a broken transport. */
+  unreachable: number
 }
 
 export type LinkReport = {name: TransportName; heardMsAgo: number; missed: number}
@@ -362,13 +370,26 @@ export const createMesh = (opts: {
 
   for (const spec of specs) {
     if (chaos?.kill?.includes(spec.name)) continue
-    const live: Live = {spec, room: null, action: null, status: 'connecting', error: null}
+    const live: Live = {
+      spec,
+      room: null,
+      action: null,
+      status: 'connecting',
+      error: null,
+      unreachable: new Set()
+    }
     lives.push(live)
     try {
       const room = spec.join({...baseConfig, relayConfig: relayConfig(spec)} as JoinRoomConfig, roomId, {
-        onJoinError: ({error}) => {
-          live.status = 'failed'
-          live.error = error
+        // A named peer means one pair could not traverse its NAT, which says
+        // nothing about the transport: the other transports, or a relayed hop
+        // through another player, still reach them.
+        onJoinError: ({error, peerId}) => {
+          if (peerId) live.unreachable.add(peerId)
+          else {
+            live.status = 'failed'
+            live.error = error
+          }
           changed()
         }
       })
@@ -377,6 +398,7 @@ export const createMesh = (opts: {
       live.action.onMessage = (data, ctx) => receive(spec.name, data, ctx.peerId)
 
       room.onPeerJoin = peer => {
+        live.unreachable.delete(peer)
         links.set(linkKey(spec.name, peer), {
           transport: spec.name,
           peerId: peer,
@@ -469,7 +491,8 @@ export const createMesh = (opts: {
         error: live.error,
         relaysOpen: open,
         relaysTotal: live.spec.urls?.length ?? REDUNDANCY,
-        peers: [...links.values()].filter(l => l.transport === live.spec.name).length
+        peers: [...links.values()].filter(l => l.transport === live.spec.name).length,
+        unreachable: live.unreachable.size
       }
     })
 

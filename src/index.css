@@ -101,6 +101,11 @@ body.is-dyslexic {
   --font-marquee: 'OpenDyslexic', ui-sans-serif, system-ui, sans-serif;
   --font-plate: 'OpenDyslexic', ui-sans-serif, system-ui, sans-serif;
   --font-ui: 'OpenDyslexic', ui-sans-serif, system-ui, sans-serif;
+
+  /* OpenDyslexic draws about a third larger at the same size. */
+  --size-label: 0.6125rem;
+  --size-body: 0.75rem;
+  --word-cap: 14cqw;
 }
 
 html,
@@ -613,7 +618,7 @@ button {
 @utility type-label {
   font-family: var(--font-ui);
   font-weight: 600;
-  font-size: 0.8125rem;
+  font-size: var(--size-label, 0.8125rem);
   letter-spacing: 0.11em;
   text-transform: uppercase;
   color: var(--color-text-dim);
@@ -621,7 +626,7 @@ button {
 
 @utility type-body {
   font-family: var(--font-ui);
-  font-size: 0.9375rem;
+  font-size: var(--size-body, 0.9375rem);
   line-height: 1.6;
   color: var(--color-text-dim);
 }
