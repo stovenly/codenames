@@ -109,12 +109,8 @@ const Reel = ({target, ms, settling}: {target: Colour; ms: number; settling: boo
   const sim = useRef(
     (() => {
       const drag = 4 / ((ms / 1000) * 0.7)
-      return {
-        drag,
-        v: -drag * (START - LAND + 1) * (0.95 + Math.random() * 0.1),
-        elapsed: 0,
-        done: false
-      }
+      const v = -drag * (START - LAND + 1) * (0.95 + Math.random() * 0.1)
+      return {drag, v, launch: Math.abs(v), elapsed: 0, tickedAt: -1, done: false}
     })()
   ).current
 
@@ -144,6 +140,14 @@ const Reel = ({target, ms, settling}: {target: Colour; ms: number; settling: boo
     sim.v += a * dt
     const next = at + sim.v * dt
     p.set(next)
+
+    // A notch passing the window. Rate limited because a wheel at full speed
+    // crosses one every frame, and sixty clicks a second is a buzz rather than
+    // a wheel; the last few are slow enough to land separately on their own.
+    if (Math.floor(at) !== Math.floor(next) && sim.elapsed - sim.tickedAt > 0.04) {
+      sim.tickedAt = sim.elapsed
+      sfx.reelTick(Math.min(1, 1 - Math.abs(sim.v) / sim.launch))
+    }
 
     if (notch === LAND && Math.abs(sim.v) < 0.8 && Math.abs(next - LAND) < 0.12) {
       p.set(LAND)

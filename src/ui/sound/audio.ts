@@ -113,9 +113,18 @@ export const sfx = {
     noise(0.09, 0.16, 2600)
   },
 
-  /** One detent of the reel; pitch tracks how far the deceleration has run. */
+  /**
+   * One notch of the wheel passing the window. Pitch and weight both track how
+   * far the spin has run, so a fast pass is a light rattle and the last few
+   * land as separate clicks.
+   */
   reelTick: (progress: number) => {
-    tone({freq: 620 + progress * 700, type: 'square', dur: 0.028, gain: 0.045})
+    tone({
+      freq: 560 + progress * 620,
+      type: 'square',
+      dur: 0.022 + progress * 0.016,
+      gain: 0.025 + progress * 0.055
+    })
   },
 
   /** Held under the whole wind-up, climbing as the reel slows. */
@@ -124,12 +133,6 @@ export const sfx = {
     tone({freq: 180, to: 840, type: 'sine', dur, gain: 0.035})
   },
 
-  /** The cabinet arriving: a servo whine under a heavy seat. */
-  cabinet: () => {
-    tone({freq: 60, to: 190, type: 'sawtooth', dur: 0.4, gain: 0.08, sweep: [180, 1400], q: 4})
-    tone({freq: 130, to: 74, type: 'sine', dur: 0.26, gain: 0.24, delay: 0.34})
-    noise(0.1, 0.12, 1800, 0.34)
-  },
 
   /** One reel finding its stop. Each is a semitone up, so three landing reads as a phrase. */
   detent: (index: number) => {
