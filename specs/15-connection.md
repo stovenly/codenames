@@ -149,3 +149,285 @@ a room that formed and then quietly fell apart — is ours, and is fixable.
   it. Three signalling transports and automatic re-signalling are worth keeping.
 - **Consensus between clients.** The host stays the authority. Gossip spreads
   the host's truth; it does not invent a new one.
+
+---
+
+# Implementation
+
+One change per section, each shippable on its own and in this order — every
+step makes the next one easier to verify. Names below are the ones in the code.
+
+Throughout: `PlayerId` is the app-level id, `peerId` is Trystero's
+per-transport id, and a **link** is one `(transport, peerId)` pair, keyed by
+`linkKey()`. One player can be behind several links.
+
+## 0. Groundwork
+
+**`src/net/protocol.ts`**
+
+```ts
+export type MessageKind =
+  | ...existing...
+  | 'ping' | 'pong'   // link-level, never forwarded, never dispatched
+  | 'ack'             // host → client, names an intent id
+
+export type Envelope = {
+  id: string
+  from: PlayerId
+  to: PlayerId | '*'
+  ttl: number
+  kind: MessageKind
+  body: string
+  /** Per-sender counter, so a receiver can drop an envelope overtaken in flight. */
+  seq?: number
+}
+```
+
+`seq` is optional so a client on the previous build still parses. Only
+`presence` and `state` use it here; everything else ignores it.
+
+**The test fakes.** `createMesh` currently reads `SPECS` from module scope, so
+nothing in it can be tested without loading Trystero. Give it
+`opts.specs?: Spec[]` defaulting to `SPECS`. A `Spec`'s `join` only has to
+return something with `makeAction`, `onPeerJoin`, `onPeerLeave`, `getPeers`,
+`ping` and `leave`. The fake in `src/net/mesh.test.ts` implements exactly that,
+records every `send` into `sent: Envelope[]`, and exposes
+`deliver(peerId, env)` and `connect(peerId)` to drive the other direction. All
+later sections test against it.
+
+## 1. Redundant send
+
+**`src/net/mesh.ts`**
+
+- `const REDUNDANT: ReadonlySet<MessageKind> = new Set(['hello', 'welcome',
+  'state', 'intent', 'ack', 'handoff', 'claim', 'resync', 'words'])`.
+- `outbound(exclude?, everyLink = false)`: when `everyLink`, push **all** of
+  `identified().get(id)` rather than `list[0]`. Unnamed links are already
+  pushed in full.
+- `send()`: `const wide = REDUNDANT.has(kind)`. Broadcast path:
+  `outbound(undefined, wide)`. Direct path: `const direct = identified().get(to)`;
+  when `wide`, emit to every link in `direct`, otherwise `direct[0]` as now.
+- `receive()`: forwarding becomes
+  `outbound({player: raw.from, link: key}, REDUNDANT.has(raw.kind))`.
+
+**Test.** Two fake transports, both holding a link to player B.
+`send('intent', …, 'B')` lands in both fakes' `sent` with one envelope id;
+`send('chat', …, 'B')` lands in exactly one. Delivering the same id twice
+dispatches once — already true via `seen`; assert it so it stays true.
+
+## 2. Link liveness
+
+**`src/net/mesh.ts`**
+
+```ts
+type Link = {
+  transport: TransportName
+  peerId: string
+  playerId: PlayerId | null
+  since: number
+  /** Last time anything arrived over this link. */
+  heard: number
+  /** Pings sent since the last pong. */
+  missed: number
+}
+const PING_MS = 2_000
+const PING_DEAD_AFTER = 3
+```
+
+- `receive()`: set `link.heard = Date.now()` and `link.missed = 0` for every
+  envelope. For `ping`, reply `pong` with the ping's `id` as body, straight
+  onto this link via `live.action.send(env, {target: fromPeer})`, `ttl: 0`,
+  and return. For `pong`, return after the link update. Neither is dispatched
+  or forwarded.
+- `setInterval(PING_MS)`: for every link, `missed++`; if
+  `missed > PING_DEAD_AFTER`, `drop(link)`, else send `ping` on that link
+  with `ttl: 0`.
+- `drop(link)`: `links.delete(key)`; `live.room.getPeers()[peerId]?.close()` —
+  that is what makes Trystero fire `onPeerLeave` and re-signal instead of
+  sitting on a corpse; `changed()`.
+- `identified()`: sort each player's links by `heard` descending, not `since`
+  ascending. `list[0]` is now the link that most recently delivered.
+- `report()`: `PeerReport.transports` becomes
+  `{name, heardMsAgo, missed}[]`, and the diagnostics sheet prints it.
+
+**`src/state/room.ts`**: `present()` drops the `lastHeardFrom` clause and uses
+`peers()` alone. A link that is in the map is a link that answered a ping.
+`lastHeardFrom` stays for anything that wants it; the eleven-second window
+goes.
+
+**Test.** Link to B; advance a fake clock through four ping intervals with no
+pong: the link is gone from `peers()` and the fake peer's `close()` ran.
+Deliver a `pong` after two intervals: `missed` is 0 and the link stays. Two
+links to B, the older one silent: `send('chat', …, 'B')` goes to the newer.
+
+## 3. Intent acknowledgement
+
+**`src/state/room.ts`**
+
+```ts
+type Pending = {id: string; intent: Intent; sentAt: number; tries: number}
+const pending = new Map<string, Pending>()
+const ACK_RETRY_MS = 1_000
+const ACK_WORRY_MS = 3_000
+const ACK_GIVE_UP_MS = 10_000
+```
+
+- `intend(intent)`: host applies as now. Client: `const id = newEnvelopeId()`,
+  store in `pending`, `send('intent', {id, ...intent}, shared?.hostId ?? '*')`.
+- `setInterval(500)`: each pending entry more than `ACK_RETRY_MS` past its
+  last send is resent to `shared?.hostId ?? '*'` — re-read each time, so a host
+  change mid-retry goes to the new host — with `tries++`. Entries past
+  `ACK_GIVE_UP_MS` are removed and counted as failed.
+- `on('intent')`: body is `{id?: string} & Intent`. If `id` is in the host's
+  `applied: Set<string>` (capped at 500, oldest evicted), re-send the `ack`
+  only. Otherwise apply, add to `applied`, `send('ack', {id}, env.from)`. No
+  `id` means a previous-build client: apply, no ack.
+- `on('ack')`: `pending.delete(body.id)`.
+- `RoomSnapshot` gains `unacked: {oldestMs: number; count: number} | null`,
+  published from the interval.
+
+**`src/ui/hud/Hud.tsx`**: under the turn line, once `unacked.oldestMs >
+ACK_WORRY_MS`, a `Label` in `text-lamp-300`: "Your move has not reached the
+host…". Past `ACK_GIVE_UP_MS`: `text-kill-lit`, plus a Reload button doing
+what the dev notice does — `history.replaceState(null, '', BASE_URL)` then
+`location.reload()`.
+
+**Test — `src/state/room.test.ts`** (new; mocks `./net` as `chat.test.ts`
+does). Client `intend`s: `send` called once with an `id`; advance 1.1s, called
+again with the same `id`; deliver `ack`; advance 5s, not called again. Host:
+the same `{id, …}` delivered twice applies once and acks twice.
+
+## 4. Route-aware outbox
+
+`net.ts` already holds messages until the mesh boots. The hold moves into the
+mesh, which is where routes are known.
+
+**`src/net/mesh.ts`**
+
+```ts
+type Held = {env: Envelope; to: PlayerId | '*'; wide: boolean; until: number}
+const held: Held[] = []
+const HOLD_MS = 15_000
+```
+
+- `send()`: after computing targets, if the map is empty — no link to `to`, or
+  no links at all for `'*'` — push to `held` with `until = now + HOLD_MS` and
+  return.
+- `flush()`: from `onPeerJoin`, from the `id` branch of `receive()` (the moment
+  a link gets a name), and from the ping interval so expiry happens without a
+  join. Emit anything whose targets are now non-empty; drop anything past
+  `until`.
+- `heldCount()` on the mesh, for the diagnostics sheet.
+
+**Test.** Send to B with no links: nothing in `sent`, `heldCount() === 1`.
+`connect(peer)` then deliver an `id` envelope from B over it: the held
+envelope is in `sent`, `heldCount() === 0`. Send with no links and advance
+16s: dropped.
+
+## 5. State gossip, and resync from anyone
+
+**`src/state/room.ts`**
+
+- Host: the beat worker already ticks every `BEAT_MS`. Every
+  `FULL_EVERY = 5_000` ms it also calls `sendFull(shared)`. Track `lastFullAt`.
+- `on('resync')`: remove `if (!isHost()) return`. Body becomes
+  `{want, hash, have?: {epoch: number; version: number}}`. Anyone holding a
+  `shared` strictly newer than `have` — epoch first, then version — replies
+  `sendFull(shared, env.from)`. The host always replies. A peer that is not
+  newer stays silent.
+- Clients include `have` from their own `shared` in every `resync` they send.
+- `adopt()` is unchanged. It already refuses anything not newer, which is what
+  makes answering from a stale peer safe.
+
+**Test.** Client at `{epoch 1, version 7}` receives `resync` with
+`have: {1, 5}` from X: `send('state', {full}, X)` called. With `have: {1, 9}`:
+not called. A host receiving its own full state back via a forward ignores it
+— already true through the `env.from !== next.hostId` guard; assert it.
+
+## 6. Full state on reappearance
+
+**`src/state/room.ts`**, in `monitor()` where the host recomputes `connected`:
+for each player whose flag flips `false → true`, `sendFull(shared, p.id)`
+after the `hostMutate`. No new state — the flip is already being detected.
+
+**Test.** Host with B marked disconnected; `peers()` now returns B; run
+`monitor()`: `send('state', {full}, 'B')` called once; run it again: not
+called again.
+
+## 7. Host link indicator
+
+**`src/state/room.ts`**: `RoomSnapshot` gains `hostHeardMsAgo: number | null`
+(null when we are the host), published by `monitor()` from `lastHostAt`.
+
+**`src/ui/hud/Hud.tsx`** and the lobby's ready bar in
+**`src/ui/screens/Waiting.tsx`**: one shared `HostLink` component, a 6px dot
+beside the turn pill.
+
+| heard within | dot | text |
+|---|---|---|
+| under 3s | `bg-lamp-500` | none |
+| 3–10s | `bg-lamp-300`, pulsing | "reconnecting…" |
+| over 10s | `bg-kill-lit` | "lost the host" + Reload |
+
+**Test.** Covered by (8); a component test is not worth its harness.
+
+## 8. Chaos
+
+**`src/net/mesh.ts`**
+
+```ts
+export type Chaos = {
+  /** 0..1 of envelopes dropped on send. */
+  drop?: number
+  /** ms added to every send, ±50%. */
+  delay?: number
+  /** Transports whose links are severed and never re-made. */
+  kill?: TransportName[]
+}
+```
+
+- `createMesh(opts)` takes `chaos?: Chaos`. In `emit()`: drop with probability
+  `drop`; wrap the send in `setTimeout` when `delay`. In the transport loop,
+  skip any spec named in `kill`.
+- **`src/state/net.ts`**: read `chaos` from `location.search` as
+  `drop:0.3,delay:800,kill:nostr+mqtt`, **only when `import.meta.env.DEV`**.
+  Production ignores it.
+- Diagnostics sheet, dev only: print the active chaos, so a forgotten knob is
+  not mistaken for a real outage.
+
+**`scripts/playtest.mjs`**: `--chaos=drop:0.3` appends `?chaos=…` to every
+player's URL except seat 0's, unless `--chaos-host` is also given.
+
+**Tests**, in `mesh.test.ts` with the fakes and a fake clock, each run 200
+times on a seeded random so a pass means something:
+
+- `drop: 0.4`, client `intend`s once: the host applies it within 5s.
+- `drop: 0.4`, host broadcasts ten deltas: the client's `shared.version`
+  reaches the host's within 10s, through gossip.
+- `kill: ['nostr']` with links on two transports: every `REDUNDANT` message
+  still arrives; liveness drops the dead links inside 8s.
+- Joiner sends `hello` before any link exists: it is held, and the host has the
+  player within 3s of the first link.
+
+And one by hand: `npm run playtest -- --chaos=drop:0.3 --auto --seat=none`
+plays a full game to the end screen.
+
+## Order and size
+
+| # | What | Touches | Size |
+|---|---|---|---|
+| 0 | protocol kinds, `seq`, test fakes | protocol, mesh, mesh.test | small |
+| 1 | redundant send | mesh | small |
+| 2 | link pings, drop dead links | mesh, room (`present`) | medium |
+| 3 | intent ack + retry + HUD | room, Hud | medium |
+| 4 | route-aware outbox | mesh, net | small |
+| 5 | state gossip, resync from anyone | room | small |
+| 6 | full state on reappearance | room | tiny |
+| 7 | host link indicator | room, Hud, Waiting | small |
+| 8 | chaos + end-to-end tests | mesh, net, playtest, tests | medium |
+
+The fakes in (0) are what make everything after it testable as it lands, so
+they come first. (2) moves the roster and host transfer onto real liveness in
+the same change, since `present()` is the one function both read. (3) is the
+change players will notice. Nothing here changes the wire format in a way an
+old client cannot read — `seq`, the intent `id` and `have` are all optional.
