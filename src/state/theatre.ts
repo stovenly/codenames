@@ -51,11 +51,14 @@ const listeners = new Set<() => void>()
 let shownCursor = 0
 let stage: Stage = {kind: 'idle'} as Stage
 let playing = false
+/** When the show last actually changed, which is what "stuck" is measured against. */
+let movedAt = 0
 let timers: ReturnType<typeof setTimeout>[] = []
 let snapshot: {shownCursor: number; stage: Stage} = {shownCursor, stage}
 
 const publish = () => {
   snapshot = {shownCursor, stage}
+  movedAt = Date.now()
   listeners.forEach(l => l())
 }
 
@@ -222,6 +225,7 @@ const pump = () => {
     shownCursor = shared.cursor
     stage = {kind: 'idle'}
     clearTimers()
+    playing = false
     publish()
     return
   }
@@ -309,6 +313,31 @@ export const resetTheatre = () => {
   playing = false
   publish()
 }
+
+/**
+ * The show is a chain of timers, and pump refuses to start anything while one
+ * is running. Anything that strands that flag — a cleared timer, a callback
+ * that never arrives, a tab throttled hard enough to lose one — takes that
+ * client out of the game silently: the board stops moving while everyone else
+ * plays on, and no later step can get past the flag to fix it.
+ *
+ * The longest thing the show does is under four seconds, so a run that has not
+ * changed anything in eight is not running. Drop it and read the room again —
+ * every client holds the whole game, so there is never anything to fetch.
+ */
+const STUCK_MS = 8_000
+
+export const releaseIfStuck = () => {
+  if (!playing || Date.now() - movedAt < STUCK_MS) return
+  clearTimers()
+  played = null
+  playing = false
+  stage = {kind: 'idle'}
+  publish()
+  pump()
+}
+
+setInterval(releaseIfStuck, 2_000)
 
 subscribeRoom(() => {
   const {shared} = getRoom()

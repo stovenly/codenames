@@ -19,7 +19,7 @@ vi.mock('./words', () => ({
   have: () => true
 }))
 
-const {getTheatre, previewGuess, resetTheatre} = await import('./theatre')
+const {getTheatre, previewGuess, releaseIfStuck, resetTheatre} = await import('./theatre')
 
 const room = (steps: Step[]): Shared => ({
   version: 1,
@@ -138,5 +138,39 @@ describe('a guess of my own', () => {
 
     expect(getTheatre().stage.kind).toBe('idle')
     expect(getTheatre().shownCursor).toBe(3)
+  })
+})
+
+describe('a show that stops moving', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    shared = null
+    resetTheatre()
+  })
+
+  it('lets go and catches up rather than sitting there', async () => {
+    deliver([START])
+    await settle(3200)
+    deliver([START, CLUE])
+    await settle(5000)
+
+    // Claim the show and then strand it, which is what a lost callback does.
+    previewGuess(0)
+    await settle(200)
+    expect(getTheatre().stage.kind).toBe('windup')
+    const stranded = getTheatre().shownCursor
+    vi.clearAllTimers()
+
+    // The room moves on without us and nothing here can act on it.
+    deliver([START, CLUE, GUESS, END_TURN])
+    await settle(1000)
+    expect(getTheatre().shownCursor).toBe(stranded)
+
+    // Long enough that nothing legitimate is still running. Set rather than
+    // advanced: with every timer cleared there is nothing left to tick.
+    vi.setSystemTime(Date.now() + 20_000)
+    releaseIfStuck()
+    await settle(6000)
+    expect(getTheatre().shownCursor).toBeGreaterThan(stranded)
   })
 })
