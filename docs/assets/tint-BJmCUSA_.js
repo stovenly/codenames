@@ -1,0 +1,1 @@
+var e=(e,t)=>{let n=parseInt(e,16),r=e=>Math.max(0,Math.min(255,Math.round(t>=0?e*(1-t):e+(255-e)*-t)));return(r(n>>16&255)<<16|r(n>>8&255)<<8|r(n&255)).toString(16).padStart(6,`0`)};export{e as t};

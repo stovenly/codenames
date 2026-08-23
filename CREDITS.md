@@ -13,8 +13,8 @@ When two peers cannot reach each other directly, ICE falls back to
 ## Avatar styles
 
 Generated locally with [DiceBear](https://www.dicebear.com). Nothing is fetched
-at runtime; each style is a lazily-imported package. Bunny is drawn in this
-repository against the same interface.
+at runtime; each style is a lazily-imported package. Bunny, Dog and Squid are
+drawn in this repository against the same interface.
 
 Under **CC0 1.0** — no attribution required, listed for completeness:
 
@@ -26,6 +26,8 @@ Under **CC0 1.0** — no attribution required, listed for completeness:
 | Thumbs | DiceBear |
 | Pixel Art | DiceBear |
 | Bunny | this repository |
+| Dog | this repository |
+| Squid | this repository |
 
 Under **[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)** — attribution
 required, which is what this section is for:

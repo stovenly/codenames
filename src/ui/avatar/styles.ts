@@ -10,6 +10,8 @@ export type StyleId =
   | 'thumbs'
   | 'pixel-art'
   | 'bunny'
+  | 'dog'
+  | 'squid'
 
 type Entry = {
   id: StyleId
@@ -84,6 +86,18 @@ export const STYLES: Entry[] = [
     name: 'Bunny',
     note: 'Rabbits, ears every way',
     load: async () => (await import('./bunny')) as unknown as Style<never>
+  },
+  {
+    id: 'dog',
+    name: 'Dog',
+    note: 'Good ones, all of them',
+    load: async () => (await import('./dog')) as unknown as Style<never>
+  },
+  {
+    id: 'squid',
+    name: 'Squid',
+    note: 'Eight arms, big eyes',
+    load: async () => (await import('./squid')) as unknown as Style<never>
   }
 ]
 

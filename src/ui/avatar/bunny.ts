@@ -1,4 +1,5 @@
 import type {Style} from '@dicebear/core'
+import {shade} from './tint'
 
 /** A rabbit drawn from parts, in the shape DiceBear expects of a style. */
 
@@ -14,15 +15,6 @@ const POSES: Array<[number, number]> = [
   [6, 122],
   [126, 116]
 ]
-
-/** hex without the hash; `by` is toward black, negative toward white. */
-const shade = (hex: string, by: number) => {
-  const n = parseInt(hex, 16)
-  const mix = (c: number) =>
-    Math.max(0, Math.min(255, Math.round(by >= 0 ? c * (1 - by) : c + (255 - c) * -by)))
-  const out = (mix((n >> 16) & 255) << 16) | (mix((n >> 8) & 255) << 8) | mix(n & 255)
-  return out.toString(16).padStart(6, '0')
-}
 
 /** Each ear pivots at the top of the skull, so a pose is two angles. */
 const ear = (side: -1 | 1, angle: number, fur: string, inner: string) => {
@@ -64,9 +56,10 @@ export const create: Style<never>['create'] = ({prng}) => {
   const light = shade(fur, -0.3)
   const [left, right] = POSES[prng.integer(0, POSES.length - 1)] ?? POSES[0]!
   const look = prng.integer(0, 3)
-  const blush = prng.bool(0.45)
-  const teeth = prng.bool(0.6)
-  const whiskers = prng.bool(0.7)
+  // Percentages: bool takes 1..100, and a fraction here means never.
+  const blush = prng.bool(45)
+  const teeth = prng.bool(60)
+  const whiskers = prng.bool(70)
 
   return {
     attributes: {viewBox: '0 0 100 100', fill: 'none', 'shape-rendering': 'auto'},
