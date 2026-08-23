@@ -434,7 +434,11 @@ const adopt = (next: Shared) => {
   shared = next
   clockOffset = next.sentAt - Date.now()
   lastHostAt = Date.now()
-  if (role === 'joining' || role === 'electing' || role === 'rejected' || role === 'idle') {
+  // Only somebody who asked to join is seated by a state arriving. The room is
+  // gossiped to every peer, and a tab on the landing screen is a peer: adopting
+  // a role here put a player who had typed no name — and proved no password —
+  // straight into the lobby.
+  if (role === 'joining' || role === 'electing') {
     role = next.hostId === self ? 'host' : 'client'
   }
   if (hostChanged) {

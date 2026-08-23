@@ -121,26 +121,27 @@ const settle = () => {
  * named in makes the room announce our avatar, which is a move like any other —
  * acknowledged here so it is not still in the queue when a test looks.
  */
-const asClient = () => {
-  deliver('state', {
-    full: {
-      version: 5,
-      hostId: 'host',
-      hostEpoch: 1,
-      hostHidden: false,
-      hostDegraded: false,
-      roster: ['host', 'me'],
-      sentAt: Date.now(),
-      players: [
-        {id: 'host', name: 'Host', team: 'red', spymaster: true, ready: true, connected: true, avatar: {style: 'lorelei', seed: '0', bg: '141C30'}},
-        {id: 'me', name: 'Me', team: 'red', spymaster: false, ready: true, connected: true, avatar: {style: 'lorelei', seed: '1', bg: '141C30'}}
-      ],
-      settings: {size: 5, teamCards: 8, assassins: 1, clueTimer: null, guessTimer: null, wordListHash: 'h', wordListName: 'x'},
-      steps: [],
-      cursor: 0,
-      deadline: null
-    }
-  })
+const FULL = {
+  version: 5,
+  hostId: 'host',
+  hostEpoch: 1,
+  hostHidden: false,
+  hostDegraded: false,
+  roster: ['host', 'me'],
+  sentAt: Date.now(),
+  players: [
+    {id: 'host', name: 'Host', team: 'red', spymaster: true, ready: true, connected: true, avatar: {style: 'lorelei', seed: '0', bg: '141C30'}},
+    {id: 'me', name: 'Me', team: 'red', spymaster: false, ready: true, connected: true, avatar: {style: 'lorelei', seed: '1', bg: '141C30'}}
+  ],
+  settings: {size: 5, teamCards: 8, assassins: 1, clueTimer: null, guessTimer: null, wordListHash: 'h', wordListName: 'x'},
+  steps: [],
+  cursor: 0,
+  deadline: null
+}
+
+const asClient = async () => {
+  await room.joinRoom('Me', null)
+  deliver('state', {full: {...FULL, sentAt: Date.now()}})
   settle()
 }
 
@@ -148,7 +149,7 @@ describe('a move that has to arrive', () => {
   beforeEach(async () => {
     vi.useFakeTimers()
     await load()
-    asClient()
+    await asClient()
     sent.length = 0
   })
 
@@ -214,7 +215,7 @@ describe('answering a peer that has fallen behind', () => {
   beforeEach(async () => {
     vi.useFakeTimers()
     await load()
-    asClient()
+    await asClient()
     sent.length = 0
   })
 
@@ -239,7 +240,7 @@ describe('the clock waits for the splash', () => {
   beforeEach(async () => {
     vi.useFakeTimers()
     await load()
-    asClient()
+    await asClient()
   })
 
   const state = (steps: Step[], cursor = steps.length) =>
@@ -278,5 +279,29 @@ describe('the clock waits for the splash', () => {
       ...Array.from({length: 12}, () => ({t: 'clue', team: 'red', by: 'host', word: 'X', count: 1}) as Step)
     ]
     expect(room.leadIn(state(steps), 0)).toBe(8_000)
+  })
+})
+
+describe('who a state arriving is allowed to seat', () => {
+  beforeEach(async () => {
+    vi.useFakeTimers()
+    await load()
+  })
+
+  it('leaves a tab that has not asked to join on the landing screen', () => {
+    deliver('state', {full: {...FULL}})
+    expect(room.getRoom().role).toBe('idle')
+  })
+
+  it('still learns the room, so the landing screen knows what it is joining', () => {
+    deliver('state', {full: {...FULL}})
+    expect(room.getRoom().shared?.players).toHaveLength(2)
+  })
+
+  it('seats one that did ask', async () => {
+    await room.joinRoom('Me', null)
+    expect(room.getRoom().role).toBe('joining')
+    deliver('state', {full: {...FULL}})
+    expect(room.getRoom().role).toBe('client')
   })
 })
