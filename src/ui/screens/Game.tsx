@@ -73,8 +73,12 @@ export const Game = () => {
     <>
       {player?.spymaster && player.team && <SpymasterChrome team={player.team} />}
 
-      <main className="mx-auto flex min-h-full max-w-5xl flex-col items-center gap-4 px-3 py-8 sm:px-6">
-        <div className="w-full" style={{maxWidth: 'min(94vw, 74vh)'}}>
+      <main className="mx-auto flex min-h-full max-w-[1350px] flex-col items-center gap-4 px-4 py-6 sm:px-8">
+        {/* Every board is 7:5 whatever its size — square cards would be, too —
+            so the only thing keeping it off the sides was a cap tied to the
+            viewport height. It takes the width it is given, and only falls back
+            to a height limit when the window is too short to hold it. */}
+        <div className="w-full" style={{maxWidth: 'min(100%, calc((100dvh - 15rem) * 1.4))'}}>
           <Board
             view={view}
             stage={stage}

@@ -349,7 +349,7 @@ const CardBase = ({
         style={{
           // Long words shrink rather than run off the card, which the wider
           // dyslexia-friendly face makes obvious.
-          fontSize: `clamp(9px, ${Math.min(13, 66 / Math.max(5, card.word.length))}cqw, 28px)`,
+          fontSize: `clamp(9px, ${Math.min(13, 66 / Math.max(5, card.word.length))}cqw, 44px)`,
           // A spent card keeps white type: dark ink on a faded plate is a
           // second thing to read past, not a card that has stopped mattering.
           color: spent ? 'var(--color-text)' : faceUp ? INK[shown] : key ? '#F5F1E6' : 'var(--color-text)'
@@ -380,7 +380,7 @@ const CardBase = ({
             style={{
               // Everything in card widths: fixed padding pushed the stamp past
               // the edge on a small board, where it was clipped mid-word.
-              fontSize: 'clamp(11px, 17cqw, 34px)',
+              fontSize: 'clamp(11px, 17cqw, 52px)',
               padding: '1cqw 3.5cqw',
               letterSpacing: '0.04em',
               // Opaque, so the stamp is one thing rather than two overlapping
