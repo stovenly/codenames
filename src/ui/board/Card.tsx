@@ -413,7 +413,7 @@ const CardBase = ({
       {/* Sized against the card, not in pixels: on a big screen a 20px badge
           in the corner of a 200px plate is a speck. */}
       {!faceUp && marks.size > 0 && (
-        <span className="pointer-events-none absolute -top-[2cqw] -right-[2cqw] z-20 flex -space-x-[3cqw]">
+        <span className="pointer-events-none absolute -top-[2.5cqw] -right-[2.5cqw] z-20 flex -space-x-[3.5cqw]">
           {[...marks].slice(0, 4).map(id => {
             const avatar = avatars.get(id)
             return avatar ? (
@@ -423,7 +423,13 @@ const CardBase = ({
                 animate={{scale: 1, y: 0, opacity: 1}}
                 exit={{scale: 0, opacity: 0}}
                 transition={spring.firm}
-                className="rounded-full ring-2 ring-lamp-500/80"
+                className="rounded-full bg-stage-000"
+                // The ring is in card widths like the face inside it. Left at a
+                // flat 2px it turned into a hairline as the board grew.
+                style={{
+                  boxShadow:
+                    '0 0 0 clamp(1.5px, 0.7cqw, 4px) rgba(255,197,61,.85), 0 2px 6px -1px rgba(0,0,0,.7)'
+                }}
               >
                 <AvatarView
                   spec={avatar}
