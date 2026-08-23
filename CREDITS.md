@@ -20,7 +20,7 @@ Under **CC0 1.0** — no attribution required, listed for completeness:
 
 | Style | Author |
 |---|---|
-| Lorelei | Lisa Wischofsky |
+| Lorelei | [Lisa Wischofsky](https://www.instagram.com/lischi_art/) |
 | Open Peeps | Pablo Stanley |
 | Notionists | Zoish |
 | Thumbs | DiceBear |
@@ -30,11 +30,14 @@ Under **CC0 1.0** — no attribution required, listed for completeness:
 Under **[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)** — attribution
 required, which is what this section is for:
 
-| Style | Author |
-|---|---|
-| Nomad (DiceBear's *Adventurer*) | [Lisa Wischofsky](https://www.instagram.com/illustration_by_lisa/) |
-| Micah | [Micah Lanier](https://dribbble.com/micahlanier) |
-| Dylan | [Natalia Spivak](https://dribbble.com/Nataliaspivak) |
+Each artist is linked as they are named in the style's own package metadata,
+alongside the Figma community file the set was published from.
+
+| Style | Artist | Published |
+|---|---|---|
+| Nomad (DiceBear's *Adventurer*) | [Lisa Wischofsky](https://www.instagram.com/lischi_art/) | [Figma](https://www.figma.com/community/file/1184595184137881796) |
+| Micah (*Avatar Illustration System*) | [Micah Lanier](https://dribbble.com/micahlanier) | [Figma](https://www.figma.com/community/file/829741575478342595) |
+| Dylan (*Dylan! The Avatar Generator*) | [Natalia Spivak](https://nataspvk.tilda.ws/) | [Figma](https://www.figma.com/community/file/1356575240759683500) |
 
 The CC0 pool holds only three people-style sets, which is why the other three
 are CC BY.
