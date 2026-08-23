@@ -272,10 +272,23 @@ for (let i = 1; i < PLAYERS; i++) {
   await sleep(1200)
 }
 
-// A different face each run, so sessions are told apart at a glance rather than
-// by reading the names. Waited for rather than fired hopefully: a guest that has
-// not finished rendering the lobby has no dice to click, and an optional call
-// on a button that is not there fails quietly.
+for (const tab of tabs) {
+  const {team, spymaster} = seatFor(tab.index)
+  await waitFor(tab, `!!document.querySelector('button')`, 'the lobby')
+  await click(tab, team)
+  await sleep(250)
+  if (spymaster) await click(tab, 'Spymaster')
+  await sleep(250)
+  await click(tab, 'Ready')
+  console.log(`  ${tab.label.padEnd(8)} ${team}${spymaster ? ' spymaster' : ' spy'}`)
+}
+
+/**
+ * A different face each run, so sessions are told apart at a glance rather than
+ * by reading the names. After seating, not before: the picker only exists once
+ * the host has a player for you, and an avatar sent before that is an intent
+ * the host has nobody to apply it to.
+ */
 const roll = (tab, label) =>
   tab.evaluate(`(() => {
     const b = [...document.querySelectorAll('button')].find(
@@ -295,22 +308,12 @@ for (const tab of tabs) {
   let rolled = 0
   for (let n = 0; n < 3; n++) {
     if (await roll(tab, 'Roll a random one')) rolled++
-    await sleep(120)
+    await sleep(150)
   }
   const tinted = await roll(tab, 'Roll a random colour')
-  if (rolled < 3 || !tinted) console.log(`  ${tab.label}: avatar rolls ${rolled}/3, colour ${tinted}`)
+  if (rolled < 3 || !tinted) console.log(`  ${tab.label}: rolls ${rolled}/3, colour ${tinted}`)
 }
-
-for (const tab of tabs) {
-  const {team, spymaster} = seatFor(tab.index)
-  await waitFor(tab, `!!document.querySelector('button')`, 'the lobby')
-  await click(tab, team)
-  await sleep(250)
-  if (spymaster) await click(tab, 'Spymaster')
-  await sleep(250)
-  await click(tab, 'Ready')
-  console.log(`  ${tab.label.padEnd(8)} ${team}${spymaster ? ' spymaster' : ' spy'}`)
-}
+await sleep(1200)
 
 // Peers link up at their own pace, and Start stays disabled until they have.
 await waitFor(
@@ -354,7 +357,9 @@ const act = (tab, clue) =>
       if (give && !give.disabled) { give.click(); return 'clue' }
       return null
     }
-    const lock = [...document.querySelectorAll('button')].find(b => /^lock in/i.test(b.textContent))
+    const lock = [...document.querySelectorAll('button')].find(
+      b => /^lock in/i.test(b.textContent) && !b.disabled
+    )
     if (lock) { lock.click(); return lock.textContent.trim().toLowerCase() }
 
     const cards = [...document.querySelectorAll('main button[aria-label]')].filter(b => !b.disabled)
