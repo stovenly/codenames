@@ -158,11 +158,14 @@ export const Hud = ({
 
   return (
     <Panel level={2} glossy className="flex flex-col gap-2 px-4 py-3">
-      <Standing view={view} me={me} />
       <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
         <Score team="red" left={view.remaining.red} active={view.turn === 'red'} />
 
-        <div className="flex min-w-44 flex-1 flex-col items-center justify-center gap-0.5 text-center">
+        {/* Everything that says whose turn it is lives between the two scores,
+            which is where anyone looking for it already is. */}
+        <div className="flex min-w-44 flex-1 flex-col items-center justify-center gap-1 text-center">
+          <Standing view={view} me={me} />
+
           {view.clue ? (
             <>
               <motion.span
@@ -184,17 +187,7 @@ export const Hud = ({
                   : `${Math.max(0, view.guessesLeft)} guess${view.guessesLeft === 1 ? '' : 'es'} left`}
               </Label>
             </>
-          ) : (
-            <Label>
-              <span aria-live="polite">
-                {view.phase === 'clue'
-                  ? `${view.turn} spymaster is thinking`
-                  : view.phase === 'gameover'
-                    ? 'Game over'
-                    : ''}
-              </span>
-            </Label>
-          )}
+          ) : null}
         </div>
 
         {deadline !== null && timerTotal > 0 && <TimerArc deadline={deadline} total={timerTotal} />}
