@@ -21,21 +21,25 @@ const PACKS = [
 const VALORANT = `
 Brimstone Viper Omen Cypher Sova Sage Phoenix Jett Raze Breach Reyna Killjoy
 Skye Yoru Astra KAYO Chamber Neon Fade Harbor Gekko Deadlock Iso Clove Vyse
-Tejo Waylay
+Tejo Waylay Miks Veto
 Bind Haven Split Ascent Icebox Breeze Fracture Pearl Lotus Sunset Abyss Range
 Classic Shorty Frenzy Ghost Sheriff Stinger Spectre Bucky Judge Bulldog
 Guardian Phantom Vandal Marshal Outlaw Operator Ares Odin Knife
-Snakebite Trapwire Cybercage Neural Skysmoke Orbital Incendiary Stim Beacon
+Snakebite Trapwire Cybercage Neuraltheft Skysmoke Orbitalstrike Incendiary Stimbeacon
 Blaze Curveball Hothands Cloudburst Updraft Tailwind Bladestorm Boombot
-Blastpack Showstopper Paintshells Aftershock Flashpoint Rolling Thunder
-Paranoia Shrouded Dark Cover Leer Devour Dismiss Empress Alarmbot Turret
-Nanoswarm Lockdown Regrowth Guiding Trailblazer Seekers Fakeout Blindside
-Gatecrash Dimensional Astral Gravity Nebula Nova Cosmic Trademark Headhunter
-Rendezvous Fastlane Highgear Relay Overdrive Prowler Haunt Seize Nightfall
-Cove Hightide Cascade Reckoning Wingman Dizzy Moshpit Thrash Gravnet Sonic
+Blastpack Showstopper Paintshells Aftershock Flashpoint Rollingthunder
+Paranoia Shroudedstep Darkcover Leer Devour Dismiss Empress Alarmbot Turret
+Nanoswarm Lockdown Regrowth Guidinglight Trailblazer Seekers Fakeout Blindside
+Gatecrash Dimensionaldrift Astralform Gravitywell Nebula Novapulse Cosmicdivide Trademark Headhunter
+Rendezvous Fastlane Highgear Relaybolt Overdrive Prowler Haunt Seize Nightfall
+Cove Hightide Stormsurge Reckoning Wingman Dizzy Moshpit Thrash Gravnet Sonicsensor
 Barriermesh Annihilation Undercut Doubletap Contingency Ruse Meddle Razorvine
-Shear Arcrose Steelgarden Recon Shockdart Owldrone Huntersfury Resurrection
-Barrier Slow Healing Poison Toxic Judgement Salvo Armageddon
+Shear Arcrose Steelgarden Reconbolt Shockbolt Owldrone Huntersfury Resurrection
+Barrierorb Sloworb Healingorb Poisoncloud Toxicscreen Guidedsalvo Armageddon
+Faultline Spycam Viperspit Runitback Tourdeforce Dissipate Killcontract
+Specialdelivery Stealthdrone Pickmeup Notdeadyet Fromtheshadows
+Refract Saturate Lightspeed Convergentpaths
+Mpulse Waveform Harmonize Bassquake Interceptor Crosscut Evolution Chokehold
 Spike Defuse Plant Ace Clutch Eco Bonus Force Save Retake Rotate Lurk Peek
 Jiggle Wallbang Headshot Whiff Flick Spray Burst Tap Crosshair Ultimate Orb
 Attack Defense Spawn Site Mid Heaven Hell Elbow Ramp Catwalk Tube Garage
@@ -47,7 +51,7 @@ Shield Credits Buyphase
 Radiant Immortal Ascendant Diamond Platinum Gold Silver Bronze Iron
 Radianite Kingdom Omega Alpha Protocol Mirror Firstlight Champions Masters
 Elderflame Reaver Prime Glitchpop Oni Ruination Butterfly Karambit Skinline
-Battlepass Nulcmd Fragment Zeropoint Flashdrive Suddendeath
+Battlepass Nullcmd Fragment Zeropoint Flashdrive Suddendeath
 `
   .split(/\s+/)
   .filter(Boolean)
