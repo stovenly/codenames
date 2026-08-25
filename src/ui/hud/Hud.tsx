@@ -99,7 +99,7 @@ const Score = ({
       }}
     />
     <Bulbs lit={active} chase={active} className="w-14 [@media(max-height:760px)]:hidden" />
-    {flank}
+    <span className="flex h-[26px] items-center">{flank}</span>
   </motion.div>
 )
 

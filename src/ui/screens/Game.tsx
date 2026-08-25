@@ -88,10 +88,8 @@ export const Game = () => {
 
   const miss = stage.kind === 'aftermath' && !stage.correct && stage.colour !== 'assassin'
   const flanks = !!fit?.flanks
-  // A name reaches outward, past the column the board is centred in, into
-  // whatever the window has spare. Capped: past this it is a stripe of names.
-  const flankWidth = Math.min(240, (fit?.gutter ?? 0) + (fit?.outside ?? 0))
-  const overhang = Math.max(0, flankWidth - (fit?.gutter ?? 0))
+  const flankWidth = fit?.flankWidth ?? 0
+  const overhang = fit?.overhang ?? 0
 
   return (
     <>
@@ -143,15 +141,16 @@ export const Game = () => {
                   me={me}
                   layout="column"
                   align={team === 'red' ? 'right' : 'left'}
-                  withNames={flankWidth >= 118}
+                  withNames
                 />
               </div>
             ))}
         </div>
 
-        {/* The rail is fixed to the bottom-left corner. It clears the HUD on its
-            own until the rosters fold into it, which puts faces in that corner. */}
-        <div className={cx('w-full max-w-3xl shrink-0', flanks ? 'pb-0 max-sm:pb-14' : 'pb-14')}>
+        {/* The rail is fixed to the bottom-left corner, and reaches the HUD only
+            on a window too narrow to hold it clear. A width, so that nothing the
+            rosters do can change this height. */}
+        <div className="w-full max-w-3xl shrink-0 max-[1167px]:pb-14">
           <Hud
             view={view}
             me={player}

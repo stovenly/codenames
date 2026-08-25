@@ -1,4 +1,3 @@
-import {AnimatePresence, motion} from 'motion/react'
 import {Check, CheckSquare, Eye, Link2, Shuffle, Square, VenetianMask} from 'lucide-react'
 import {useEffect, useRef, useState} from 'react'
 import {shareLink} from '../../net/identity'
@@ -126,19 +125,6 @@ const NameField = ({name}: {name: string}) => {
   )
 }
 
-/** Who sat where, as one string, so a reseat can be counted rather than guessed at. */
-const seatKey = (players: Player[]) => players.map(p => `${p.id}:${seatOf(p)}`).join('|')
-
-const moved = (before: string, after: string) => {
-  const was = new Map(before.split('|').map(entry => entry.split(':') as [string, string]))
-  let n = 0
-  for (const entry of after.split('|')) {
-    const [id, seat] = entry.split(':') as [string, string]
-    if (was.has(id) && was.get(id) !== seat) n++
-  }
-  return n
-}
-
 /**
  * The tick sits over the label rather than replacing it: a button that changes
  * width on click shoves the one beside it along.
@@ -177,28 +163,7 @@ export const Waiting = () => {
   const {report} = useNet()
   const [dragging, setDragging] = useState<string | null>(null)
   const [copied, setCopied] = useState<'plain' | 'secret' | null>(null)
-  const [seats, setSeats] = useState(() => seatKey(shared?.players ?? []))
-  // Randomize moves everybody at once. Sliding eight cards past each other says
-  // nothing, and holding the columns open while they travel makes the page grow.
-  const [instant, setInstant] = useState(false)
   words.useWords()
-
-  const key = seatKey(shared?.players ?? [])
-  if (key !== seats) {
-    setInstant(moved(seats, key) > 1)
-    setSeats(key)
-  }
-
-  /**
-   * The flag has to reach the cards before the roster moves. AnimatePresence
-   * keeps a leaving card exactly as it was last rendered, so one that leaves
-   * still carrying the animation animates out — and holds its space in the
-   * column while it does. Hence the two steps: flag, commit, then ask.
-   */
-  const randomize = () => {
-    setInstant(true)
-    setTimeout(() => intend({kind: 'shuffleTeams'}), 0)
-  }
 
   useEffect(() => {
     if (!copied) return
@@ -330,30 +295,12 @@ export const Waiting = () => {
                   </span>
                   <HostLink />
 
-                  <AnimatePresence initial={false}>
-                    {faults.length === 0 && (
-                      <motion.span
-                        key="clear"
-                        initial={{opacity: 0, y: 4}}
-                        animate={{opacity: 1, y: 0}}
-                        exit={{opacity: 0}}
-                        className="type-label"
-                      >
-                        Everyone is ready
-                      </motion.span>
-                    )}
-                    {faults.map(f => (
-                      <motion.span
-                        key={f.key}
-                        initial={{opacity: 0, y: 4}}
-                        animate={{opacity: 1, y: 0}}
-                        exit={{opacity: 0}}
-                        className={cx('type-label', f.tint)}
-                      >
-                        {f.message}
-                      </motion.span>
-                    ))}
-                  </AnimatePresence>
+                  {faults.length === 0 && <span className="type-label">Everyone is ready</span>}
+                  {faults.map(f => (
+                    <span key={f.key} className={cx('type-label', f.tint)}>
+                      {f.message}
+                    </span>
+                  ))}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -377,7 +324,7 @@ export const Waiting = () => {
                     <>
                       <Button
                         variant="ghost"
-                        onClick={randomize}
+                        onClick={() => intend({kind: 'shuffleTeams'})}
                         disabled={dealt.length < 2}
                         className="flex items-center gap-2"
                       >
@@ -424,10 +371,7 @@ export const Waiting = () => {
                       className="-mt-1 mb-1"
                     />
 
-                    {/* popLayout: a card on its way out leaves the flow at once, so the
-                        column does not hold its space open while it goes. */}
-                    <AnimatePresence initial={false} mode="popLayout">
-                      {inSeat(col.seat).map((p: Player) => (
+                    {inSeat(col.seat).map((p: Player) => (
                         <PlayerCard
                           key={p.id}
                           player={p}
@@ -436,11 +380,9 @@ export const Waiting = () => {
                           rtt={p.id === me ? 0 : rttFor(p.id)}
                           draggable={isHost}
                           hostControls={isHost}
-                          instant={instant}
                           onDragStart={() => setDragging(p.id)}
                         />
                       ))}
-                    </AnimatePresence>
                   </div>
                 ))}
               </section>

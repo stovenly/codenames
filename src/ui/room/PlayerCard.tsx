@@ -1,4 +1,3 @@
-import {motion} from 'motion/react'
 import {Crown, UserMinus, VenetianMask} from 'lucide-react'
 import type {Player, Team} from '../../game/types'
 import {intend} from '../../state/room'
@@ -6,7 +5,6 @@ import {AvatarView} from '../avatar/Avatar'
 import {Agent, Onlooker} from '../board/symbols'
 import {IconButton, Label} from '../atoms'
 import {cx} from '../cx'
-import {spring} from '../motion'
 
 const pip = (rtt: number | null, connected: boolean) => {
   if (!connected) return 'bg-text-dim/25'
@@ -37,7 +35,6 @@ export const PlayerCard = ({
   rtt,
   draggable,
   hostControls = false,
-  instant = false,
   onDragStart
 }: {
   player: Player
@@ -46,25 +43,17 @@ export const PlayerCard = ({
   rtt: number | null
   draggable: boolean
   hostControls?: boolean
-  /** A whole roster reseated at once: there is no move to follow, so do not draw one. */
-  instant?: boolean
   onDragStart?: () => void
 }) => {
     const team: Team | null = player.team
 
   return (
-    <motion.div
-      layout={instant ? false : 'position'}
-      layoutId={instant ? undefined : `player-${player.id}`}
-      initial={instant ? false : {opacity: 0, y: 14, scale: 0.97}}
-      animate={{opacity: player.connected ? 1 : 0.45, y: 0, scale: 1}}
-      exit={instant ? {opacity: 0} : {opacity: 0, scale: 0.95}}
-      transition={instant ? {duration: 0} : spring.soft}
+    <div
       draggable={draggable}
       onDragStart={onDragStart}
       className={cx(
         'plate gloss relative overflow-hidden rounded-md',
-        !player.connected && 'border-dashed grayscale-[.55]',
+        !player.connected && 'border-dashed opacity-45 grayscale-[.55]',
         draggable && 'cursor-grab active:cursor-grabbing'
       )}
     >
@@ -201,6 +190,6 @@ export const PlayerCard = ({
           {player.ready ? 'Ready' : 'Not ready'}
         </Label>
       </span>
-    </motion.div>
+    </div>
   )
 }

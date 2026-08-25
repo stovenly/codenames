@@ -177,7 +177,12 @@ export const GameOver = ({
           transition={spring.soft}
           className="w-full max-w-2xl"
         >
-          <FinalBoard view={view} size={size} turnedBy={turnedByFrom(steps, players)} />
+          {/* Its own plate, like the result beside it: the confetti is behind
+              the panels, and a board with no plate has it falling between the
+              cards instead. */}
+          <Panel level={2} glossy className="p-4 sm:p-5">
+            <FinalBoard view={view} size={size} turnedBy={turnedByFrom(steps, players)} />
+          </Panel>
         </motion.div>
       )}
       </div>
