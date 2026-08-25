@@ -7,6 +7,8 @@ import {
   GUESS_TIMERS,
   cardCount,
   composition,
+  maxBonusCards,
+  maxTeamCards,
   presetFor,
   validate,
   type BoardSize,
@@ -114,7 +116,6 @@ export const SettingsPanel = ({
       : undefined) ?? 'original'
   const total = cardCount(settings.size)
   const problems = validate(settings, wordCount)
-  const maxTeam = Math.floor((total - settings.assassins) / 2)
   const c = composition(settings)
 
   const patch = (p: Partial<Settings>) => editable && intend({kind: 'updateSettings', patch: p})
@@ -132,6 +133,7 @@ export const SettingsPanel = ({
         <Rule className="mt-3 mb-1" />
         <Readout label="Board" value={`${settings.size} × ${settings.size} · ${total} cards`} />
         <Readout label="Team cards" value={`${c.perTeam} each`} />
+        <Readout label="First team's bonus" value={c.bonus ? `+${c.bonus}` : 'none'} />
         <Readout label="Assassins" value={String(c.assassins)} />
         <Readout label="Neutral cards" value={String(Math.max(0, c.neutral))} />
         <div className="my-3">
@@ -165,16 +167,25 @@ export const SettingsPanel = ({
         <Row label={`Team cards — ${settings.teamCards}`}>
           <Dial
             min={1}
-            max={Math.max(1, maxTeam)}
+            max={Math.max(1, maxTeamCards(settings))}
             value={settings.teamCards}
             onChange={teamCards => patch({teamCards})}
+          />
+        </Row>
+
+        <Row label={`First team's bonus cards — ${c.bonus}`}>
+          <Dial
+            min={0}
+            max={Math.max(0, maxBonusCards(settings))}
+            value={c.bonus}
+            onChange={bonusCards => patch({bonusCards})}
           />
         </Row>
 
         <Row label={`Assassins — ${settings.assassins}`}>
           <Dial
             min={1}
-            max={Math.max(1, total - 2 * settings.teamCards)}
+            max={Math.max(1, total - 2 * settings.teamCards - c.bonus)}
             value={settings.assassins}
             onChange={assassins => patch({assassins})}
           />

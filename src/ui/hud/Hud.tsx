@@ -2,7 +2,8 @@ import {motion} from 'motion/react'
 import NumberFlow from '@number-flow/react'
 import {Minus, Plus} from 'lucide-react'
 import {useEffect, useRef, useState} from 'react'
-import type {View} from '../../game/reducer'
+import {type Card, type View} from '../../game/reducer'
+import {clueProblem} from '../../game/clue'
 import type {Player, Team} from '../../game/types'
 import {clearMyMark, useMyMark} from '../../state/presence'
 import {intend} from '../../state/room'
@@ -11,6 +12,7 @@ import {Bulbs, Button, Glyph, Label, Panel, input} from '../atoms'
 import {cx} from '../cx'
 import {spring} from '../motion'
 import {HostLink} from './HostLink'
+import {TeamFlank} from './TeamFlank'
 import {TimerArc} from './TimerArc'
 
 const TONE: Record<Team, string> = {
@@ -48,17 +50,29 @@ const Standing = ({view, me}: {view: View; me: Player | null}) => {
       >
         {line}
       </span>
-      {me?.team && (
+      {me?.team ? (
         <Label className={me.team === 'red' ? 'text-red-lit/70' : 'text-blue-lit/70'}>
           you are {me.spymaster ? 'spymaster' : 'a spy'} for {me.team}
         </Label>
-      )}
+      ) : me?.spectator ? (
+        <Label>spectating</Label>
+      ) : null}
     </div>
   )
 }
 
 /** The scoreboard is an odometer, so a card landing reads as a count, not a swap. */
-const Score = ({team, left, active}: {team: Team; left: number; active: boolean}) => (
+const Score = ({
+  team,
+  left,
+  active,
+  flank
+}: {
+  team: Team
+  left: number
+  active: boolean
+  flank: React.ReactNode
+}) => (
   <motion.div
     animate={{opacity: active ? 1 : 0.42}}
     transition={spring.firm}
@@ -75,13 +89,17 @@ const Score = ({team, left, active}: {team: Team; left: number; active: boolean}
     </span>
     <NumberFlow
       value={left}
-      className={cx('type-marquee text-4xl leading-none', team === 'red' ? 'text-red-lit' : 'text-blue-lit')}
+      className={cx(
+        'type-marquee text-4xl leading-none [@media(max-height:760px)]:text-2xl',
+        team === 'red' ? 'text-red-lit' : 'text-blue-lit'
+      )}
       style={{
         textShadow:
           team === 'red' ? '0 0 18px var(--glow-red-text)' : '0 0 18px rgba(111,182,255,.5)'
       }}
     />
-    <Bulbs lit={active} chase={active} className="w-14" />
+    <Bulbs lit={active} chase={active} className="w-14 [@media(max-height:760px)]:hidden" />
+    {flank}
   </motion.div>
 )
 
@@ -93,13 +111,25 @@ const Score = ({team, left, active}: {team: Team; left: number; active: boolean}
  */
 const LAST_CALL_MS = 700
 
-const ClueComposer = ({max, deadline}: {max: number; deadline: number | null}) => {
+const ClueComposer = ({
+  max,
+  deadline,
+  cards
+}: {
+  max: number
+  deadline: number | null
+  cards: Card[]
+}) => {
   const [word, setWord] = useState('')
   const [count, setCount] = useState<number | 'unlimited'>(1)
 
+  const trimmed = word.trim()
+  const problem = trimmed ? clueProblem(trimmed, cards) : null
+
   const submit = () => {
-    const trimmed = word.trim()
-    if (!trimmed) return
+    // A refused clue at the buzzer must not cost the turn: send nothing and let
+    // the host's own timeout give the team its empty clue.
+    if (!trimmed || problem) return
     intend({kind: 'clue', word: trimmed.toUpperCase(), count})
     setWord('')
     setCount(1)
@@ -146,9 +176,12 @@ const ClueComposer = ({max, deadline}: {max: number; deadline: number | null}) =
           <Plus className="size-3.5" />
         </Button>
       </div>
-      <Button onClick={submit} disabled={!word.trim()}>
+      <Button onClick={submit} disabled={!trimmed || !!problem}>
         Give clue
       </Button>
+      {problem && (
+        <p className="type-label w-full text-kill-lit">{problem} — pick another word</p>
+      )}
     </div>
   )
 }
@@ -158,13 +191,18 @@ export const Hud = ({
   me,
   deadline,
   timerTotal,
-  busy
+  busy,
+  players,
+  rosters
 }: {
   view: View
   me: Player | null
   deadline: number | null
   timerTotal: number
   busy: boolean
+  players: Player[]
+  /** Beside the board where there is room for them, under the scores where there is not. */
+  rosters: 'flanks' | 'hud'
 }) => {
     const armed = useMyMark()
   const myTurn = me?.team === view.turn
@@ -175,9 +213,22 @@ export const Hud = ({
 
   return (
     <div className="flex w-full flex-col gap-3">
-      <Panel level={2} glossy className="flex flex-col gap-2 px-4 py-3">
+      <Panel
+        level={2}
+        glossy
+        className="flex flex-col gap-2 px-4 py-3 [@media(max-height:760px)]:px-3 [@media(max-height:760px)]:py-1.5"
+      >
         <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-          <Score team="red" left={view.remaining.red} active={view.turn === 'red'} />
+          <Score
+            team="red"
+            left={view.remaining.red}
+            active={view.turn === 'red'}
+            flank={
+              rosters === 'hud' ? (
+                <TeamFlank players={players} team="red" me={me?.id ?? ''} layout="row" />
+              ) : null
+            }
+          />
 
           {/* Everything that says whose turn it is lives between the two scores,
               which is where anyone looking for it already is. */}
@@ -194,6 +245,7 @@ export const Hud = ({
                   transition={spring.firm}
                   className={cx(
                     'type-marquee text-2xl leading-tight sm:text-3xl',
+                    '[@media(max-height:760px)]:text-xl',
                     view.clue.word ? 'text-text' : 'text-text-dim'
                   )}
                   style={view.clue.word ? {textShadow: '0 0 20px rgba(255,197,61,.28)'} : undefined}
@@ -214,7 +266,16 @@ export const Hud = ({
 
           {deadline !== null && timerTotal > 0 && <TimerArc deadline={deadline} total={timerTotal} />}
 
-          <Score team="blue" left={view.remaining.blue} active={view.turn === 'blue'} />
+          <Score
+            team="blue"
+            left={view.remaining.blue}
+            active={view.turn === 'blue'}
+            flank={
+              rosters === 'hud' ? (
+                <TeamFlank players={players} team="blue" me={me?.id ?? ''} layout="row" />
+              ) : null
+            }
+          />
         </div>
 
         {/* Its own row. Sharing one with the clue meant the clue slid sideways
@@ -228,7 +289,11 @@ export const Hud = ({
       {(canClue || canAct) && (
         <div className="flex min-h-11 flex-wrap items-center justify-between gap-2">
           {canClue && (
-            <ClueComposer max={Math.max(1, view.remaining[view.turn])} deadline={deadline} />
+            <ClueComposer
+              max={Math.max(1, view.remaining[view.turn])}
+              deadline={deadline}
+              cards={view.cards}
+            />
           )}
 
           {canAct && (

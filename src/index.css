@@ -106,12 +106,26 @@ body.is-dyslexic {
   --size-label: 0.6125rem;
   --size-body: 0.75rem;
   --word-cap: 14cqw;
+  /* 1.03em per uppercase character against Oswald's ~0.6 and Archivo's 0.77. */
+  --word-fit: 76;
+  --stamp-fit: 12cqw;
 }
 
 html,
 body,
 #root {
   height: 100%;
+}
+
+/** Read by the board when it solves its own width against the height it is given. */
+:root {
+  --board-gap: 6px;
+}
+
+@media (min-width: 40rem) {
+  :root {
+    --board-gap: 10px;
+  }
 }
 
 body {

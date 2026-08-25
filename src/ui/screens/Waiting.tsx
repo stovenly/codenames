@@ -1,12 +1,12 @@
 import {AnimatePresence, motion} from 'motion/react'
-import {Check, CheckSquare, Link2, Square, VenetianMask} from 'lucide-react'
+import {Check, CheckSquare, Eye, Link2, Shuffle, Square, VenetianMask} from 'lucide-react'
 import {useEffect, useRef, useState} from 'react'
 import {shareLink} from '../../net/identity'
 import {roomId, useNet} from '../../state/net'
-import {intend, rename, setAvatar, useRoom} from '../../state/room'
+import {intend, myPassword, rename, setAvatar, useRoom} from '../../state/room'
 import * as words from '../../state/words'
 import {validate} from '../../game/settings'
-import {rosterProblems, type Player, type Team} from '../../game/types'
+import {rosterProblems, seatOf, type Player, type Seat} from '../../game/types'
 import {AvatarPicker} from '../avatar/Picker'
 import {Bulbs, Button, Enter, Field, Heading, Item, Label, Panel, Rule, input} from '../atoms'
 import {cx} from '../cx'
@@ -16,11 +16,28 @@ import {PlayerCard} from '../room/PlayerCard'
 
 const HOST_NOTICE_KEY = 'cn.hostNoticeSeen'
 
-const COLUMNS: Array<{team: Team | null; label: string; tint: string; glow: string}> = [
-  {team: 'red', label: 'Red', tint: 'text-red-lit', glow: 'var(--glow-red-wash)'},
-  {team: null, label: 'Bench', tint: 'text-text-dim', glow: 'transparent'},
-  {team: 'blue', label: 'Blue', tint: 'text-blue-lit', glow: 'rgba(46,134,255,.18)'}
+const COLUMNS: Array<{seat: Seat; label: string; tint: string; glow: string}> = [
+  {seat: 'bench', label: 'Bench', tint: 'text-text-dim', glow: 'transparent'},
+  {seat: 'red', label: 'Red', tint: 'text-red-lit', glow: 'var(--glow-red-wash)'},
+  {seat: 'blue', label: 'Blue', tint: 'text-blue-lit', glow: 'rgba(46,134,255,.18)'},
+  {seat: 'spectator', label: 'Spectators', tint: 'text-text-dim', glow: 'transparent'}
 ]
+
+/** Where you start, the two sides, then out of it altogether. */
+const ROLES: Array<{seat: Seat; label: string}> = [
+  {seat: 'bench', label: 'Bench'},
+  {seat: 'red', label: 'Red'},
+  {seat: 'blue', label: 'Blue'},
+  {seat: 'spectator', label: 'Spectate'}
+]
+
+const takeSeatIntent = (target: string, seat: Seat) =>
+  intend({
+    kind: 'setTeam',
+    target,
+    team: seat === 'red' || seat === 'blue' ? seat : null,
+    spectator: seat === 'spectator'
+  })
 
 const HostNotice = () => {
   const [seen, setSeen] = useState(() => {
@@ -109,27 +126,100 @@ const NameField = ({name}: {name: string}) => {
   )
 }
 
+/** Who sat where, as one string, so a reseat can be counted rather than guessed at. */
+const seatKey = (players: Player[]) => players.map(p => `${p.id}:${seatOf(p)}`).join('|')
+
+const moved = (before: string, after: string) => {
+  const was = new Map(before.split('|').map(entry => entry.split(':') as [string, string]))
+  let n = 0
+  for (const entry of after.split('|')) {
+    const [id, seat] = entry.split(':') as [string, string]
+    if (was.has(id) && was.get(id) !== seat) n++
+  }
+  return n
+}
+
+/**
+ * The tick sits over the label rather than replacing it: a button that changes
+ * width on click shoves the one beside it along.
+ */
+const CopyButton = ({
+  copied,
+  label,
+  onClick
+}: {
+  copied: boolean
+  label: string
+  onClick: () => void
+}) => (
+  <Button variant="ghost" onClick={onClick} className="relative flex items-center gap-2">
+    <span
+      className={cx('flex items-center gap-2 transition-opacity duration-150', copied && 'opacity-0')}
+    >
+      <Link2 className="size-3.5" />
+      {label}
+    </span>
+    <span
+      aria-hidden
+      className={cx(
+        'pointer-events-none absolute inset-0 flex items-center justify-center gap-2 transition-opacity duration-150',
+        copied ? 'opacity-100' : 'opacity-0'
+      )}
+    >
+      <Check className="size-3.5" />
+      Copied
+    </span>
+  </Button>
+)
+
 export const Waiting = () => {
   const {shared, role, me} = useRoom()
   const {report} = useNet()
-    const [dragging, setDragging] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [dragging, setDragging] = useState<string | null>(null)
+  const [copied, setCopied] = useState<'plain' | 'secret' | null>(null)
+  const [seats, setSeats] = useState(() => seatKey(shared?.players ?? []))
+  // Randomize moves everybody at once. Sliding eight cards past each other says
+  // nothing, and holding the columns open while they travel makes the page grow.
+  const [instant, setInstant] = useState(false)
   words.useWords()
+
+  const key = seatKey(shared?.players ?? [])
+  if (key !== seats) {
+    setInstant(moved(seats, key) > 1)
+    setSeats(key)
+  }
+
+  /**
+   * The flag has to reach the cards before the roster moves. AnimatePresence
+   * keeps a leaving card exactly as it was last rendered, so one that leaves
+   * still carrying the animation animates out — and holds its space in the
+   * column while it does. Hence the two steps: flag, commit, then ask.
+   */
+  const randomize = () => {
+    setInstant(true)
+    setTimeout(() => intend({kind: 'shuffleTeams'}), 0)
+  }
 
   useEffect(() => {
     if (!copied) return
-    const t = setTimeout(() => setCopied(false), 1600)
+    const t = setTimeout(() => setCopied(null), 1600)
     return () => clearTimeout(t)
   }, [copied])
 
   if (!shared) return null
 
   const isHost = role === 'host'
+  const secret = isHost ? myPassword() : null
+
+  const copy = (which: 'plain' | 'secret', link: string) => {
+    void navigator.clipboard.writeText(link)
+    setCopied(which)
+  }
   const mine = shared.players.find(p => p.id === me)
   const list = words.get(shared.settings.wordListHash)
   const problems = validate(shared.settings, list.length)
 
-  const on = (team: Team | null) => shared.players.filter(p => p.team === team)
+  const inSeat = (seat: Seat) => shared.players.filter(p => seatOf(p) === seat)
 
   const roster = rosterProblems(shared.players)
   const blockers = [...problems.map(p => p.message), ...roster.map(r => r.message)]
@@ -146,7 +236,10 @@ export const Waiting = () => {
 
   const hostName = shared.players.find(p => p.id === shared.hostId)?.name
   const here = shared.players.filter(p => p.connected).length
-  const readyCount = shared.players.filter(p => p.ready).length
+  const watching = inSeat('spectator').length
+  // Spectators are not playing, so a room where two are watching can still read 4 / 4.
+  const dealt = shared.players.filter(p => !p.spectator)
+  const readyCount = dealt.filter(p => p.ready).length
   const rttFor = (id: string) => report.peers.find(p => p.playerId === id)?.rttMs ?? null
 
   return (
@@ -156,23 +249,27 @@ export const Waiting = () => {
           <div className="flex flex-col gap-1.5">
             <Label className="text-lamp-500/80">
               {here} {here === 1 ? 'player' : 'players'} in lobby
+              {watching > 0 && ` · ${watching} watching`}
             </Label>
             <h1 className="type-marquee text-2xl text-lamp-300 sm:text-3xl">
               {hostName ? `${hostName}'s Lobby` : 'Codenames'}
             </h1>
           </div>
 
-          <Button
-            variant="ghost"
-            onClick={() => {
-              void navigator.clipboard.writeText(shareLink(roomId))
-              setCopied(true)
-            }}
-            className="flex items-center gap-2"
-          >
-            {copied ? <Check className="size-3.5" /> : <Link2 className="size-3.5" />}
-            {copied ? 'Copied' : 'Invite link'}
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <CopyButton
+              copied={copied === 'plain'}
+              label="Invite link"
+              onClick={() => copy('plain', shareLink(roomId))}
+            />
+            {secret && (
+              <CopyButton
+                copied={copied === 'secret'}
+                label="Invite link with password"
+                onClick={() => copy('secret', shareLink(roomId, secret))}
+              />
+            )}
+          </div>
         </Item>
 
         {isHost && (
@@ -181,7 +278,7 @@ export const Waiting = () => {
           </Item>
         )}
 
-        <Item className="grid gap-7 lg:grid-cols-[1fr_23rem]">
+        <Item className="grid gap-7 xl:grid-cols-[1fr_23rem]">
           <div className="flex flex-col gap-7">
             <section className="flex flex-col gap-3">
               <Heading>You</Heading>
@@ -194,14 +291,16 @@ export const Waiting = () => {
               <Heading>Your team</Heading>
               <Rule />
               <div className="flex flex-wrap gap-1.5">
-                {COLUMNS.map(col => (
+                {ROLES.map(role => (
                   <Button
-                    key={col.label}
+                    key={role.seat}
                     size="sm"
-                    variant={mine?.team === col.team ? 'primary' : 'ghost'}
-                    onClick={() => intend({kind: 'setTeam', target: me, team: col.team})}
+                    variant={mine && seatOf(mine) === role.seat ? 'primary' : 'ghost'}
+                    onClick={() => takeSeatIntent(me, role.seat)}
+                    className="flex items-center gap-1.5"
                   >
-                    {col.label}
+                    {role.seat === 'spectator' && <Eye className="size-3.5" />}
+                    {role.label}
                   </Button>
                 ))}
                 <span aria-hidden className="mx-1 h-8 w-px self-center bg-stage-600" />
@@ -227,8 +326,7 @@ export const Waiting = () => {
               <Panel level={2} glossy className="flex flex-wrap items-center gap-4 px-4 py-3">
                 <div className="flex min-w-40 flex-1 flex-col gap-0.5">
                   <span className="type-read text-sm text-text">
-                    {readyCount}{' '}
-                    <span className="text-text-dim">/ {shared.players.length} ready</span>
+                    {readyCount} <span className="text-text-dim">/ {dealt.length} ready</span>
                   </span>
                   <HostLink />
 
@@ -276,24 +374,35 @@ export const Waiting = () => {
                     Ready
                   </Button>
                   {isHost && (
-                    <Button
-                      size="lg"
-                      onClick={() => intend({kind: 'startGame'})}
-                      disabled={blockers.length > 0}
-                    >
-                      Start game
-                    </Button>
+                    <>
+                      <Button
+                        variant="ghost"
+                        onClick={randomize}
+                        disabled={dealt.length < 2}
+                        className="flex items-center gap-2"
+                      >
+                        <Shuffle className="size-3.5" />
+                        Randomize teams
+                      </Button>
+                      <Button
+                        size="lg"
+                        onClick={() => intend({kind: 'startGame'})}
+                        disabled={blockers.length > 0}
+                      >
+                        Start game
+                      </Button>
+                    </>
                   )}
                 </div>
               </Panel>
-              <section className="grid gap-4 sm:grid-cols-3">
+              <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {COLUMNS.map(col => (
                   <div
                     key={col.label}
                     onDragOver={e => isHost && e.preventDefault()}
                     onDrop={() => {
                       if (!dragging || !isHost) return
-                      intend({kind: 'setTeam', target: dragging, team: col.team})
+                      takeSeatIntent(dragging, col.seat)
                       setDragging(null)
                     }}
                     className="relative flex min-h-40 flex-col gap-2.5 rounded-md px-2 pt-2 pb-4"
@@ -308,12 +417,17 @@ export const Waiting = () => {
                       <span className={cx('type-marquee text-base tracking-[0.1em]', col.tint)}>
                         {col.label}
                       </span>
-                      <Label>{on(col.team).length}</Label>
+                      <Label>{inSeat(col.seat).length}</Label>
                     </div>
-                    <Bulbs lit={col.team !== null && on(col.team).length > 0} className="-mt-1 mb-1" />
+                    <Bulbs
+                      lit={(col.seat === 'red' || col.seat === 'blue') && inSeat(col.seat).length > 0}
+                      className="-mt-1 mb-1"
+                    />
 
-                    <AnimatePresence initial={false}>
-                      {on(col.team).map((p: Player) => (
+                    {/* popLayout: a card on its way out leaves the flow at once, so the
+                        column does not hold its space open while it goes. */}
+                    <AnimatePresence initial={false} mode="popLayout">
+                      {inSeat(col.seat).map((p: Player) => (
                         <PlayerCard
                           key={p.id}
                           player={p}
@@ -322,6 +436,7 @@ export const Waiting = () => {
                           rtt={p.id === me ? 0 : rttFor(p.id)}
                           draggable={isHost}
                           hostControls={isHost}
+                          instant={instant}
                           onDragStart={() => setDragging(p.id)}
                         />
                       ))}

@@ -3,7 +3,7 @@ import {Crown, UserMinus, VenetianMask} from 'lucide-react'
 import type {Player, Team} from '../../game/types'
 import {intend} from '../../state/room'
 import {AvatarView} from '../avatar/Avatar'
-import {Agent} from '../board/symbols'
+import {Agent, Onlooker} from '../board/symbols'
 import {IconButton, Label} from '../atoms'
 import {cx} from '../cx'
 import {spring} from '../motion'
@@ -37,6 +37,7 @@ export const PlayerCard = ({
   rtt,
   draggable,
   hostControls = false,
+  instant = false,
   onDragStart
 }: {
   player: Player
@@ -45,18 +46,20 @@ export const PlayerCard = ({
   rtt: number | null
   draggable: boolean
   hostControls?: boolean
+  /** A whole roster reseated at once: there is no move to follow, so do not draw one. */
+  instant?: boolean
   onDragStart?: () => void
 }) => {
     const team: Team | null = player.team
 
   return (
     <motion.div
-      layout={'position'}
-      layoutId={`player-${player.id}`}
-      initial={{opacity: 0, y: 14, scale: 0.97}}
+      layout={instant ? false : 'position'}
+      layoutId={instant ? undefined : `player-${player.id}`}
+      initial={instant ? false : {opacity: 0, y: 14, scale: 0.97}}
       animate={{opacity: player.connected ? 1 : 0.45, y: 0, scale: 1}}
-      exit={{opacity: 0, scale: 0.95}}
-      transition={spring.soft}
+      exit={instant ? {opacity: 0} : {opacity: 0, scale: 0.95}}
+      transition={instant ? {duration: 0} : spring.soft}
       draggable={draggable}
       onDragStart={onDragStart}
       className={cx(
@@ -72,6 +75,12 @@ export const PlayerCard = ({
           BAND[team ?? 'none']
         )}
       >
+        {player.spectator && (
+          <>
+            <Onlooker className="size-3.5" />
+            <span className="type-label text-white/80">Watching</span>
+          </>
+        )}
         {team && (
           <>
             {player.spymaster ? (

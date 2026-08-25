@@ -11,8 +11,8 @@ import {cx} from '../cx'
  * Drawn as solid shapes with the gaps left open, so it reads at 14px on a
  * roster row and at a third of a card on the wheel.
  */
-export const Agent = ({className}: {className?: string}) => (
-  <svg viewBox="0 0 24 24" aria-hidden className={cx('size-6', className)} fill="currentColor">
+const AgentShapes = () => (
+  <>
     {/* Coat, with the lapels meeting under the chin. */}
     <path d="M2.4 22.6c0-3.9 2.6-6.6 6.3-7.5l3.3 3.6 3.3-3.6c3.7.9 6.3 3.6 6.3 7.5Z" />
     {/* Jaw, under the brim. */}
@@ -21,6 +21,24 @@ export const Agent = ({className}: {className?: string}) => (
     <path d="M7.2 9.9c-.5-3.9 1-6.1 2.5-6.6.9-.3 1.4.6 2.3.6s1.4-.9 2.3-.6c1.5.5 3 2.7 2.5 6.6Z" />
     {/* Brim, wide enough to put the eyes in shadow. */}
     <ellipse cx="12" cy="10" rx="9.5" ry="2.05" />
+  </>
+)
+
+export const Agent = ({className}: {className?: string}) => (
+  <svg viewBox="0 0 24 24" aria-hidden className={cx('size-6', className)} fill="currentColor">
+    <AgentShapes />
+  </svg>
+)
+
+/**
+ * The same figure with the hat taken off: somebody watching rather than playing.
+ * One difference from `Agent`, because one difference is what it reports.
+ */
+export const Onlooker = ({className}: {className?: string}) => (
+  <svg viewBox="0 0 24 24" aria-hidden className={cx('size-6', className)} fill="currentColor">
+    <circle cx="12" cy="8.2" r="4.6" />
+    {/* Shoulders, as wide as the agent's coat so the two sit at the same weight. */}
+    <path d="M2.4 22.6c0-4.4 4.3-7.4 9.6-7.4s9.6 3 9.6 7.4Z" />
   </svg>
 )
 
@@ -42,6 +60,30 @@ export const Skull = ({className}: {className?: string}) => (
 export const Blank = ({className}: {className?: string}) => (
   <svg viewBox="0 0 24 24" aria-hidden className={cx('size-6', className)}>
     <circle cx="12" cy="12" r="8.6" fill="none" stroke="currentColor" strokeWidth="2.6" />
+  </svg>
+)
+
+/**
+ * The same agent wearing both colours: a card whose side nobody knows until the
+ * coin is flipped. Clipped down the middle rather than drawn twice, so the two
+ * halves meet on one silhouette.
+ */
+export const Contested = ({className}: {className?: string}) => (
+  <svg viewBox="0 0 24 24" aria-hidden className={cx('size-6', className)}>
+    <defs>
+      <clipPath id="contested-left">
+        <rect x="0" y="0" width="12" height="24" />
+      </clipPath>
+      <clipPath id="contested-right">
+        <rect x="12" y="0" width="12" height="24" />
+      </clipPath>
+    </defs>
+    <g clipPath="url(#contested-left)" fill="var(--color-red-lit)">
+      <AgentShapes />
+    </g>
+    <g clipPath="url(#contested-right)" fill="var(--color-blue-lit)">
+      <AgentShapes />
+    </g>
   </svg>
 )
 

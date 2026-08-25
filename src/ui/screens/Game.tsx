@@ -8,6 +8,8 @@ import {syncTheatre, useTheatre} from '../../state/theatre'
 import * as words from '../../state/words'
 import {Label} from '../atoms'
 import {Board} from '../board/Board'
+import {useBoardFit} from '../board/fit'
+import {TeamFlank} from '../hud/TeamFlank'
 import {ClueReveal, TurnBand} from '../hud/ClueReveal'
 import {Curtain} from '../hud/Curtain'
 import {Hud} from '../hud/Hud'
@@ -22,6 +24,7 @@ const HostPanel = lazy(() => import('../host/HostPanel').then(m => ({default: m.
 export const Game = () => {
   const {shared, role, me} = useRoom()
   const {shownCursor, stage} = useTheatre()
+  const {ref: boardArea, fit} = useBoardFit(shared?.settings.size ?? 5)
   words.useWords()
 
   useEffect(() => {
@@ -63,6 +66,8 @@ export const Game = () => {
           me={player}
           isHost={isHost}
           players={shared.players}
+          size={shared.settings.size}
+          steps={shared.steps.slice(0, shownCursor)}
           honours={accolades(shared.settings, list, shared.steps, shared.players)}
         />
         {panel}
@@ -82,6 +87,11 @@ export const Game = () => {
     view.phase === 'clue' ? (shared.settings.clueTimer ?? 0) : (shared.settings.guessTimer ?? 0)
 
   const miss = stage.kind === 'aftermath' && !stage.correct && stage.colour !== 'assassin'
+  const flanks = !!fit?.flanks
+  // A name reaches outward, past the column the board is centred in, into
+  // whatever the window has spare. Capped: past this it is a stripe of names.
+  const flankWidth = Math.min(240, (fit?.gutter ?? 0) + (fit?.outside ?? 0))
+  const overhang = Math.max(0, flankWidth - (fit?.gutter ?? 0))
 
   return (
     <>
@@ -94,16 +104,16 @@ export const Game = () => {
         animate={miss ? {x: [0, -8, 7, -5, 3, 0]} : {x: 0}}
         transition={{duration: 0.42, ease: 'easeOut'}}
         className={cx(
-          'mx-auto flex max-w-[1350px] flex-col items-center gap-4 px-4 py-6 sm:px-8',
+          'mx-auto flex max-w-[1600px] flex-col items-center gap-4 px-4 py-6 sm:px-8',
+          '[@media(max-height:760px)]:gap-2 [@media(max-height:760px)]:py-3',
           // The band above is 1.5rem of the page, so the screen is that much
           // shorter rather than that much taller.
-          player?.spymaster ? 'min-h-[calc(100%-1.5rem)]' : 'min-h-full'
+          player?.spymaster ? 'h-[calc(100%-1.5rem)]' : 'h-full'
         )}
       >
-        {/* Width decides it. Every board is 7:5 whatever its size, so a cap
-            tied to the viewport height was the thing holding it in the middle
-            of the page; the column's own max width is the only limit now. */}
-        <div className="w-full">
+        {/* Everything else is shrink-0, so this is the one elastic thing on the
+            screen: the board takes whatever height the HUD leaves. */}
+        <div ref={boardArea} className="relative min-h-0 w-full flex-1">
           <Board
             view={view}
             stage={stage}
@@ -111,16 +121,45 @@ export const Game = () => {
             players={shared.players}
             canGuess={player?.team === view.turn && !player?.spymaster && view.phase === 'guess'}
             spymaster={!!player?.spymaster}
+            width={fit?.width ?? null}
           />
+
+          {/* Absolute, so a roster can never take width off the board it is
+              measured against. */}
+          {flanks &&
+            (['red', 'blue'] as const).map(team => (
+              <div
+                key={team}
+                className="absolute inset-y-0 flex items-center"
+                style={
+                  team === 'red'
+                    ? {left: -overhang, width: flankWidth, paddingRight: 10}
+                    : {right: -overhang, width: flankWidth, paddingLeft: 10}
+                }
+              >
+                <TeamFlank
+                  players={shared.players}
+                  team={team}
+                  me={me}
+                  layout="column"
+                  align={team === 'red' ? 'right' : 'left'}
+                  withNames={flankWidth >= 118}
+                />
+              </div>
+            ))}
         </div>
 
-        <div className="w-full max-w-3xl">
+        {/* The rail is fixed to the bottom-left corner. It clears the HUD on its
+            own until the rosters fold into it, which puts faces in that corner. */}
+        <div className={cx('w-full max-w-3xl shrink-0', flanks ? 'pb-0 max-sm:pb-14' : 'pb-14')}>
           <Hud
             view={view}
             me={player}
             deadline={shared.deadline}
             timerTotal={timerTotal}
             busy={busy}
+            players={shared.players}
+            rosters={flanks ? 'flanks' : 'hud'}
           />
         </div>
       </motion.main>

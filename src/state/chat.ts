@@ -19,6 +19,32 @@ export type Message = {
   spymaster: boolean
 }
 
+/**
+ * Which room a message was said in, for drawing it. All is the baseline and is
+ * never bounded; the two spymasters share one room, because they are in it
+ * together and a boundary between them would say they were not.
+ */
+export type Room = 'all' | 'team:red' | 'team:blue' | 'spymasters'
+
+export const roomOf = (msg: Message): Room =>
+  msg.channel === 'spymasters'
+    ? 'spymasters'
+    : msg.channel === 'team' && msg.team
+      ? `team:${msg.team}`
+      : 'all'
+
+/** Consecutive messages said in the same room share one block. */
+export const rooms = (messages: readonly Message[]) => {
+  const out: Array<{room: Room; items: Message[]}> = []
+  for (const msg of messages) {
+    const room = roomOf(msg)
+    const last = out[out.length - 1]
+    if (last?.room === room) last.items.push(msg)
+    else out.push({room, items: [msg]})
+  }
+  return out
+}
+
 /** A tab left open all evening should not grow without limit. */
 const KEEP = 300
 const MAX_LEN = 400

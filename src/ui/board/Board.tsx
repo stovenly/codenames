@@ -19,7 +19,8 @@ export const Board = ({
   size,
   players,
   canGuess,
-  spymaster
+  spymaster,
+  width
 }: {
   view: View
   stage: Stage
@@ -27,6 +28,8 @@ export const Board = ({
   players: Player[]
   canGuess: boolean
   spymaster: boolean
+  /** Solved against the height on offer by the play screen; null until measured. */
+  width: number | null
 }) => {
   const marks = useMarks()
   const armedCard = myMark()
@@ -47,10 +50,14 @@ export const Board = ({
   )
 
   return (
-    <div className="relative w-full">
+    <div className="relative grid size-full min-h-0 place-items-center">
       <div
-        className="grid w-full gap-1.5 sm:gap-2.5"
-        style={{gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`}}
+        className="grid"
+        style={{
+          gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`,
+          gap: 'var(--board-gap)',
+          width: width === null ? '100%' : width
+        }}
       >
         {view.cards.map((card, i) => (
           <Card

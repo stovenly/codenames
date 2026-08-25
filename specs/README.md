@@ -32,6 +32,10 @@ depends on a later one.
 | [14](14-chat.md) | Chat | Teams and spymasters can talk without leaving the tab |
 | [15](15-connection.md) | Holding the room together | A dropped message costs a moment, never a player |
 
+Changes made after the build are specified the same way. Shipped ones are in
+[done](done/README.md); anything still outstanding is in
+[IMPROVEMENTS.MD](../IMPROVEMENTS.MD) at the repository root.
+
 Items marked **OPEN** need a decision before that section is built. None of them
 block an earlier step. Resolutions are recorded inline where the item was
 raised, rather than in a separate log.

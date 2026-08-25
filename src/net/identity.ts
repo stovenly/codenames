@@ -134,7 +134,42 @@ export const setRoomHash = (roomId: string) => {
   history.replaceState(null, '', `${location.pathname}${location.search}#r=${roomId}`)
 }
 
-export const shareLink = (roomId: string) => `${location.origin}${location.pathname}#r=${roomId}`
+/** Base64url of the UTF-8 password. Encoding, not encryption: the link is the password. */
+const encodePassword = (password: string) =>
+  btoa(String.fromCharCode(...new TextEncoder().encode(password)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
+
+const decodePassword = (encoded: string) => {
+  const padded = encoded.replace(/-/g, '+').replace(/_/g, '/')
+  const bytes = Uint8Array.from(atob(padded), c => c.charCodeAt(0))
+  return new TextDecoder().decode(bytes)
+}
+
+export const shareLink = (roomId: string, password?: string | null) =>
+  `${location.origin}${location.pathname}#r=${roomId}` +
+  (password ? `&p=${encodePassword(password)}` : '')
+
+export const passwordFromHash = (): string | null => {
+  const m = /(?:^|[#&])p=([A-Za-z0-9\-_]+)/.exec(location.hash)
+  if (!m) return null
+  try {
+    return decodePassword(m[1]!) || null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * A refresh should not re-supply it, a screenshot should not contain it, and the
+ * in-room invite button builds its own link from the room id.
+ */
+export const stripPasswordFromHash = () => {
+  if (!/(?:^|[#&])p=/.test(location.hash)) return
+  const room = roomFromHash()
+  history.replaceState(null, '', `${location.pathname}${location.search}${room ? `#r=${room}` : ''}`)
+}
 
 export const sha256Hex = async (input: string) => {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input))

@@ -1,5 +1,12 @@
 import {useMemo, useState} from 'react'
-import {abandonSeat, offeredSeat, resumedSeat, takeSeat} from '../../net/identity'
+import {
+  abandonSeat,
+  offeredSeat,
+  passwordFromHash,
+  resumedSeat,
+  stripPasswordFromHash,
+  takeSeat
+} from '../../net/identity'
 import {joinedExisting} from '../../state/net'
 import {createRoom, joinRoom, myDisplayName} from '../../state/room'
 import {Button, Enter, Field, Item, Label, Panel, Rule, input} from '../atoms'
@@ -193,7 +200,12 @@ const Wordmark = () => {
 export const Landing = ({rejected}: {rejected: boolean}) => {
   const seat = offeredSeat()
   const [name, setName] = useState(myDisplayName())
-  const [password, setPassword] = useState('')
+  // Read once and taken out of the address bar in the same breath.
+  const [password, setPassword] = useState(() => {
+    const invited = passwordFromHash()
+    stripPasswordFromHash()
+    return invited ?? ''
+  })
   const [busy, setBusy] = useState(false)
 
   const go = async () => {

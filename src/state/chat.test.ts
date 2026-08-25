@@ -13,7 +13,8 @@ vi.mock('./net', () => ({
   send: (kind: string, body: unknown, to: string) => sent.push({kind, body, to})
 }))
 
-const {readable, say, writable, whyLocked} = await import('./chat')
+const {readable, rooms, say, writable, whyLocked} = await import('./chat')
+import type {Message} from './chat'
 
 const seat = (id: string, team: Team | null, spymaster = false): Player => ({
   id,
@@ -94,5 +95,53 @@ describe('chat', () => {
     shared = room(TABLE, [START, END])
     say('team', 'psst')
     expect(sent).toEqual([])
+  })
+})
+
+describe('reading a message off its shape', () => {
+  let n = 0
+  const said = (channel: 'all' | 'team' | 'spymasters', team: Team | null, spymaster = false): Message => ({
+    id: `m${n++}`,
+    at: 0,
+    from: 'a',
+    channel,
+    text: 'x',
+    team,
+    spymaster
+  })
+
+  it('blocks a run of one room together and breaks on another', () => {
+    const log = [
+      said('all', 'red'),
+      said('team', 'red'),
+      said('team', 'red'),
+      said('all', 'blue'),
+      said('team', 'red')
+    ]
+    expect(rooms(log).map(b => [b.room, b.items.length])).toEqual([
+      ['all', 1],
+      ['team:red', 2],
+      ['all', 1],
+      ['team:red', 1]
+    ])
+  })
+
+  it('keeps the two teams in separate blocks', () => {
+    const log = [said('team', 'red'), said('team', 'blue')]
+    expect(rooms(log).map(b => b.room)).toEqual(['team:red', 'team:blue'])
+  })
+
+  it('puts opposing spymasters in one block', () => {
+    const log = [said('spymasters', 'red', true), said('spymasters', 'blue', true)]
+    expect(rooms(log)).toHaveLength(1)
+    expect(rooms(log)[0]!.items).toHaveLength(2)
+  })
+
+  it('treats a team message from nobody in particular as All', () => {
+    expect(rooms([said('team', null)])[0]!.room).toBe('all')
+  })
+
+  it('has nothing to draw for an empty log', () => {
+    expect(rooms([])).toEqual([])
   })
 })

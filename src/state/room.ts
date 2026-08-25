@@ -3,10 +3,12 @@ import {newRoomId, rememberSeat, sha256Hex, startSeatClaim} from '../net/identit
 import type {PlayerId} from '../net/protocol'
 import {derive, type View} from '../game/reducer'
 import {advance} from '../game/reducer'
+import {clueProblem} from '../game/clue'
+import {shuffle} from '../game/prng'
 import {defaultSettings, validate, type BoardSize, type Settings} from '../game/settings'
 import type {ClueCount, Step} from '../game/steps'
 import type {Avatar, Player, Shared, Team} from '../game/types'
-import {AVATAR_VARIANTS, otherTeam, rosterProblems, spymasterOf} from '../game/types'
+import {AVATAR_VARIANTS, dealTeams, otherTeam, rosterProblems, spymasterOf} from '../game/types'
 import {joinedExisting, lastHeardFrom, on, openRoom, peers, roomId, self, send, startMesh, subscribe as onNetChange} from './net'
 import {PACE} from './pace'
 import {takeTally} from './tally'
@@ -612,8 +614,9 @@ const monitor = () => {
 
 export type Intent =
   | {kind: 'setName'; name: string}
-  | {kind: 'setTeam'; target: PlayerId; team: Team | null}
+  | {kind: 'setTeam'; target: PlayerId; team: Team | null; spectator?: boolean}
   | {kind: 'setSpymaster'; target: PlayerId; spymaster: boolean}
+  | {kind: 'shuffleTeams'}
   | {kind: 'setAvatar'; avatar: Avatar}
   | {kind: 'ready'; ready: boolean}
   | {kind: 'transferHost'; target: PlayerId}
@@ -676,7 +679,11 @@ const applyIntent = (from: PlayerId, intent: Intent) => {
     case 'setTeam':
       if (view.phase !== 'setup') return
       if (intent.target !== from && !fromHost) return
-      upsertPlayer(intent.target, {team: intent.team, spymaster: false})
+      upsertPlayer(intent.target, {
+        team: intent.spectator ? null : intent.team,
+        spymaster: false,
+        spectator: !!intent.spectator
+      })
       return
 
     case 'setSpymaster': {
@@ -694,6 +701,16 @@ const applyIntent = (from: PlayerId, intent: Intent) => {
               : p
         )
       }))
+      return
+    }
+
+    case 'shuffleTeams': {
+      if (!fromHost) return
+      if (view.phase !== 'setup') return
+      // The coin decides which side gets the odd seat, so it is not always red.
+      const order = shuffle(state.players.map(p => p.id), Math.random)
+      const first: Team = Math.random() < 0.5 ? 'red' : 'blue'
+      hostMutate(draft => ({...draft, players: dealTeams(draft.players, order, first)}))
       return
     }
 
@@ -759,6 +776,8 @@ const applyIntent = (from: PlayerId, intent: Intent) => {
       if (!player || player.team !== view.turn || !player.spymaster) return
       const word = intent.word.trim().slice(0, 40)
       if (!word) return
+      const onBoard = clueProblem(word, view.cards)
+      if (onBoard) return refuse(from, onBoard)
       const max = state.settings.size * state.settings.size
       if (intent.count !== 'unlimited' && (intent.count < 0 || intent.count > max)) return
       appendStep({t: 'clue', team: view.turn, by: from, word, count: intent.count})
@@ -1156,6 +1175,9 @@ export const setPassword = async (password: string | null) => {
 }
 
 export const hasPassword = () => passwordHash !== null
+
+/** The plaintext, for the host's own invite link. Nobody else's session holds one worth sharing. */
+export const myPassword = () => (isHost() ? (loadSession()?.password ?? null) : null)
 
 export const setWordSource = async (source: words.Source, label: string) => {
   if (!isHost()) return

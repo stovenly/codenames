@@ -14,11 +14,11 @@ export const buildBoard = (settings: Settings, words: string[], seed: string, st
   const rand = mulberry32(seedFrom(seed))
   const picked = shuffle([...words], rand).slice(0, cardCount(settings.size))
 
-  const {perTeam, assassins, neutral} = composition(settings)
+  const {perTeam, bonus, assassins, neutral} = composition(settings)
   const other: Team = startTeam === 'red' ? 'blue' : 'red'
 
   const bag: Colour[] = [
-    ...Array<Colour>(Math.max(0, perTeam)).fill(startTeam),
+    ...Array<Colour>(Math.max(0, perTeam + bonus)).fill(startTeam),
     ...Array<Colour>(Math.max(0, perTeam)).fill(other),
     ...Array<Colour>(Math.max(0, assassins)).fill('assassin'),
     ...Array<Colour>(Math.max(0, neutral)).fill('neutral')

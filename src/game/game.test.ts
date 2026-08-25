@@ -1,12 +1,21 @@
 import {describe, expect, it} from 'vitest'
 import {buildBoard} from './board'
 import {advance, derive, followUps} from './reducer'
-import {composition, defaultSettings, isDegenerate, presetFor, validate, type BoardSize} from './settings'
+import {clueProblem} from './clue'
+import {
+  composition,
+  defaultSettings,
+  isDegenerate,
+  presetFor,
+  validate,
+  type BoardSize,
+  type Settings
+} from './settings'
 import {mulberry32, seedFrom, shuffle} from './prng'
 import {hashWords, normalize, validateCustom} from './wordlist'
 import {readLog} from './log'
 import type {Step} from './steps'
-import {rosterProblems, type Player, type Team} from './types'
+import {dealTeams, rosterProblems, seatOf, type Player, type Team} from './types'
 
 const WORDS = Array.from({length: 80}, (_, i) => `WORD${String(i).padStart(2, '0')}`)
 const settings = (over: Partial<ReturnType<typeof defaultSettings>> = {}) => ({
@@ -46,32 +55,52 @@ describe('prng', () => {
 describe('settings', () => {
   it('matches the documented default composition at every size', () => {
     const table: Record<BoardSize, [number, number, number]> = {
-      3: [9, 3, 2],
-      4: [16, 5, 5],
-      5: [25, 8, 8],
-      6: [36, 11, 12],
-      7: [49, 15, 17]
+      3: [9, 3, 1],
+      4: [16, 5, 4],
+      5: [25, 8, 7],
+      6: [36, 11, 11],
+      7: [49, 15, 16]
     }
     for (const size of [3, 4, 5, 6, 7] as BoardSize[]) {
       const c = composition({size, ...presetFor(size)})
       const [total, perTeam, neutral] = table[size]
       expect([c.total, c.perTeam, c.neutral]).toEqual([total, perTeam, neutral])
-      expect(2 * c.perTeam + c.assassins + c.neutral).toBe(c.total)
+      expect(c.bonus).toBe(1)
+      expect(2 * c.perTeam + c.bonus + c.assassins + c.neutral).toBe(c.total)
     }
   })
 
-  it('never gives one team more agents than the other', () => {
+  it('gives the extra agents to whoever starts and nobody else', () => {
     for (const size of [3, 4, 5, 6, 7] as BoardSize[]) {
       for (let teamCards = 1; teamCards <= 4; teamCards++) {
-        const cfg = {size, teamCards, assassins: 1}
-        if (composition(cfg).neutral < 0) continue
-        for (const start of ['red', 'blue'] as Team[]) {
-          const board = buildBoard(settings(cfg), WORDS, 'seed', start)
-          expect(board.filter(c => c.colour === 'red')).toHaveLength(teamCards)
-          expect(board.filter(c => c.colour === 'blue')).toHaveLength(teamCards)
+        for (const bonusCards of [0, 1, 3]) {
+          const cfg = {size, teamCards, bonusCards, assassins: 1}
+          if (composition(cfg).neutral < 0) continue
+          for (const start of ['red', 'blue'] as Team[]) {
+            const board = buildBoard(settings(cfg), WORDS, 'seed', start)
+            const other = start === 'red' ? 'blue' : 'red'
+            expect(board.filter(c => c.colour === start)).toHaveLength(teamCards + bonusCards)
+            expect(board.filter(c => c.colour === other)).toHaveLength(teamCards)
+          }
         }
       }
     }
+  })
+
+  it('deals the board today’s build deals when the bonus is off', () => {
+    const cfg = {size: 5 as BoardSize, teamCards: 8, bonusCards: 0, assassins: 1}
+    const board = buildBoard(settings(cfg), WORDS, 'seed', 'red')
+    expect(board.filter(c => c.colour === 'red')).toHaveLength(8)
+    expect(board.filter(c => c.colour === 'blue')).toHaveLength(8)
+    expect(board.filter(c => c.colour === 'neutral')).toHaveLength(8)
+  })
+
+  it('reads a board from a build that had no bonus setting as having none', () => {
+    const {bonusCards, ...older} = settings()
+    expect(composition(older).bonus).toBe(0)
+    expect(buildBoard(older as Settings, WORDS, 'seed', 'red')).toEqual(
+      buildBoard(settings({bonusCards: 0}), WORDS, 'seed', 'red')
+    )
   })
 
   it('rejects a composition that overflows the board', () => {
@@ -111,11 +140,12 @@ describe('board', () => {
     expect(a).not.toEqual(b)
   })
 
-  it('deals both teams the same number of agents whoever starts', () => {
+  it('deals the bonus to whichever side starts', () => {
     for (const start of ['red', 'blue'] as Team[]) {
       const board = buildBoard(settings(), WORDS, 'seed', start)
-      expect(board.filter(c => c.colour === 'red')).toHaveLength(8)
-      expect(board.filter(c => c.colour === 'blue')).toHaveLength(8)
+      const other = start === 'red' ? 'blue' : 'red'
+      expect(board.filter(c => c.colour === start)).toHaveLength(9)
+      expect(board.filter(c => c.colour === other)).toHaveLength(8)
     }
   })
 
@@ -127,7 +157,8 @@ describe('board', () => {
 })
 
 describe('derive', () => {
-  const cfg = settings()
+  /** Even sides, so a count in here is about the rule under test and not the deal. */
+  const cfg = settings({bonusCards: 0})
   const start: Step = {t: 'start', seed: 'seed-1', startTeam: 'red'}
   const board = buildBoard(cfg, WORDS, 'seed-1', 'red')
   const run = (steps: Step[]) => derive(cfg, WORDS, steps, steps.length)
@@ -438,5 +469,105 @@ describe('a clue nobody gave', () => {
     const entries = readLog(s, WORDS_80, steps, steps.length)
     expect(entries).toHaveLength(1)
     expect(entries[0]).toMatchObject({kind: 'clue', word: '', by: 'rs'})
+  })
+})
+
+describe('dealing the teams', () => {
+  const player = (id: string, spectator = false): Player => ({
+    id,
+    name: id,
+    team: null,
+    spymaster: false,
+    ready: false,
+    avatar: {style: 'lorelei', seed: '0', bg: '141C30'},
+    connected: true,
+    spectator
+  })
+
+  const roster = (n: number, spectators: string[] = []) =>
+    Array.from({length: n}, (_, i) => player(`p${i}`, spectators.includes(`p${i}`)))
+
+  it('splits every size evenly and gives each side one spymaster', () => {
+    for (let n = 2; n <= 9; n++) {
+      const players = roster(n)
+      const dealt = dealTeams(players, players.map(p => p.id), 'red')
+      const red = dealt.filter(p => p.team === 'red')
+      const blue = dealt.filter(p => p.team === 'blue')
+
+      expect(Math.abs(red.length - blue.length)).toBeLessThanOrEqual(1)
+      expect(red.filter(p => p.spymaster)).toHaveLength(1)
+      expect(blue.filter(p => p.spymaster)).toHaveLength(1)
+      expect(dealt.filter(p => p.team === null)).toHaveLength(0)
+    }
+  })
+
+  it('leaves spectators watching and balances around them', () => {
+    const players = roster(6, ['p1', 'p4'])
+    const dealt = dealTeams(players, players.map(p => p.id), 'blue')
+
+    expect(dealt.filter(p => seatOf(p) === 'spectator').map(p => p.id)).toEqual(['p1', 'p4'])
+    expect(dealt.find(p => p.id === 'p1')!.spymaster).toBe(false)
+    expect(dealt.filter(p => p.team === 'red')).toHaveLength(2)
+    expect(dealt.filter(p => p.team === 'blue')).toHaveLength(2)
+  })
+
+  it('clears the spymaster somebody was before', () => {
+    const players = roster(4).map(p => (p.id === 'p3' ? {...p, team: 'red' as Team, spymaster: true} : p))
+    const dealt = dealTeams(players, ['p0', 'p1', 'p2', 'p3'], 'red')
+
+    expect(dealt.find(p => p.id === 'p3')!.spymaster).toBe(false)
+    expect(dealt.filter(p => p.spymaster)).toHaveLength(2)
+  })
+
+  it('gives the odd seat to whichever side is dealt first', () => {
+    const players = roster(5)
+    const ids = players.map(p => p.id)
+
+    expect(dealTeams(players, ids, 'red').filter(p => p.team === 'red')).toHaveLength(3)
+    expect(dealTeams(players, ids, 'blue').filter(p => p.team === 'blue')).toHaveLength(3)
+  })
+
+  it('seats a roster that is all spectators nowhere', () => {
+    const players = roster(3, ['p0', 'p1', 'p2'])
+    const dealt = dealTeams(players, players.map(p => p.id), 'red')
+
+    expect(dealt.every(p => p.team === null && !p.spymaster)).toBe(true)
+    expect(rosterProblems(dealt)).toHaveLength(2)
+  })
+})
+
+describe('a clue the table can see', () => {
+  const cards = [
+    {word: 'APPLE', colour: 'red' as const, revealed: false, revealedBy: null},
+    {word: 'PANS', colour: 'blue' as const, revealed: false, revealedBy: null},
+    {word: 'CAR', colour: 'neutral' as const, revealed: true, revealedBy: 'red' as const}
+  ]
+
+  it('refuses a word on the board, turned over or not', () => {
+    expect(clueProblem('APPLE', cards)).toBe('APPLE is on the board')
+    expect(clueProblem('apple', cards)).toBe('APPLE is on the board')
+    expect(clueProblem('CAR', cards)).toBe('CAR is on the board')
+  })
+
+  it('refuses the plural either way round', () => {
+    expect(clueProblem('APPLES', cards)).toBe('APPLE is on the board')
+    expect(clueProblem('PAN', cards)).toBe('PANS is on the board')
+  })
+
+  it('allows a word that merely contains one', () => {
+    expect(clueProblem('CARPET', cards)).toBeNull()
+    expect(clueProblem('PINEAPPLE', cards)).toBeNull()
+    expect(clueProblem('ORCHARD', cards)).toBeNull()
+  })
+
+  it('leaves the step log alone when a clue is refused', () => {
+    const cfg = settings({bonusCards: 0})
+    const board = buildBoard(cfg, WORDS, 'seed-1', 'red')
+    const steps: Step[] = [{t: 'start', seed: 'seed-1', startTeam: 'red'}]
+    const view = derive(cfg, WORDS, steps, steps.length)
+
+    expect(clueProblem(board[0]!.word, view.cards)).not.toBeNull()
+    expect(derive(cfg, WORDS, steps, steps.length).phase).toBe('clue')
+    expect(steps).toHaveLength(1)
   })
 })

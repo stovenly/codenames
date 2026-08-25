@@ -64,7 +64,8 @@ hash-and-fetch scheme in [06](06-configuration.md#distribution) handles.
 ```ts
 type Settings = {
   size: 3 | 4 | 5 | 6 | 7
-  teamCards: number        // per team; starting team gets one more
+  teamCards: number        // per team, before the bonus
+  bonusCards: number       // extra agents for whoever starts; 1 by default
   assassins: number
   wordListHash: string
   wordListName: string        // label only, so clients can name a deck they do not hold
@@ -76,30 +77,38 @@ type Settings = {
 Derived counts, where `N = size * size`:
 
 ```
-perTeam = teamCards        // both teams, always
-neutral = N - 2 * teamCards - assassins
+startTeam = teamCards + bonusCards
+otherTeam = teamCards
+neutral   = N - 2 * teamCards - bonusCards - assassins
 ```
 
-**Both teams always get the same number of agents.** The published rules hand
-the starting team one extra card to offset moving first; we do not. Whatever is
-left over after two equal teams and the assassins becomes bystanders — the
-board absorbs the remainder, never one of the teams. A slider that produces
-9 red against 8 blue reads as a bug to the people playing, and being able to
-trust that the sides are even matters more here than matching the box.
+**The starting team is dealt `bonusCards` more agents than the other**, as the
+published rules do, to offset moving first. Whatever is left after both teams,
+the bonus and the assassins becomes bystanders — the board absorbs the
+remainder, never one of the teams.
 
-**Validation:** `neutral >= 0`, `teamCards >= 1`, `assassins >= 1`, and the
-resolved word list holds at least `N` words. `neutral === 0` is allowed but
-flagged as degenerate.
+This reverses an earlier resolution here, which gave both sides the same count
+on the grounds that 9 red against 8 blue reads as a bug. The answer is that the
+asymmetry is now named by a labelled slider, shown before the deal as a card the
+composition row draws as belonging to neither side yet, and optional: set it to
+0 and the board is what it was. See
+[done/05](done/05-first-teams-bonus-cards.md).
+
+**Validation:** `neutral >= 0`, `teamCards >= 1`, `bonusCards >= 0`,
+`assassins >= 1`, and the resolved word list holds at least `N` words.
+`neutral === 0` is allowed but flagged as degenerate. A `Settings` that arrived
+without `bonusCards` reads as 0 — the board is rebuilt from the seed on every
+client, so a field two of them disagree about is two different boards.
 
 **Defaults:**
 
-| Size | N | Per team | Assassins | Bystanders |
-|---|---|---|---|---|
-| 3x3 | 9 | 3 | 1 | 2 |
-| 4x4 | 16 | 5 | 1 | 5 |
-| 5x5 | 25 | 8 | 1 | 8 |
-| 6x6 | 36 | 11 | 2 | 12 |
-| 7x7 | 49 | 15 | 2 | 17 |
+| Size | N | Per team | Bonus | Assassins | Bystanders |
+|---|---|---|---|---|---|
+| 3x3 | 9 | 3 | 1 | 1 | 1 |
+| 4x4 | 16 | 5 | 1 | 1 | 4 |
+| 5x5 | 25 | 8 | 1 | 1 | 7 |
+| 6x6 | 36 | 11 | 1 | 2 | 11 |
+| 7x7 | 49 | 15 | 1 | 2 | 16 |
 
 The editing UI is [06](06-configuration.md#board-configuration). Settings change
 only in `setup` and `gameover`, never mid-game.

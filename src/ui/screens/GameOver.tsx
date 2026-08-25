@@ -1,12 +1,14 @@
 import confetti from 'canvas-confetti'
 import {motion} from 'motion/react'
 import NumberFlow from '@number-flow/react'
-import {useEffect, useRef} from 'react'
+import {useEffect, useRef, useState} from 'react'
 import type {Accolade} from '../../game/accolades'
 import type {View} from '../../game/reducer'
 import type {Player, Team} from '../../game/types'
 import {intend} from '../../state/room'
+import type {Step} from '../../game/steps'
 import {Button, Label, Panel, Rule} from '../atoms'
+import {FinalBoard, turnedByFrom} from '../board/FinalBoard'
 import {cx} from '../cx'
 import {spring} from '../motion'
 import {sfx} from '../sound/audio'
@@ -57,16 +59,23 @@ export const GameOver = ({
   me,
   isHost,
   honours,
-  players
+  players,
+  size,
+  steps
 }: {
   view: View
   me: Player | null
   isHost: boolean
   honours: Accolade[]
   players: Player[]
+  size: number
+  steps: Step[]
 }) => {
     const winner = view.winner ?? 'red'
   const iWon = me?.team === winner
+  // Open where there is room beside the panel; below that it would push the
+  // winner off the top, so it waits to be asked for.
+  const [showBoard, setShowBoard] = useState(() => window.innerWidth >= 1024)
 
   const sky = useRef<HTMLCanvasElement>(null)
 
@@ -80,7 +89,7 @@ export const GameOver = ({
   }, [iWon, me?.team, winner])
 
   return (
-    <main className="relative grid min-h-full place-items-center px-6 py-16">
+    <main className="relative grid min-h-full place-items-center px-6 py-8 sm:py-16">
       <canvas ref={sky} aria-hidden className="pointer-events-none fixed inset-0 z-10 size-full" />
 
       <motion.span
@@ -96,10 +105,11 @@ export const GameOver = ({
         }}
       />
 
+      <div className="relative z-20 flex w-full max-w-6xl flex-col items-center gap-8 lg:flex-row lg:items-center lg:justify-center">
       <Panel
         level={2}
         glossy
-        className="relative z-20 flex w-full max-w-md flex-col items-center gap-6 px-9 py-10 text-center"
+        className="flex w-full max-w-md shrink-0 flex-col items-center gap-6 px-9 py-10 text-center"
       >
         <motion.span
           initial={{scale: 0.45, opacity: 0, rotate: -6}}
@@ -146,6 +156,10 @@ export const GameOver = ({
           ))}
         </div>
 
+        <Button variant="quiet" onClick={() => setShowBoard(v => !v)}>
+          {showBoard ? 'Hide the board' : 'See the board'}
+        </Button>
+
         {isHost ? (
           <Button size="lg" onClick={() => intend({kind: 'endGame'})}>
             Play again
@@ -155,6 +169,18 @@ export const GameOver = ({
         )}
 
       </Panel>
+
+      {showBoard && (
+        <motion.div
+          initial={{opacity: 0, y: 10}}
+          animate={{opacity: 1, y: 0}}
+          transition={spring.soft}
+          className="w-full max-w-2xl"
+        >
+          <FinalBoard view={view} size={size} turnedBy={turnedByFrom(steps, players)} />
+        </motion.div>
+      )}
+      </div>
 
       <Accolades cards={honours} players={players} />
     </main>
