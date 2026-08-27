@@ -27,7 +27,7 @@ Under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/):
 | Notionists | Zoish |
 | Thumbs | DiceBear |
 | Pixel Art | DiceBear |
-| Bunny, Dog, Squid | this repository |
+| Bunny, Dino, Dog, Squid | this repository |
 
 ## Typefaces
 
