@@ -1,80 +1,72 @@
 import type {Style} from '@dicebear/core'
 import {shade} from './tint'
 
-/** A dinosaur drawn from parts, in the shape DiceBear expects of a style. */
+/** A dinosaur in profile, drawn from parts, in the shape DiceBear expects. */
 
 const HIDE = ['5FA85C', '3E8C7E', '4E7FC4', 'D2703C', 'C4566B', '8A6FB0', 'C9A24B', '6E7A6A']
 
 const ACCENT = ['E9B44C', 'E3705F', '5FBFA8', '9C7BD0', 'D9D2C2']
 
-type Crest = 'plates' | 'horns' | 'frill' | 'fringe'
-const CRESTS: Crest[] = ['plates', 'horns', 'frill', 'fringe']
+type Crest = 'plates' | 'horns' | 'sail' | 'shield'
+const CRESTS: Crest[] = ['plates', 'horns', 'sail', 'shield']
 
 /**
- * Drawn before the skull, so every crest stands behind the head. Each clears the
- * skull's own top edge at y=30 by a margin: one that only peeks over reads as hair.
+ * Drawn before the head, so each crest is clipped to whatever rises above the
+ * skull's own outline and its base never has to meet anything.
  */
 const crest = (kind: Crest, ridge: string, accent: string, bone: string) => {
   if (kind === 'plates') {
     return `<g fill="#${ridge}">
-        <path d="M24 42 27 22 36 36Z"/>
-        <path d="M34 36 38 14 47 31Z"/>
-        <path d="M43 32 50 8 57 32Z"/>
-        <path d="M66 36 62 14 53 31Z"/>
-        <path d="M76 42 73 22 64 36Z"/>
-      </g>
-      <path d="M46 31 50 16 54 31Z" fill="#${accent}" opacity=".75"/>`
-  }
-
-  if (kind === 'horns') {
-    return `<g fill="#${bone}">
-        <path d="M30 41q-2-20 1-31q7 11 8 27Z"/>
-        <path d="M70 41q2-20-1-31q-7 11-8 27Z"/>
+        <path d="M62 30 60 14 50 28Z"/>
+        <path d="M48 32 42 16 32 32Z"/>
+        <path d="M32 38 22 26 18 42Z"/>
+        <path d="M20 50 8 44 8 58Z"/>
       </g>`
   }
 
-  if (kind === 'frill') {
-    // Points rather than round bumps: a scalloped fan reads as curly hair.
-    const rim = (a: number, out: number) =>
-      [50 + Math.cos(a) * 36 * out, 42 + Math.sin(a) * 27 * out].map(n => n.toFixed(1)).join(' ')
-    const points = Array.from({length: 9}, (_, i) => {
-      const a = Math.PI * (1 + (i + 0.5) / 9)
-      return `<path d="M${rim(a - 0.13, 0.98)} ${rim(a, 1.2)} ${rim(a + 0.13, 0.98)}Z"/>`
-    }).join('')
-    return `<g fill="#${ridge}">${points}<ellipse cx="50" cy="42" rx="36" ry="27"/></g>
-      <ellipse cx="50" cy="43" rx="28" ry="20" fill="#${accent}" opacity=".55"/>`
+  // One over the snout and one over the eye, at different heights and opposite
+  // rakes. Matched horns side by side on the crown read as a pair of ears.
+  if (kind === 'horns') {
+    return `<g fill="#${bone}">
+        <path d="M80 46 89 25 93 47Z"/>
+        <path d="M51 38 43 15 61 33Z"/>
+      </g>`
   }
 
-  // Out of the cheeks rather than the crown: a fourth shape sitting on top of the
-  // skull reads as headwear beside the three that already do.
-  const spike = (a: number) => {
-    const at = (out: number, off: number) =>
-      [50 + Math.cos(a + off) * 26 * out, 50 + Math.sin(a + off) * 20 * out]
-        .map(n => n.toFixed(1))
-        .join(' ')
-    return `<path d="M${at(0.95, -0.17)} ${at(1.5, 0)} ${at(0.95, 0.17)}Z"/>`
+  // Rooted along the whole neck rather than standing on a stalk. Every lobe
+  // rising off the skull, at any thickness, read as a floppy ear.
+  if (kind === 'sail') {
+    return `<path d="M46 44C40 16 29 7 18 11C6 16 5 43 9 68C18 59 32 50 46 44Z" fill="#${ridge}"/>
+      <g stroke="#${accent}" stroke-width="2.6" stroke-linecap="round" fill="none" opacity=".5">
+        <path d="M30 48 24 20"/><path d="M21 54 14 28"/><path d="M14 61 9 44"/>
+      </g>`
   }
-  const fringe = [2.45, 2.95, 3.45].flatMap(a => [spike(a), spike(Math.PI - a)]).join('')
-  return `<g fill="#${ridge}">${fringe}</g>`
+
+  // A fan pinned to the back of the skull rather than floating over it: the
+  // centre sits inside the head, so only the rim past the outline shows.
+  const pt = (a: number, out: number) =>
+    [38 + Math.cos(a) * 36 * out, 46 + Math.sin(a) * 32 * out].map(n => n.toFixed(1)).join(' ')
+  const points = Array.from({length: 6}, (_, i) => {
+    const a = 3.15 + (1.95 * (i + 0.5)) / 6
+    return `<path d="M${pt(a - 0.15, 0.97)} ${pt(a, 1.17)} ${pt(a + 0.15, 0.97)}Z"/>`
+  }).join('')
+  const fan = Array.from({length: 13}, (_, i) => pt(3.15 + (1.95 * i) / 12, 1)).join(' L')
+  return `<g fill="#${ridge}">${points}<path d="M38 46 L${fan}Z"/></g>
+    <path d="M38 46 L${Array.from({length: 13}, (_, i) => pt(3.15 + (1.95 * i) / 12, 0.72)).join(' L')}Z"
+          fill="#${accent}" opacity=".45"/>`
 }
 
-const eyes = (kind: number, hide: string) => {
+const eye = (kind: number, hide: string) => {
   const line = `#${shade(hide, 0.62)}`
-  /** A slit pupil: the one mark that keeps a round-cheeked head reptilian. */
-  const open = (cx: number) =>
-    `<ellipse cx="${cx}" cy="46" rx="5.2" ry="5.8" fill="#FFFDF6"/>
-     <ellipse cx="${cx}" cy="46.4" rx="2.2" ry="4" fill="#2A2531"/>
-     <circle cx="${cx + 1.9}" cy="43.6" r="1.4" fill="#FFFFFF"/>`
-  const shut = (cx: number) =>
-    `<path d="M${cx - 5.2} 46q5.2 5 10.4 0" stroke="${line}" stroke-width="2.3" fill="none" stroke-linecap="round"/>`
-  const half = (cx: number) =>
-    `<ellipse cx="${cx}" cy="46" rx="5.2" ry="5.8" fill="#FFFDF6"/>
-     <path d="M${cx - 5.2} 46a5.2 5.8 0 0 0 10.4 0Z" fill="#2A2531"/>`
-
-  if (kind === 0) return open(36) + open(64)
-  if (kind === 1) return shut(36) + shut(64)
-  if (kind === 2) return open(36) + shut(64)
-  return half(36) + half(64)
+  if (kind === 1)
+    return `<path d="M52 42q5 5 10 0" stroke="${line}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`
+  if (kind === 2)
+    return `<ellipse cx="57" cy="42" rx="5" ry="5.6" fill="#FFFDF6"/>
+      <path d="M52 42a5 5.6 0 0 0 10 0Z" fill="#2A2531"/>`
+  const slit = kind === 3 ? 'rx="1.6" ry="4"' : 'rx="2.4" ry="3.6"'
+  return `<ellipse cx="57" cy="42" rx="5" ry="5.6" fill="#FFFDF6"/>
+    <ellipse cx="57.6" cy="42.2" ${slit} fill="#2A2531"/>
+    <circle cx="55.6" cy="39.6" r="1.3" fill="#FFFFFF"/>`
 }
 
 export const meta = {
@@ -95,54 +87,51 @@ export const create: Style<never>['create'] = ({prng}) => {
   const kind = CRESTS[prng.integer(0, CRESTS.length - 1)]!
   const look = prng.integer(0, 3)
   // Percentages: bool takes 1..100, and a fraction here means never.
-  const teeth = prng.bool(60)
+  const gape = prng.bool(45)
+  const teeth = prng.bool(70)
   const spots = prng.bool(45)
   const stripes = prng.bool(40)
-  const brows = prng.bool(35)
+
+  // The jaw pivots at the hinge, so shut and open are one shape at two angles.
+  const jaw = `<g transform="rotate(${gape ? 15 : 0} 40 54)">
+      <path d="M40 54 94 54q3 4 0 7l-8 3-34 4q-12 0-12-8Z" fill="#${pale}"/>
+    </g>`
 
   return {
     attributes: {viewBox: '0 0 100 100', fill: 'none', 'shape-rendering': 'auto'},
     body: `
-      <path d="M16 100c0-14 15-24 34-24s34 10 34 24Z" fill="#${deep}"/>
+      <path d="M52 52q-24 8-30 50" stroke="#${deep}" stroke-width="34" fill="none" stroke-linecap="round"/>
       ${crest(kind, ridge, accent, bone)}
-      <ellipse cx="50" cy="50" rx="26" ry="20" fill="#${hide}"/>
-      <path d="M33 54h34v18q0 12-17 12t-17-12Z" fill="#${hide}"/>
-      <path d="M37 68h26q0 14-13 14t-13-14Z" fill="#${pale}" opacity=".5"/>
+      ${gape ? `<path d="M42 53 95 53l-4 15-49-5Z" fill="#4A2432"/>` : ''}
+      ${jaw}
+      <path d="M30 54q0-20 18-24q16-4 26 6l16 8q7 3 7 7l-1 3L40 54q-10 0-10-8Z" fill="#${hide}"/>
       ${
         spots
           ? `<g fill="#${deep}" opacity=".45">
-               <circle cx="33" cy="56" r="2.8"/><circle cx="67" cy="56" r="2.8"/>
-               <circle cx="50" cy="34" r="2.4"/>
+               <circle cx="44" cy="38" r="3"/><circle cx="52" cy="32" r="2.4"/>
+               <circle cx="36" cy="46" r="2.6"/>
              </g>`
           : ''
       }
       ${
         stripes
-          ? `<g stroke="#${deep}" stroke-width="2.6" stroke-linecap="round" fill="none" opacity=".4">
-               <path d="M35 60h6"/><path d="M59 60h6"/>
-               <path d="M35.5 66h5"/><path d="M59.5 66h5"/>
+          ? `<g stroke="#${deep}" stroke-width="2.8" stroke-linecap="round" fill="none" opacity=".4">
+               <path d="M70 40l-2 8"/><path d="M78 43l-2 7"/>
              </g>`
           : ''
       }
-      ${eyes(look, hide)}
-      ${
-        brows
-          ? `<path d="M30 39q6-4 12-1M70 39q-6-4-12-1" stroke="#${shade(hide, 0.42)}"
-                   stroke-width="2.4" fill="none" stroke-linecap="round"/>`
-          : ''
-      }
-      <path d="M36 72q14 7 28 0" stroke="#${shade(hide, 0.5)}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
       ${
         teeth
           ? `<g fill="#FFFDF6">
-               <path d="M40.4 73.1l2.4 4.6 2.4-4.6Z"/>
-               <path d="M47.6 73.6l2.4 4.8 2.4-4.8Z"/>
-               <path d="M54.8 73.1l2.4 4.6 2.4-4.6Z"/>
+               <path d="M62 54l2.2 5.4 2.2-5.4Z"/>
+               <path d="M72 54l2.2 5.4 2.2-5.4Z"/>
+               <path d="M82 54l2 5 2-5Z"/>
              </g>`
           : ''
       }
-      <ellipse cx="43.5" cy="61" rx="2.4" ry="1.8" fill="#2A2531" opacity=".85"/>
-      <ellipse cx="56.5" cy="61" rx="2.4" ry="1.8" fill="#2A2531" opacity=".85"/>
+      ${eye(look, hide)}
+      <path d="M50 34q8-3 14 1" stroke="#${shade(hide, 0.42)}" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      <ellipse cx="88" cy="47" rx="2.4" ry="1.8" fill="#2A2531" opacity=".8"/>
     `
   }
 }

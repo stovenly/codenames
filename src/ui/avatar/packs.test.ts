@@ -38,10 +38,10 @@ const SOMETIMES: Array<[string, unknown, string, RegExp]> = [
   ['dog collar', dog, 'collar', /M23 84/],
   ['dog patch', dog, 'patch', /ellipse cx="38" cy="54"/],
   ['dog brows', dog, 'brows', /M33 46/],
-  ['dino teeth', dino, 'teeth', /M47.6 73.6/],
-  ['dino spots', dino, 'spots', /circle cx="50" cy="34"/],
-  ['dino stripes', dino, 'stripes', /M35.5 66h5/],
-  ['dino brows', dino, 'brows', /M30 39q6-4 12-1/],
+  ['dino gape', dino, 'gape', /rotate\(15 40 54\)/],
+  ['dino teeth', dino, 'teeth', /M72 54l2.2 5.4/],
+  ['dino spots', dino, 'spots', /circle cx="52" cy="32"/],
+  ['dino stripes', dino, 'stripes', /M78 43l-2 7/],
   ['squid fins', squid, 'fins', /rotate\(-24 20 34\)/],
   ['squid suckers', squid, 'suckers', /cx="42" cy="72"/],
   ['squid spots', squid, 'spots', /cx="34" cy="24"/]
@@ -51,7 +51,7 @@ describe('the styles drawn in this repository', () => {
   it.each([
     ['bunny', bunny, /<ellipse cx="50" cy="59"/],
     ['dog', dog, /<ellipse cx="50" cy="58"/],
-    ['dino', dino, /<ellipse cx="50" cy="50" rx="26" ry="20"/],
+    ['dino', dino, /<path d="M30 54q0-20 18-24/],
     ['squid', squid, /<path d="M50 9c15.5/]
   ])('%s draws its body for every variant the slider reaches', (_name, style, body) => {
     expect(count(style, body)).toBe(VARIANTS)
@@ -60,7 +60,7 @@ describe('the styles drawn in this repository', () => {
   it.each([
     ['bunny', bunny, /<ellipse cx="50" cy="59"[^>]*fill="#([0-9A-Fa-f]{6})"/],
     ['dog', dog, /<ellipse cx="50" cy="58" rx="27" ry="24" fill="#([0-9A-Fa-f]{6})"/],
-    ['dino', dino, /<ellipse cx="50" cy="50" rx="26" ry="20" fill="#([0-9A-Fa-f]{6})"/],
+    ['dino', dino, /<path d="M30 54q0-20 18-24[^"]*" fill="#([0-9A-Fa-f]{6})"/],
     ['squid', squid, /<path d="M50 9c15.5[^"]*" fill="#([0-9A-Fa-f]{6})"/]
   ])('%s uses its whole palette rather than one colour in streaks', (_name, style, mark) => {
     expect(distinct(style, mark).size).toBe(8)
@@ -87,7 +87,7 @@ describe('the styles drawn in this repository', () => {
   })
 
   it('gives the dino all four crests', () => {
-    const crests = [/M43 32 50 8 57 32Z/, /M30 41q-2-20 1-31/, /rx="36" ry="27"/, /M25.5 47.4 12.8 40.9/]
+    const crests = [/M62 30 60 14 50 28Z/, /M80 46 89 25 93 47Z/, /M46 44C40 16/, /M38 46 L2.0 45.7/]
     for (const crest of crests) expect(count(dino, crest)).toBeGreaterThan(5)
   })
 })
