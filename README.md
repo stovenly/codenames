@@ -10,7 +10,6 @@ A browser version of the board game Codenames.
 
 - Fully peer-to-peer, no server ([Trystero](https://github.com/dmotz/trystero) for signaling)
 - Host authority with automatic host migration
-- Deterministic boards from a seed
 - Delta sync with retry and self-repair
 - Password protected lobbies
 - Offline / installable
