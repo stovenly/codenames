@@ -15,7 +15,7 @@ A browser version of the board game Codenames.
 
 **Game**
 
-- In-game chat: all, team, spymasters-only
+- In-game chat (all or team only)
 - Post-match accolades
 - Custom word lists
 - Configurable boards: 3x3-7x7, bonus cards, multiple assassins
