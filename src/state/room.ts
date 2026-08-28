@@ -273,10 +273,23 @@ const broadcast = () => {
   }, BROADCAST_DEBOUNCE_MS)
 }
 
+/** Steps are never mutated in place, so identity is what "clients already have this" means. */
+const commonPrefix = (a: Step[], b: Step[]) => {
+  const limit = Math.min(a.length, b.length)
+  let i = 0
+  while (i < limit && a[i] === b[i]) i++
+  return i
+}
+
 const hostMutate = (fn: (draft: Shared) => Shared | void) => {
   if (!isHost() || !shared) return
+  const before = shared
   const next = fn(shared)
   if (next) shared = next
+  // A rewind, a fresh deal or a game ended rewrites history rather than
+  // extending it, and only what survives can still be assumed sent.
+  if (shared.steps !== before.steps)
+    broadcastBase = Math.min(broadcastBase, commonPrefix(before.steps, shared.steps))
   broadcast()
 }
 
@@ -753,7 +766,7 @@ const applyIntent = (from: PlayerId, intent: Intent) => {
       commit(draft => ({
         ...draft,
         players: draft.players.map(p => ({...p, ready: false})),
-        steps: [{t: 'start', seed: newRoomId(), startTeam}],
+        steps: [{t: 'start', seed: newRoomId(), startTeam, at: Date.now()}],
         cursor: 1
       }))
       return

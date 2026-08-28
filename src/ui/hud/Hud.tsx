@@ -180,7 +180,7 @@ const ClueComposer = ({
         Give clue
       </Button>
       {problem && (
-        <p className="type-label w-full text-kill-lit">{problem} — pick another word</p>
+        <p className="type-label w-full text-kill-lit">{problem}</p>
       )}
     </div>
   )
@@ -209,7 +209,9 @@ export const Hud = ({
   const amSpymaster = !!me?.spymaster
 
   const canClue = myTurn && amSpymaster && view.phase === 'clue' && !busy
-  const canAct = myTurn && !amSpymaster && view.phase === 'guess' && !busy
+  // Mounted for the whole of our guessing, disabled while a reveal plays. Taking
+  // the row away between guesses moved the board under the next click.
+  const mineToGuess = myTurn && !amSpymaster && view.phase === 'guess'
 
   return (
     <div className="flex w-full flex-col gap-3">
@@ -286,7 +288,7 @@ export const Hud = ({
       {/* Outside the panel and beneath it. What you can do is not part of the
           readout of what is happening, and keeping it inside meant every button
           that turned up shoved the clue along. */}
-      {(canClue || canAct) && (
+      {(canClue || mineToGuess) && (
         <div className="flex min-h-11 flex-wrap items-center justify-between gap-2">
           {canClue && (
             <ClueComposer
@@ -296,13 +298,13 @@ export const Hud = ({
             />
           )}
 
-          {canAct && (
+          {mineToGuess && (
             <>
               {/* Always present, disabled until a card is picked, rather than
                   appearing and shunting Pass across the row. */}
               <Button
                 size="lg"
-                disabled={armed === null}
+                disabled={busy || armed === null}
                 onClick={() => {
                   if (armed === null) return
                   previewGuess(armed)
@@ -316,7 +318,7 @@ export const Hud = ({
 
               <Button
                 variant="ghost"
-                disabled={view.guessedSinceClue < 1}
+                disabled={busy || view.guessedSinceClue < 1}
                 title={view.guessedSinceClue < 1 ? 'Guess at least once before passing' : undefined}
                 onClick={() => intend({kind: 'pass'})}
               >

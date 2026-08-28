@@ -11,14 +11,20 @@ const key = (word: string) => {
   return letters.length > 1 && letters.endsWith('S') ? letters.slice(0, -1) : letters
 }
 
+/** A word, a separator, then digits: the count typed into the box it does not go in. */
+const TRAILING_COUNT = /\p{L}[\s\-–—:,]+\d+\s*$/u
+
 /**
  * A clue may not be a word the table can see. Every card counts, turned over or
  * not: a spent card keeps its word legible here, and the rule is about what is
  * visible.
+ *
+ * Whole sentences, because the host flashes this and the composer prints it.
  */
 export const clueProblem = (word: string, cards: Card[]): string | null => {
+  if (TRAILING_COUNT.test(word)) return 'Use the counter for the number, not the clue'
   const wanted = key(word)
   if (!wanted) return null
   const clash = cards.find(card => key(card.word) === wanted)
-  return clash ? `${clash.word} is on the board` : null
+  return clash ? `${clash.word} is on the board — pick another word` : null
 }

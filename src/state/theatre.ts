@@ -212,6 +212,7 @@ const pump = () => {
     stage = {kind: 'idle'}
     clearTimers()
     playing = false
+    played = null
     publish()
     return
   }

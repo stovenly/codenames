@@ -305,3 +305,103 @@ describe('who a state arriving is allowed to seat', () => {
     expect(room.getRoom().role).toBe('client')
   })
 })
+
+describe('what a rewound host puts on the wire', () => {
+  /** Every state message replayed the way a client applies it, deltas included. */
+  const asRemote = () => {
+    let steps: Step[] = []
+    for (const s of sent.filter(s => s.kind === 'state')) {
+      const msg = s.body as {full?: {steps: Step[]}; base?: number; add?: Step[]}
+      if (msg.full) steps = msg.full.steps
+      else steps = [...steps.slice(0, msg.base), ...msg.add!]
+    }
+    return steps
+  }
+
+  const flush = () => vi.advanceTimersByTime(100)
+
+  const seat = (id: string, team: 'red' | 'blue', spymaster: boolean) => {
+    deliver('intent', {kind: 'setName', name: id}, id)
+    room.intend({kind: 'setTeam', target: id, team})
+    if (spymaster) room.intend({kind: 'setSpymaster', target: id, spymaster: true})
+  }
+
+  /** Which team starts is a coin toss, so every move goes in as whoever holds the turn. */
+  const asTurn = (spymaster: boolean, intent: object) => {
+    const turn = room.currentView()!.turn
+    const who = turn === 'red' ? (spymaster ? 'me' : 'a') : spymaster ? 'b' : 'c'
+    if (who === 'me') room.intend(intent as Parameters<typeof room.intend>[0])
+    else deliver('intent', intent, who)
+    flush()
+  }
+
+  beforeEach(async () => {
+    vi.useFakeTimers()
+    await load()
+    await room.createRoom('Host', null)
+    room.intend({kind: 'setTeam', target: 'me', team: 'red'})
+    room.intend({kind: 'setSpymaster', target: 'me', spymaster: true})
+    seat('a', 'red', false)
+    seat('b', 'blue', true)
+    seat('c', 'blue', false)
+    room.intend({kind: 'startGame'})
+    flush()
+    expect(room.currentView()!.phase).toBe('clue')
+  })
+
+  it('sends a clue given after an undo, not the one taken back', () => {
+    asTurn(true, {kind: 'clue', word: 'FIRST', count: 2})
+    room.intend({kind: 'undo'})
+    flush()
+    asTurn(true, {kind: 'clue', word: 'SECOND', count: 2})
+
+    expect(room.currentView()!.clue?.word).toBe('SECOND')
+    expect(asRemote()).toEqual(room.getRoom().shared!.steps)
+  })
+
+  it('sends the new deal when a game is restarted from the lobby', () => {
+    const dealt = () => (room.getRoom().shared!.steps[0] as {seed: string}).seed
+    asTurn(true, {kind: 'clue', word: 'CLUE', count: 2})
+    const first = dealt()
+
+    room.intend({kind: 'endGame'})
+    flush()
+    room.intend({kind: 'startGame'})
+    flush()
+
+    expect(dealt()).not.toBe(first)
+    expect(asRemote()).toEqual(room.getRoom().shared!.steps)
+  })
+
+  it('sends the new deal when the host rewinds to the lobby instead', () => {
+    const dealt = () => (room.getRoom().shared!.steps[0] as {seed: string}).seed
+    asTurn(true, {kind: 'clue', word: 'CLUE', count: 2})
+    const first = dealt()
+
+    room.intend({kind: 'undo'})
+    room.intend({kind: 'undo'})
+    flush()
+    expect(room.currentView()!.phase).toBe('setup')
+
+    room.intend({kind: 'setTeam', target: 'me', team: 'red'})
+    room.intend({kind: 'setSpymaster', target: 'me', spymaster: true})
+    room.intend({kind: 'startGame'})
+    flush()
+
+    expect(dealt()).not.toBe(first)
+    expect(asRemote()).toEqual(room.getRoom().shared!.steps)
+  })
+
+  it('sends a guess made after an undo, not the one taken back', () => {
+    const cards = room.currentView()!.cards
+    const first = cards.findIndex(c => !c.revealed)
+    const second = cards.findIndex((c, i) => !c.revealed && i > first)
+    asTurn(true, {kind: 'clue', word: 'CLUE', count: 3})
+    asTurn(false, {kind: 'guess', card: first})
+    room.intend({kind: 'undo'})
+    flush()
+    asTurn(false, {kind: 'guess', card: second})
+
+    expect(asRemote()).toEqual(room.getRoom().shared!.steps)
+  })
+})

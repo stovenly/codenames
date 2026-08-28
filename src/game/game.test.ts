@@ -544,14 +544,26 @@ describe('a clue the table can see', () => {
   ]
 
   it('refuses a word on the board, turned over or not', () => {
-    expect(clueProblem('APPLE', cards)).toBe('APPLE is on the board')
-    expect(clueProblem('apple', cards)).toBe('APPLE is on the board')
-    expect(clueProblem('CAR', cards)).toBe('CAR is on the board')
+    expect(clueProblem('APPLE', cards)).toBe('APPLE is on the board — pick another word')
+    expect(clueProblem('apple', cards)).toBe('APPLE is on the board — pick another word')
+    expect(clueProblem('CAR', cards)).toBe('CAR is on the board — pick another word')
   })
 
   it('refuses the plural either way round', () => {
-    expect(clueProblem('APPLES', cards)).toBe('APPLE is on the board')
-    expect(clueProblem('PAN', cards)).toBe('PANS is on the board')
+    expect(clueProblem('APPLES', cards)).toBe('APPLE is on the board — pick another word')
+    expect(clueProblem('PAN', cards)).toBe('PANS is on the board — pick another word')
+  })
+
+  it('refuses a count typed onto the end of the clue', () => {
+    const said = 'Use the counter for the number, not the clue'
+    expect(clueProblem('ORCHARD 3', cards)).toBe(said)
+    expect(clueProblem('ORCHARD - 3', cards)).toBe(said)
+    expect(clueProblem('ORCHARD 12 ', cards)).toBe(said)
+  })
+
+  it('leaves a number that is part of the word alone', () => {
+    expect(clueProblem('AREA51', cards)).toBeNull()
+    expect(clueProblem('007', cards)).toBeNull()
   })
 
   it('allows a word that merely contains one', () => {
