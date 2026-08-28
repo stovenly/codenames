@@ -32,7 +32,7 @@ A browser version of the board game Codenames.
 
 ## Gameplay
 
-![A game in progress](gameplay.gif)
+![A game in progress](showcase-media/gameplay.gif)
 
 ## Licensing
 

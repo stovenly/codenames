@@ -1,7 +1,7 @@
 # 03 — Spectator, a fourth role
 
 > Shipped as specified. The lobby marks a spectator with the lucide `Eye`; the
-> chat improvement still outstanding in [IMPROVEMENTS.MD](../../IMPROVEMENTS.MD)
+> chat improvement still outstanding in [IMPROVEMENTS.MD](../IMPROVEMENTS.MD)
 > replaces that with a plain-head glyph.
 >
 > **Since:** the glyph swap happened, and the order settled as **Bench, Red,

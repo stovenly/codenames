@@ -34,7 +34,7 @@ depends on a later one.
 
 Changes made after the build are specified the same way. Shipped ones are in
 [done](done/README.md); anything still outstanding is in
-[IMPROVEMENTS.MD](../IMPROVEMENTS.MD) at the repository root.
+[IMPROVEMENTS.MD](IMPROVEMENTS.MD).
 
 Items marked **OPEN** need a decision before that section is built. None of them
 block an earlier step. Resolutions are recorded inline where the item was

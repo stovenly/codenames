@@ -2,7 +2,7 @@
 
 Improvements that have shipped. Each one is the spec as it was written, with a
 note at the top saying what actually landed and where the build differs from
-the plan. Work still outstanding lives in [IMPROVEMENTS.MD](../../IMPROVEMENTS.MD).
+the plan. Work still outstanding lives in [IMPROVEMENTS.MD](../IMPROVEMENTS.MD).
 
 | | Change | Note |
 |---|---|---|
