@@ -30,6 +30,10 @@ A browser version of the board game Codenames.
 - Colorblind mode
 - Dyslexia friendly font
 
+## Gameplay
+
+![A game in progress](gameplay.gif)
+
 ## Licensing
 
 External assets used are credited in [CREDITS.md](CREDITS.md).
