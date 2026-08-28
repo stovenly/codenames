@@ -50,6 +50,9 @@ export const About = () => {
                 <img src={HEART} alt="" className="h-[1.9em] w-auto" />
               </p>
               <p className="type-read text-base text-text-dim">
+                <Out href="https://github.com/stovenly/codenames/blob/main/CREDITS.md">Credits</Out>
+              </p>
+              <p className="type-read text-base text-text-dim">
                 <Out href="https://github.com/stovenly/codenames">Source code</Out>
               </p>
               <p className="type-read text-base text-text-dim">
