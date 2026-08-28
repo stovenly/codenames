@@ -1,7 +1,6 @@
 # codenames
 
-Codenames for four or more, played peer-to-peer in the browser — no server, no
-accounts, nothing to install. Share the link, take a seat, give a clue.
+A browser version of the board game Codenames.
 
 **Play:** https://stovenly.github.io/codenames/
 
