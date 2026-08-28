@@ -8,7 +8,7 @@ A browser version of the board game Codenames.
 
 **Engineering**
 
-- Fully peer-to-peer, no server (Trystero for signaling)
+- Fully peer-to-peer, no server ([Trystero](https://github.com/dmotz/trystero) for signaling)
 - Host authority with automatic host migration
 - Deterministic boards from a seed
 - Delta sync with retry and self-repair
