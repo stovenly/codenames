@@ -34,7 +34,7 @@ A browser version of the board game Codenames.
 
 External assets used are credited in [CREDITS.md](CREDITS.md).
 
-## Development
+## Setup
 
 ```
 npm install
