@@ -4,6 +4,7 @@ import {Suspense, lazy, useEffect} from 'react'
 import {derive} from '../game/reducer'
 import {start, useRoom} from '../state/room'
 import * as words from '../state/words'
+import {About} from './About'
 import {AwayWatch, HostAwayPill} from './Away'
 import {Rail} from './Rail'
 import {watchDyslexicFont} from './font'
@@ -83,6 +84,7 @@ export const App = () => {
 
       <HostAwayPill />
       <Rail />
+      <About />
     </Tooltip.Provider>
   )
 }
