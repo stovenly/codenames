@@ -17,15 +17,15 @@ accounts, nothing to install. Share the link, take a seat, give a clue.
 
 **Game**
 
-- Undo / redo / rewind
 - In-game chat: all, team, spymasters-only
-- Spectators
-- Configurable boards: 3x3-7x7, bonus cards, multiple assassins
-- Clue and guess timers
-- Custom word lists
 - Post-match accolades
-- Full game history and end-of-game board
+- Custom word lists
+- Configurable boards: 3x3-7x7, bonus cards, multiple assassins
+- Spectators
+- Clue and guess timers
 - Avatar packs
+- Full game history and end-of-game board
+- Undo / redo
 
 **Accessibility**
 
