@@ -8,7 +8,7 @@ A browser version of the board game Codenames.
 
 **Engineering**
 
-- Fully peer-to-peer, no server
+- Fully peer-to-peer, no server (Trystero for signaling)
 - Host authority with automatic host migration
 - Deterministic boards from a seed
 - Delta sync with retry and self-repair
@@ -31,10 +31,6 @@ A browser version of the board game Codenames.
 
 - Colorblind mode
 - Dyslexia friendly font
-
-Built on [Trystero](https://github.com/dmotz/trystero): players find each other
-over public nostr, MQTT and BitTorrent infrastructure and then talk directly by
-WebRTC, so nothing but the browsers holds the game.
 
 External assets used are credited in [CREDITS.md](CREDITS.md).
 
