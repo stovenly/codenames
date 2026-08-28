@@ -12,6 +12,7 @@ A browser version of the board game Codenames.
 - Host authority with automatic host migration
 - Deterministic boards from a seed
 - Delta sync with retry and self-repair
+- Password protected lobbies
 - Offline / installable
 
 **Game**
