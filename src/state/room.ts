@@ -183,6 +183,7 @@ let lastFullAt = 0
 let lastStepAt = 0
 let degrading = false
 let lost: Erased | null = null
+let saveTimer: ReturnType<typeof setTimeout> | null = null
 
 let snapshot: RoomSnapshot = {
   role,
@@ -316,6 +317,7 @@ const hostMutate = (fn: (draft: Shared) => Shared | void) => {
   // extending it, and only what survives can still be assumed sent.
   if (shared.steps !== before.steps)
     broadcastBase = Math.min(broadcastBase, commonPrefix(before.steps, shared.steps))
+  rememberRoom()
   broadcast()
 }
 
@@ -461,6 +463,42 @@ const requestWordsIfMissing = () => {
   send('resync', {want: 'words', hash}, shared.hostId)
 }
 
+/**
+ * The room as this tab last saw it, kept across a reload. Mobile browsers do
+ * not only freeze background tabs, they discard them: without this the tab
+ * comes back holding nothing, and whatever only it had seen is gone for good.
+ * The copy is not adopted — it is compared against the first live state to
+ * arrive, so a room that went backwards while we were gone is put straight by
+ * the same machinery that catches a stale host.
+ */
+const ROOM_KEY = `cn.room.${roomId}`
+const REMEMBER_MS = 2 * 60 * 60 * 1000
+
+const rememberRoom = () => {
+  if (saveTimer || !shared) return
+  saveTimer = setTimeout(() => {
+    saveTimer = null
+    if (!shared) return
+    try {
+      localStorage.setItem(ROOM_KEY, JSON.stringify({shared, savedAt: Date.now()}))
+    } catch {
+      /* full or private; the tab just loses its memory */
+    }
+  }, 1_000)
+}
+
+const rememberedRoom = (): Shared | null => {
+  try {
+    const raw = localStorage.getItem(ROOM_KEY)
+    if (!raw) return null
+    const {shared: kept, savedAt} = JSON.parse(raw) as {shared?: Shared; savedAt?: number}
+    if (!kept || !savedAt || Date.now() - savedAt > REMEMBER_MS) return null
+    return kept.steps ? kept : null
+  } catch {
+    return null
+  }
+}
+
 const seedOf = (state: {steps: Step[]}) => {
   const first = state.steps[0]
   return first?.t === 'start' ? first.seed : ''
@@ -556,6 +594,11 @@ const adopt = (next: Shared, force = false) => {
     flash(`${name} is hosting now`)
   }
   if (current) noteRewind(current, next)
+  else {
+    const kept = rememberedRoom()
+    if (kept) noteRewind(kept, next)
+  }
+  rememberRoom()
   // The host seats a joiner with a default look; this is where we tell it ours.
   if (!announcedAvatar && next.players.some(p => p.id === self)) {
     announcedAvatar = true

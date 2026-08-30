@@ -20,10 +20,11 @@ vi.stubGlobal('sessionStorage', {
   setItem: (k: string, v: string) => store.set(k, v),
   removeItem: (k: string) => store.delete(k)
 })
+const disk = new Map<string, string>()
 vi.stubGlobal('localStorage', {
-  getItem: () => null,
-  setItem: () => {},
-  removeItem: () => {}
+  getItem: (k: string) => disk.get(k) ?? null,
+  setItem: (k: string, v: string) => disk.set(k, v),
+  removeItem: (k: string) => disk.delete(k)
 })
 vi.stubGlobal('Worker', class {
   onmessage: unknown = null
@@ -92,6 +93,7 @@ const load = async () => {
   handlers.clear()
   sent.length = 0
   livePeers = []
+  disk.clear()
   room = await import('./room')
   room.start()
 }
@@ -606,5 +608,50 @@ describe('a delta names the history it extends', () => {
     const {steps, ...meta} = {...FULL, version: 7, steps: [start, clue], cursor: 2, sentAt: Date.now()}
     deliver('state', {meta, base: 1, add: [clue]})
     expect(room.getRoom().shared!.steps).toEqual([start, clue])
+  })
+})
+
+describe('a tab that was discarded, not frozen', () => {
+  const start: Step = {t: 'start', seed: 's', startTeam: 'red'}
+  const clue: Step = {t: 'clue', team: 'red', by: 'host', word: 'A', count: 1}
+  const played = () => ({...FULL, sentAt: Date.now(), version: 8, steps: [start, clue, {t: 'endTurn', team: 'red', reason: 'pass', by: 'me'} as Step], cursor: 3})
+
+  it('remembers the room it was in', async () => {
+    vi.useFakeTimers()
+    await load()
+    await asClient()
+    deliver('state', {full: played()})
+    vi.advanceTimersByTime(1_100)
+    expect(disk.get('cn.room.r')).toContain('"cursor":3')
+  })
+
+  it('hands its remembered log to a room that went backwards while it was gone', async () => {
+    vi.useFakeTimers()
+    await load()
+    await asClient()
+    deliver('state', {full: played()})
+    vi.advanceTimersByTime(1_100)
+
+    // The tab dies and comes back; the room meanwhile lost everything but the deal.
+    const keep = disk.get('cn.room.r')!
+    await load()
+    disk.set('cn.room.r', keep)
+    await room.joinRoom('Me', null)
+    sent.length = 0
+    deliver('state', {full: {...FULL, sentAt: Date.now(), version: 9, steps: [start], cursor: 1}})
+
+    const told = sent.find(s => s.kind === 'lost')
+    expect(told?.to).toBe('host')
+    expect((told!.body as {cursor: number}).cursor).toBe(3)
+  })
+
+  it('forgets a room remembered too long ago', async () => {
+    vi.useFakeTimers()
+    await load()
+    disk.set('cn.room.r', JSON.stringify({shared: played(), savedAt: Date.now() - 3 * 60 * 60 * 1000}))
+    await room.joinRoom('Me', null)
+    sent.length = 0
+    deliver('state', {full: {...FULL, sentAt: Date.now(), version: 9, steps: [start], cursor: 1}})
+    expect(sent.find(s => s.kind === 'lost')).toBeUndefined()
   })
 })
