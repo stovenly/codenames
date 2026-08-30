@@ -405,3 +405,93 @@ describe('what a rewound host puts on the wire', () => {
     expect(asRemote()).toEqual(room.getRoom().shared!.steps)
   })
 })
+
+describe('a room that has gone backwards', () => {
+  const flush = () => vi.advanceTimersByTime(100)
+
+  const seat = (id: string, team: 'red' | 'blue', spymaster: boolean) => {
+    deliver('intent', {kind: 'setName', name: id}, id)
+    room.intend({kind: 'setTeam', target: id, team})
+    if (spymaster) room.intend({kind: 'setSpymaster', target: id, spymaster: true})
+  }
+
+  const asTurn = (spymaster: boolean, intent: object) => {
+    const turn = room.currentView()!.turn
+    const who = turn === 'red' ? (spymaster ? 'me' : 'a') : spymaster ? 'b' : 'c'
+    if (who === 'me') room.intend(intent as Parameters<typeof room.intend>[0])
+    else deliver('intent', intent, who)
+    flush()
+  }
+
+  /** A few turns of play, hosted by us. */
+  const play = async () => {
+    vi.useFakeTimers()
+    await load()
+    await room.createRoom('Host', null)
+    room.intend({kind: 'setTeam', target: 'me', team: 'red'})
+    room.intend({kind: 'setSpymaster', target: 'me', spymaster: true})
+    seat('a', 'red', false)
+    seat('b', 'blue', true)
+    seat('c', 'blue', false)
+    room.intend({kind: 'startGame'})
+    flush()
+    for (let i = 0; i < 3; i++) {
+      asTurn(true, {kind: 'clue', word: `C${i}`, count: 1})
+      const view = room.currentView()!
+      asTurn(false, {kind: 'guess', card: view.cards.findIndex(c => !c.revealed)})
+      if (room.currentView()!.phase === 'guess') asTurn(false, {kind: 'pass'})
+    }
+    return room.getRoom().shared!
+  }
+
+  it('hands its longer log to a host that came back with an old copy', async () => {
+    const full = await play()
+    const stale = {...full, hostId: 'phone', hostEpoch: full.hostEpoch + 1, version: 1, steps: full.steps.slice(0, 2), cursor: 2, sentAt: Date.now()}
+    sent.length = 0
+    deliver('state', {full: stale}, 'phone')
+
+    expect(room.getRoom().role).toBe('client')
+    expect(room.getRoom().shared!.steps).toHaveLength(2)
+    const told = sent.find(s => s.kind === 'lost')
+    expect(told?.to).toBe('phone')
+    expect((told!.body as {cursor: number}).cursor).toBe(full.cursor)
+    expect(room.getRoom().banner).toMatch(/erased by a host change/)
+  })
+
+  it('puts the moves back the moment someone shows it the rest of the game', async () => {
+    const full = await play()
+    room.intend({kind: 'undo'})
+    room.intend({kind: 'undo'})
+    room.intend({kind: 'undo'})
+    flush()
+    // Cut the log down, as a host that took over from an old copy would hold it.
+    const short = {...room.getRoom().shared!, steps: full.steps.slice(0, full.cursor - 3), cursor: full.cursor - 3}
+    deliver('state', {full: {...short, hostEpoch: 0}}, 'nobody')
+
+    deliver('lost', {seed: (full.steps[0] as {seed: string}).seed, steps: full.steps, cursor: full.cursor}, 'a')
+    flush()
+
+    expect(room.getRoom().shared!.cursor).toBe(full.cursor)
+    expect(room.getRoom().shared!.steps).toEqual(full.steps)
+    expect(sent.some(s => s.kind === 'presence' && (s.body as {kind: string}).kind === 'restored')).toBe(true)
+  })
+
+  it('leaves a single step alone, because that is what an undo looks like', async () => {
+    const full = await play()
+    room.intend({kind: 'undo'})
+    flush()
+    const before = room.getRoom().shared!.cursor
+    deliver('lost', {seed: (full.steps[0] as {seed: string}).seed, steps: full.steps, cursor: full.cursor}, 'a')
+    flush()
+
+    expect(room.getRoom().shared!.cursor).toBe(before)
+    expect(room.getRoom().erased?.cursor).toBe(full.cursor)
+  })
+
+  it('ignores a log from a different deal', async () => {
+    const full = await play()
+    deliver('lost', {seed: 'other', steps: full.steps, cursor: full.cursor + 5}, 'a')
+    flush()
+    expect(room.getRoom().erased).toBeNull()
+  })
+})

@@ -24,6 +24,8 @@ export type MessageKind =
   | 'pong'
   /** Host to client, naming the intent it applied. */
   | 'ack'
+  /** To the host: a longer step log than the room now holds, kept from before a rewind. */
+  | 'lost'
 
 export type Envelope = {
   id: string

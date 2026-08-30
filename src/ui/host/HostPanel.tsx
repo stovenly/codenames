@@ -1,6 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import * as ToggleGroup from '@radix-ui/react-toggle-group'
-import {Redo2, Settings2, Undo2, UserMinus, X} from 'lucide-react'
+import {History, Redo2, Settings2, Undo2, UserMinus, X} from 'lucide-react'
 import {useMemo, useState} from 'react'
 import {derive} from '../../game/reducer'
 import {validate} from '../../game/settings'
@@ -39,7 +39,7 @@ const TABS = [
 type Tab = (typeof TABS)[number]['value']
 
 export const HostPanel = () => {
-  const {shared, me} = useRoom()
+  const {shared, me, erased} = useRoom()
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<Tab>('history')
   const [pass, setPass] = useState('')
@@ -149,6 +149,18 @@ export const HostPanel = () => {
                     {shared.cursor} / {shared.steps.length}
                   </Label>
                 </div>
+
+                {erased && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => intend({kind: 'restore'})}
+                    className="flex items-center gap-1.5 self-start border-lamp-500/50 text-lamp-300"
+                  >
+                    <History className="size-3.5" /> Restore {erased.cursor - shared.cursor} erased{' '}
+                    {erased.cursor - shared.cursor === 1 ? 'move' : 'moves'}
+                  </Button>
+                )}
 
                 {rows.length === 0 ? (
                   <p className="type-body">Nothing has happened yet.</p>

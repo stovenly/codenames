@@ -31,7 +31,11 @@ export type RoomSnapshot = {
   unacked: {oldestMs: number; count: number} | null
   /** Since the host was last heard from. Null when we are the host. */
   hostHeardMsAgo: number | null
+  /** Moves the room lost to a rewind that somebody still holds. Host-only. */
+  erased: Erased | null
 }
+
+export type Erased = {seed: string; steps: Step[]; cursor: number}
 
 /** Widened while the host advertises a hidden tab, whose timers the browser throttles. */
 const MISSING_HOST_MS = 6_000
@@ -175,6 +179,7 @@ let lastBeatAt = 0
 let lastFullAt = 0
 let lastStepAt = 0
 let degrading = false
+let lost: Erased | null = null
 
 let snapshot: RoomSnapshot = {
   role,
@@ -186,7 +191,8 @@ let snapshot: RoomSnapshot = {
   hiddenMs: 0,
   degrading: false,
   unacked: null,
-  hostHeardMsAgo: null
+  hostHeardMsAgo: null,
+  erased: null
 }
 
 const publish = () => {
@@ -200,7 +206,8 @@ const publish = () => {
     hiddenMs: hiddenSince ? Date.now() - hiddenSince : 0,
     degrading,
     unacked: waiting(),
-    hostHeardMsAgo: isHost() || !shared ? null : Date.now() - lastHostAt
+    hostHeardMsAgo: isHost() || !shared ? null : Date.now() - lastHostAt,
+    erased: isHost() ? restorable() : null
   }
   listeners.forEach(l => l())
 }
@@ -435,6 +442,57 @@ const requestWordsIfMissing = () => {
   send('resync', {want: 'words', hash}, shared.hostId)
 }
 
+const seedOf = (state: {steps: Step[]}) => {
+  const first = state.steps[0]
+  return first?.t === 'start' ? first.seed : ''
+}
+
+const keepLost = (found: Erased) => {
+  if (!shared || found.seed !== seedOf(shared)) return
+  if (lost && lost.seed === found.seed && lost.cursor >= found.cursor) return
+  lost = found
+}
+
+/** What the host could put back: a longer log of the game it is running now. */
+const restorable = (): Erased | null =>
+  shared && lost && lost.seed === seedOf(shared) && lost.cursor > shared.cursor ? lost : null
+
+const restore = (): boolean => {
+  const found = restorable()
+  if (!found || !shared) return false
+  const count = found.cursor - shared.cursor
+  commit(draft => ({...draft, steps: found.steps, cursor: found.cursor}))
+  lost = null
+  send('presence', {kind: 'restored', count})
+  flash(`Restored ${count} erased ${count === 1 ? 'move' : 'moves'}`)
+  return true
+}
+
+/**
+ * Everyone holds the whole game, so a room that has gone backwards is put
+ * straight again by whoever still has the rest of it. One step is left alone:
+ * that is what a host's own undo followed by a move looks like to a client that
+ * missed the undo, and putting it back would undo the host.
+ */
+const AUTO_RESTORE_OVER = 1
+
+/**
+ * A state with fewer steps than the position we were already playing at is not
+ * an undo — an undo moves the cursor and keeps the steps, and a move after one
+ * only cuts what the cursor had left behind. It is a host that came back with an
+ * old copy. The copy we had goes to whoever is hosting now, for them to put back.
+ */
+const noteRewind = (current: Shared, next: Shared) => {
+  const seed = seedOf(current)
+  if (!seed || seed !== seedOf(next)) return
+  if (next.steps.length >= current.cursor) return
+  const found: Erased = {seed, steps: current.steps, cursor: current.cursor}
+  if (!lost || lost.seed !== seed || lost.cursor < found.cursor) lost = found
+  const count = current.cursor - Math.min(next.cursor, next.steps.length)
+  flash(`${count} ${count === 1 ? 'move was' : 'moves were'} erased by a host change`)
+  if (next.hostId !== self) send('lost', found, next.hostId)
+}
+
 const adopt = (next: Shared) => {
   const current = shared
   const newer =
@@ -460,6 +518,7 @@ const adopt = (next: Shared) => {
     const name = next.players.find(p => p.id === next.hostId)?.name ?? 'Someone'
     flash(`${name} is hosting now`)
   }
+  if (current) noteRewind(current, next)
   // The host seats a joiner with a default look; this is where we tell it ours.
   if (!announcedAvatar && next.players.some(p => p.id === self)) {
     announcedAvatar = true
@@ -643,6 +702,7 @@ export type Intent =
   | {kind: 'undo'}
   | {kind: 'redo'}
   | {kind: 'jump'; cursor: number}
+  | {kind: 'restore'}
 
 /** Named so a rewind can be announced as what was taken back, not as a number. */
 const describeStep = (state: Shared, index: number): string => {
@@ -835,6 +895,11 @@ const applyIntent = (from: PlayerId, intent: Intent) => {
       commit(draft => ({...draft, cursor: intent.cursor}))
       send('presence', {kind: 'rewound'})
       return
+
+    case 'restore':
+      if (!fromHost) return
+      if (!restore()) refuse(from, 'Nothing to restore')
+      return
   }
 }
 
@@ -1026,9 +1091,25 @@ export const start = () => {
   })
 
   on('presence', body => {
-    const msg = (body ?? {}) as {kind?: string; undone?: string}
-    if (msg.kind !== 'rewound' || isHost()) return
+    const msg = (body ?? {}) as {kind?: string; undone?: string; count?: number}
+    if (isHost()) return
+    if (msg.kind === 'restored') {
+      lost = null
+      flash(`The host restored ${msg.count ?? ''} erased moves`.replace('  ', ' '))
+      return
+    }
+    if (msg.kind !== 'rewound') return
     flash(msg.undone ? `The host took back ${msg.undone}` : 'The host rewound the game')
+  })
+
+  on('lost', body => {
+    if (!isHost() || !shared) return
+    const found = body as Erased
+    if (!found?.seed || !Array.isArray(found.steps)) return
+    keepLost(found)
+    const back = restorable()
+    if (back && back.cursor - shared.cursor > AUTO_RESTORE_OVER) restore()
+    else publish()
   })
 
   /**
