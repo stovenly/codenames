@@ -44,7 +44,7 @@ const Banner = ({text, tone}: {text: string; tone: 'lamp' | 'danger'}) => (
 )
 
 export const App = () => {
-  const {role, shared, banner, split} = useRoom()
+  const {role, shared, banner, split, twin} = useRoom()
   words.useWords()
 
   useEffect(() => {
@@ -65,10 +65,15 @@ export const App = () => {
         {split && (
           <Banner key="split" tone="danger" text="The room has split in two. Someone should reload." />
         )}
-        {banner && !split && <Banner key={banner} tone="lamp" text={banner} />}
+        {twin && !split && (
+          <Banner key="twin" tone="danger" text="This seat is open in another tab. Close one of them." />
+        )}
+        {banner && !split && !twin && <Banner key={banner} tone="lamp" text={banner} />}
       </AnimatePresence>
 
-      {role === 'idle' || role === 'rejected' ? (
+      {role === 'displaced' ? (
+        <Loading label="This seat moved to your newer tab" />
+      ) : role === 'idle' || role === 'rejected' ? (
         <Landing rejected={role === 'rejected'} />
       ) : role === 'joining' ? (
         <Connecting title="Taking your seat" />

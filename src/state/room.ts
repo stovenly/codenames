@@ -9,13 +9,14 @@ import {defaultSettings, validate, type BoardSize, type Settings} from '../game/
 import type {ClueCount, Step} from '../game/steps'
 import type {Avatar, Player, Shared, Team} from '../game/types'
 import {AVATAR_VARIANTS, dealTeams, otherTeam, rosterProblems, spymasterOf} from '../game/types'
-import {joinedExisting, lastHeardFrom, on, openRoom, peers, roomId, self, send, startMesh, subscribe as onNetChange} from './net'
+import {joinedExisting, lastHeardFrom, on, openRoom, peers, roomId, self, send, startMesh, stopMesh, subscribe as onNetChange, twinned} from './net'
 import {PACE} from './pace'
 import {takeTally} from './tally'
 import {getPrefs, setPrefs} from './prefs'
 import * as words from './words'
 
-export type Role = 'idle' | 'joining' | 'rejected' | 'client' | 'host' | 'electing'
+/** `displaced`: another tab took this seat, and this one has stepped out of the room. */
+export type Role = 'idle' | 'joining' | 'rejected' | 'client' | 'host' | 'electing' | 'displaced'
 
 export type RoomSnapshot = {
   role: Role
@@ -33,6 +34,8 @@ export type RoomSnapshot = {
   hostHeardMsAgo: number | null
   /** Moves the room lost to a rewind that somebody still holds. Host-only. */
   erased: Erased | null
+  /** Another live tab is in the room as us. */
+  twin: boolean
 }
 
 export type Erased = {seed: string; steps: Step[]; cursor: number}
@@ -192,7 +195,8 @@ let snapshot: RoomSnapshot = {
   degrading: false,
   unacked: null,
   hostHeardMsAgo: null,
-  erased: null
+  erased: null,
+  twin: false
 }
 
 const publish = () => {
@@ -207,7 +211,8 @@ const publish = () => {
     degrading,
     unacked: waiting(),
     hostHeardMsAgo: isHost() || !shared ? null : Date.now() - lastHostAt,
-    erased: isHost() ? restorable() : null
+    erased: isHost() ? restorable() : null,
+    twin: twinned()
   }
   listeners.forEach(l => l())
 }
@@ -249,7 +254,21 @@ const viewOf = (state: Shared): View =>
  */
 export type StateMsg =
   | {full: Shared}
-  | {meta: Omit<Shared, 'steps'>; base: number; add: Step[]}
+  | {meta: Omit<Shared, 'steps'>; base: number; add: Step[]; mark?: number}
+
+/**
+ * A delta names the prefix it extends, so a client holding a different one
+ * asks for the room instead of building on the wrong history for the five
+ * seconds until the next full copy. Absent from an older host: trusted as before.
+ */
+export const markOf = (steps: Step[], upTo: number) => {
+  let h = 2166136261
+  for (let i = 0; i < upTo; i++) {
+    const text = JSON.stringify(steps[i])
+    for (let c = 0; c < text.length; c++) h = Math.imul(h ^ text.charCodeAt(c), 16777619)
+  }
+  return h >>> 0
+}
 
 let broadcastBase = 0
 
@@ -274,7 +293,7 @@ const broadcast = () => {
     }
     const {steps, ...meta} = shared
     const base = Math.min(broadcastBase, steps.length)
-    send('state', {meta, base, add: steps.slice(base)} satisfies StateMsg)
+    send('state', {meta, base, add: steps.slice(base), mark: markOf(steps, base)} satisfies StateMsg)
     broadcastBase = steps.length
     publish()
   }, BROADCAST_DEBOUNCE_MS)
@@ -1022,7 +1041,8 @@ export const start = () => {
       next = msg.full
     } else {
       const have = shared?.steps ?? []
-      if (have.length < msg.base) {
+      const stale = have.length < msg.base || (msg.mark !== undefined && markOf(have, msg.base) !== msg.mark)
+      if (stale) {
         send('resync', {want: 'state', have: whereWeAre()}, msg.meta.hostId)
         return
       }
@@ -1202,6 +1222,8 @@ export const start = () => {
     if (!document.hidden && !wakeLock) takeWakeLock()
   })
 
+  watchForTwins()
+
   addEventListener('pageshow', e => {
     if ((e as PageTransitionEvent).persisted) wokeUp()
   })
@@ -1211,6 +1233,37 @@ export const start = () => {
     const to = bestSuccessor()
     if (to) send('handoff', {to, epoch: shared.hostEpoch + 1, state: shared})
   })
+}
+
+/**
+ * Two tabs in one seat send from one id and are answered at whichever spoke
+ * last. The tab opened most recently is the one the player is looking at, so
+ * it announces itself on arrival and any earlier tab holding the same id steps
+ * out of the room, handing hosting on first if it had it.
+ */
+const TAB = newRoomId()
+const SEAT_CHANNEL = 'cn.seat'
+
+const displace = () => {
+  if (role === 'displaced') return
+  if (isHost() && shared) {
+    const to = bestSuccessor()
+    if (to) send('handoff', {to, epoch: shared.hostEpoch + 1, state: shared})
+    demote()
+  }
+  role = 'displaced'
+  void stopMesh()
+  publish()
+}
+
+const watchForTwins = () => {
+  if (typeof BroadcastChannel === 'undefined') return
+  const channel = new BroadcastChannel(SEAT_CHANNEL)
+  channel.onmessage = e => {
+    const msg = e.data as {id?: string; tab?: string; room?: string}
+    if (msg.id === self && msg.tab !== TAB && msg.room === roomId) displace()
+  }
+  channel.postMessage({id: self, tab: TAB, room: roomId})
 }
 
 /**

@@ -49,7 +49,9 @@ vi.mock('./net', () => ({
     handlers.set(kind, fn)
   },
   send: (kind: string, body: unknown, to = '*') => sent.push({kind, body, to}),
-  subscribe: () => () => {}
+  subscribe: () => () => {},
+  twinned: () => false,
+  stopMesh: () => Promise.resolve()
 }))
 vi.mock('./words', () => ({
   get: () => Array.from({length: 80}, (_, i) => `W${i}`),
@@ -568,5 +570,41 @@ describe('a client that was frozen', () => {
     expect(room.getRoom().role).toBe('host')
     expect(room.getRoom().shared!.cursor).toBe(2)
     expect(room.getRoom().shared!.hostEpoch).toBe(2)
+  })
+})
+
+describe('a delta names the history it extends', () => {
+  beforeEach(async () => {
+    vi.useFakeTimers()
+    await load()
+    await asClient()
+  })
+
+  const start: Step = {t: 'start', seed: 's', startTeam: 'red'}
+  const clue: Step = {t: 'clue', team: 'red', by: 'host', word: 'A', count: 1}
+
+  it('is applied on top of the same prefix', () => {
+    deliver('state', {full: {...FULL, version: 6, steps: [start], cursor: 1, sentAt: Date.now()}})
+    const {steps, ...meta} = {...FULL, version: 7, steps: [start, clue], cursor: 2, sentAt: Date.now()}
+    deliver('state', {meta, base: 1, add: [clue], mark: room.markOf([start], 1)})
+    expect(room.getRoom().shared!.steps).toEqual([start, clue])
+  })
+
+  it('asks for the room when its own prefix is a different history', () => {
+    const other: Step = {t: 'start', seed: 'elsewhere', startTeam: 'blue'}
+    deliver('state', {full: {...FULL, version: 6, steps: [other], cursor: 1, sentAt: Date.now()}})
+    sent.length = 0
+    const {steps, ...meta} = {...FULL, version: 7, steps: [start, clue], cursor: 2, sentAt: Date.now()}
+    deliver('state', {meta, base: 1, add: [clue], mark: room.markOf([start], 1)})
+
+    expect(room.getRoom().shared!.steps).toEqual([other])
+    expect(sent.find(s => s.kind === 'resync')?.to).toBe('host')
+  })
+
+  it('trusts a delta from a host too old to mark it', () => {
+    deliver('state', {full: {...FULL, version: 6, steps: [start], cursor: 1, sentAt: Date.now()}})
+    const {steps, ...meta} = {...FULL, version: 7, steps: [start, clue], cursor: 2, sentAt: Date.now()}
+    deliver('state', {meta, base: 1, add: [clue]})
+    expect(room.getRoom().shared!.steps).toEqual([start, clue])
   })
 })

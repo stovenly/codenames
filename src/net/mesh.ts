@@ -82,6 +82,8 @@ const SEEN_TTL_MS = 30_000
 const DIRECT: ReadonlySet<MessageKind> = new Set<MessageKind>(['id', 'ping', 'pong'])
 
 const PING_MS = 2_000
+/** A twin is reported for this long after it last pinged us, a few beats past its death. */
+const TWIN_WINDOW_MS = 9_000
 const PING_DEAD_AFTER = 3
 
 /** How long a message with nowhere to go waits for a route to appear. */
@@ -174,6 +176,8 @@ export const createMesh = (opts: {
   const counters = {sent: 0, received: 0, forwarded: 0, dropped: 0}
   let peerStats = new Map<PlayerId, {ice: string; relayed: boolean}>()
   let closed = false
+  /** When a link last introduced itself with our own id: another tab holding this seat. */
+  let twinAt = 0
 
   const changed = () => onChange?.()
 
@@ -321,6 +325,7 @@ export const createMesh = (opts: {
       // Only link-level traffic names a link. Everything else may have been
       // forwarded on somebody else's behalf, and taking the sender's name off
       // one of those relabels the link with whoever the flood came from.
+      if (DIRECT.has(raw.kind) && raw.from === playerId) twinAt = Date.now()
       if (DIRECT.has(raw.kind) && link.playerId !== raw.from) {
         link.playerId = raw.from
         // A link that just got a name may be the route something is waiting on.
@@ -513,7 +518,8 @@ export const createMesh = (opts: {
     return {
       transports,
       peers,
-      router: {directPeers: byPlayer.size, ...counters, held: held.length} as RouterReport
+      router: {directPeers: byPlayer.size, ...counters, held: held.length} as RouterReport,
+      twin: now - twinAt < TWIN_WINDOW_MS
     }
   }
 
