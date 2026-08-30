@@ -444,18 +444,28 @@ describe('a room that has gone backwards', () => {
     return room.getRoom().shared!
   }
 
-  it('hands its longer log to a host that came back with an old copy', async () => {
+  it('as host, refuses a rival that came back with an old copy and shows it the game', async () => {
     const full = await play()
     const stale = {...full, hostId: 'phone', hostEpoch: full.hostEpoch + 1, version: 1, steps: full.steps.slice(0, 2), cursor: 2, sentAt: Date.now()}
     sent.length = 0
     deliver('state', {full: stale}, 'phone')
 
+    expect(room.getRoom().role).toBe('host')
+    expect(room.getRoom().shared!.steps).toEqual(full.steps)
+    const shown = sent.find(s => s.kind === 'state' && s.to === 'phone')
+    expect((shown!.body as {full: {cursor: number}}).full.cursor).toBe(full.cursor)
+  })
+
+  it('as the stale host, falls in line when shown the game that moved on', async () => {
+    const full = await play()
+    const ahead = {...full, hostId: 'host2', hostEpoch: full.hostEpoch - 1, version: 99, steps: [...full.steps, {t: 'endTurn', team: 'red', reason: 'pass', by: 'a'}], cursor: full.cursor + 1, sentAt: Date.now()}
+    room.intend({kind: 'undo'})
+    room.intend({kind: 'undo'})
+    flush()
+    deliver('state', {full: ahead}, 'a')
+
     expect(room.getRoom().role).toBe('client')
-    expect(room.getRoom().shared!.steps).toHaveLength(2)
-    const told = sent.find(s => s.kind === 'lost')
-    expect(told?.to).toBe('phone')
-    expect((told!.body as {cursor: number}).cursor).toBe(full.cursor)
-    expect(room.getRoom().banner).toMatch(/erased by a host change/)
+    expect(room.getRoom().shared!.cursor).toBe(full.cursor + 1)
   })
 
   it('puts the moves back the moment someone shows it the rest of the game', async () => {
@@ -493,5 +503,70 @@ describe('a room that has gone backwards', () => {
     deliver('lost', {seed: 'other', steps: full.steps, cursor: full.cursor + 5}, 'a')
     flush()
     expect(room.getRoom().erased).toBeNull()
+  })
+})
+
+describe('a client that was frozen', () => {
+  const FROZEN = () => ({...FULL, sentAt: Date.now(), steps: [{t: 'start', seed: 's', startTeam: 'red'}], cursor: 1})
+
+  beforeEach(async () => {
+    vi.useFakeTimers()
+    await load()
+    await room.joinRoom('Me', null)
+    deliver('state', {full: FROZEN()})
+    settle()
+  })
+
+  it('does not crown itself while it can reach nobody', () => {
+    vi.advanceTimersByTime(7_000)
+    expect(room.getRoom().role).toBe('electing')
+    vi.advanceTimersByTime(2_000)
+    expect(room.getRoom().role).toBe('client')
+  })
+
+  it('still wins an election it can see other people from', () => {
+    livePeers = ['host']
+    vi.advanceTimersByTime(9_000)
+    expect(room.getRoom().role).toBe('host')
+  })
+
+  it('starts the missing-host clock again on waking, and asks for the room', () => {
+    vi.advanceTimersByTime(5_500)
+    sent.length = 0
+    room.wokeUp()
+    const asked = sent.find(s => s.kind === 'resync')
+    expect(asked?.to).toBe('host')
+    vi.advanceTimersByTime(4_000)
+    expect(room.getRoom().role).toBe('client')
+  })
+
+  it('refuses a higher epoch that would erase moves, and shows it the game', () => {
+    const steps: Step[] = [
+      {t: 'start', seed: 's', startTeam: 'red'},
+      {t: 'clue', team: 'red', by: 'host', word: 'A', count: 1},
+      {t: 'endTurn', team: 'red', reason: 'pass', by: 'me'},
+      {t: 'clue', team: 'blue', by: 'x', word: 'B', count: 1}
+    ]
+    deliver('state', {full: {...FULL, sentAt: Date.now(), version: 6, steps, cursor: 4}})
+    sent.length = 0
+    deliver('state', {full: {...FROZEN(), hostId: 'phone', hostEpoch: 2, version: 1}}, 'phone')
+
+    expect(room.getRoom().shared!.hostId).toBe('host')
+    expect(room.getRoom().shared!.cursor).toBe(4)
+    const shown = sent.find(s => s.kind === 'state' && s.to === 'phone')
+    expect((shown!.body as {full: {cursor: number}}).full.cursor).toBe(4)
+  })
+
+  it("takes the outgoing host's copy on a handoff, not its own", () => {
+    const steps: Step[] = [
+      {t: 'start', seed: 's', startTeam: 'red'},
+      {t: 'clue', team: 'red', by: 'host', word: 'A', count: 1}
+    ]
+    const theirs = {...FULL, sentAt: Date.now(), version: 9, steps, cursor: 2}
+    deliver('handoff', {to: 'me', epoch: 2, state: theirs}, 'host')
+
+    expect(room.getRoom().role).toBe('host')
+    expect(room.getRoom().shared!.cursor).toBe(2)
+    expect(room.getRoom().shared!.hostEpoch).toBe(2)
   })
 })

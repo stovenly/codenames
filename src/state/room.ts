@@ -493,13 +493,31 @@ const noteRewind = (current: Shared, next: Shared) => {
   if (next.hostId !== self) send('lost', found, next.hostId)
 }
 
-const adopt = (next: Shared) => {
+const outranks = (a: Shared, b: Shared) =>
+  a.hostEpoch > b.hostEpoch || (a.hostEpoch === b.hostEpoch && a.version > b.version)
+
+/** Taking `next` would throw away moves of the game `current` is already past. */
+const erases = (next: Shared, current: Shared) => {
+  const seed = seedOf(current)
+  return !!seed && seed === seedOf(next) && next.steps.length < current.cursor
+}
+
+/**
+ * A host that outranks us on epoch but is behind us on the game is one that
+ * came back from a frozen tab and crowned itself. Epoch is not enough to take
+ * a room backwards: it is refused, and shown the game as it stands so it can
+ * fall in line. `force` is that other side — a host learning it is the stale one.
+ */
+const adopt = (next: Shared, force = false) => {
   const current = shared
-  const newer =
-    !current ||
-    next.hostEpoch > current.hostEpoch ||
-    (next.hostEpoch === current.hostEpoch && next.version > current.version)
-  if (!newer) return
+  if (current && !force) {
+    if (!outranks(next, current)) return
+    if (erases(next, current)) {
+      send('state', {full: current} satisfies StateMsg, next.hostId)
+      flash('Refused a host that would have erased moves')
+      return
+    }
+  }
 
   const hostChanged = current !== null && current.hostId !== next.hostId
   if (isHost() && next.hostId !== self) demote()
@@ -573,6 +591,14 @@ const startElection = () => {
     electionTimer = null
     if (isHost() || role !== 'electing') return
     const winner = [...claims].sort(scoreClaim)[0]!
+    // Alone is not elected. A tab back from being frozen has no links yet and
+    // hears no claims; crowning it would put its old copy over the live game.
+    if (winner.playerId === self && peers().length === 0) {
+      role = 'client'
+      lastHostAt = Date.now()
+      publish()
+      return
+    }
     if (winner.playerId === self) promoteSelf((shared?.hostEpoch ?? 0) + 1)
     else {
       // Wait for the winner's state; the liveness monitor retries if it never lands.
@@ -622,7 +648,7 @@ const monitor = () => {
     ) {
       const to = bestSuccessor()
       if (to) {
-        send('handoff', {to, epoch: shared.hostEpoch + 1})
+        send('handoff', {to, epoch: shared.hostEpoch + 1, state: shared})
         const name = shared.players.find(p => p.id === to)?.name ?? 'someone else'
         flash(`Handed hosting to ${name} while you were away`)
         demote()
@@ -1005,16 +1031,24 @@ export const start = () => {
     if (!next) return
 
     rivalHosts.set(next.hostId, Date.now())
-    if (isHost() && next.hostId !== self) {
-      const mine = shared?.hostEpoch ?? 0
+    if (isHost() && shared && next.hostId !== self) {
+      // We are the one that came back with an old copy: fall in line.
+      if (erases(shared, next)) {
+        flash('The game had moved on without this tab')
+        adopt(next, true)
+        return
+      }
+      const mine = shared.hostEpoch
       const theyWin = next.hostEpoch > mine || (next.hostEpoch === mine && next.hostId < self)
-      if (!theyWin) {
-        broadcast()
+      if (!theyWin || erases(next, shared)) {
+        sendFull(shared, next.hostId)
         return
       }
       flash('Two hosts met; the room re-synced')
     }
-    if (env.from !== next.hostId) return
+    // A delta only makes sense from the host it extends. A whole room is
+    // checked on its own merits, so a peer can answer a resync with one.
+    if ('add' in msg && env.from !== next.hostId) return
     adopt(next)
   })
 
@@ -1052,11 +1086,14 @@ export const start = () => {
   })
 
   on('handoff', body => {
-    const {to, epoch} = (body ?? {}) as {to?: PlayerId; epoch?: number}
+    const {to, epoch, state} = (body ?? {}) as {to?: PlayerId; epoch?: number; state?: Shared}
     if (to !== self) {
       lastHostAt = 0
       return
     }
+    // The room as the outgoing host had it, not as we did: a successor picked
+    // by id may have missed the last few broadcasts.
+    if (state && (!shared || outranks(state, shared))) shared = state
     promoteSelf(epoch ?? (shared?.hostEpoch ?? 0) + 1)
   })
 
@@ -1157,6 +1194,7 @@ export const start = () => {
     if (!document.hidden) {
       degrading = false
       lastBeatAt = 0
+      wokeUp()
     }
     publish()
     if (!isHost()) return
@@ -1164,11 +1202,31 @@ export const start = () => {
     if (!document.hidden && !wakeLock) takeWakeLock()
   })
 
+  addEventListener('pageshow', e => {
+    if ((e as PageTransitionEvent).persisted) wokeUp()
+  })
+
   addEventListener('beforeunload', () => {
     if (!isHost() || !shared) return
     const to = bestSuccessor()
-    if (to) send('handoff', {to, epoch: shared.hostEpoch + 1})
+    if (to) send('handoff', {to, epoch: shared.hostEpoch + 1, state: shared})
   })
+}
+
+/**
+ * A tab coming back has a clock that was not running: the host has not been
+ * silent, it has not been listened to. The window starts again from now, and
+ * the room is asked for rather than waited on.
+ */
+export const wokeUp = () => {
+  lastHostAt = Date.now()
+  if (electionTimer) {
+    clearTimeout(electionTimer)
+    electionTimer = null
+  }
+  if (role === 'electing') role = 'client'
+  claims = []
+  if (!isHost() && shared) send('resync', {want: 'state', have: whereWeAre()}, shared.hostId)
 }
 
 // ------------------------------------------------------------- entry points

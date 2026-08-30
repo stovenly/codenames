@@ -1,8 +1,8 @@
-const VERSION = 'cn-6zmwtl'
+const VERSION = 'cn-u93nz9'
 const SHELL = [
   "./",
   "./index.html",
-  "./assets/index-CaWBO_4W.js",
+  "./assets/index-Buot92cr.js",
   "./assets/rolldown-runtime-hePW80VL.js",
   "./assets/index-9V3_mXL3.css"
 ]
