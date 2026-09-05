@@ -310,9 +310,9 @@ const held: Held[] = []
 const HOLD_MS = 15_000
 ```
 
-- `send()`: after computing targets, if the map is empty — no link to `to`, or
-  no links at all for `'*'` — push to `held` with `until = now + HOLD_MS` and
-  return.
+- `send()`: an addressed message with no direct link to `to` goes to every
+  link, for the peers to forward. Only when there are no links at all is the
+  map empty: push to `held` with `until = now + HOLD_MS` and return.
 - `flush()`: from `onPeerJoin`, from the `id` branch of `receive()` (the moment
   a link gets a name), and from the ping interval so expiry happens without a
   join. Emit anything whose targets are now non-empty; drop anything past

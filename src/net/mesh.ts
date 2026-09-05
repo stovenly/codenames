@@ -245,7 +245,9 @@ export const createMesh = (opts: {
   const routeFor = (to: PlayerId | '*', wide: boolean) => {
     if (to === '*') return outbound(undefined, wide)
     const list = identified().get(to)
-    if (!list?.length) return new Map<TransportName, string[]>()
+    // No link to them is not no route: every peer forwards, so it goes to
+    // everyone we have and arrives by whoever can reach them.
+    if (!list?.length) return outbound(undefined, wide)
     const chosen = wide ? list : [list[0]!]
     const targets = new Map<TransportName, string[]>()
     for (const link of chosen) {

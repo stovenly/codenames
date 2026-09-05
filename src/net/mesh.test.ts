@@ -209,6 +209,47 @@ describe('messages with nowhere to go', () => {
   })
 })
 
+describe('a peer with no direct link', () => {
+  beforeEach(() => vi.useFakeTimers())
+
+  it('sends to everyone it has, for them to pass on', () => {
+    const a = fakeSpec('nostr')
+    const {mesh} = build([a])
+    introduce(a, 'pa', 'B')
+    introduce(a, 'pb', 'C')
+
+    mesh.send('ack', {id: 'x'}, 'HOST')
+    expect(mesh.heldCount()).toBe(0)
+    expect(a.of('ack')).toHaveLength(1)
+    expect(a.of('ack')[0]!.target.sort()).toEqual(['pa', 'pb'])
+    expect(a.of('ack')[0]!.env.to).toBe('HOST')
+  })
+
+  it('passes on what someone else addressed to a peer it cannot see either', () => {
+    const a = fakeSpec('nostr')
+    const {mesh, got} = build([a])
+    introduce(a, 'pa', 'B')
+    introduce(a, 'pb', 'C')
+
+    a.deliver('pa', {from: 'B', to: 'HOST', kind: 'intent', ttl: 3})
+    expect(got).toHaveLength(0)
+    expect(a.of('intent')).toHaveLength(1)
+    expect(a.of('intent')[0]!.target).toEqual(['pb'])
+    expect(a.of('intent')[0]!.env.ttl).toBe(2)
+    expect(mesh.report().router.forwarded).toBe(1)
+  })
+
+  it('still prefers the direct link once there is one', () => {
+    const a = fakeSpec('nostr')
+    const {mesh} = build([a])
+    introduce(a, 'pa', 'B')
+    introduce(a, 'ph', 'HOST')
+
+    mesh.send('presence', {kind: 'here'}, 'HOST')
+    expect(a.of('presence')[0]!.target).toEqual(['ph'])
+  })
+})
+
 describe('who is on the other end of a link', () => {
   beforeEach(() => vi.useFakeTimers())
 
