@@ -655,3 +655,102 @@ describe('a tab that was discarded, not frozen', () => {
     expect(sent.find(s => s.kind === 'lost')).toBeUndefined()
   })
 })
+
+describe('a turn the host skips', () => {
+  const flush = () => vi.advanceTimersByTime(100)
+  const view = () => room.currentView()!
+  const steps = () => room.getRoom().shared!.steps
+
+  const seat = (id: string, team: 'red' | 'blue', spymaster: boolean) => {
+    deliver('intent', {kind: 'setName', name: id}, id)
+    room.intend({kind: 'setTeam', target: id, team})
+    if (spymaster) room.intend({kind: 'setSpymaster', target: id, spymaster: true})
+  }
+
+  const clueFromWhoeverIsUp = () => {
+    const intent = {kind: 'clue', word: 'X', count: 2}
+    if (view().turn === 'red') room.intend(intent as Parameters<typeof room.intend>[0])
+    else deliver('intent', intent, 'b')
+    flush()
+  }
+
+  beforeEach(async () => {
+    vi.useFakeTimers()
+    await load()
+    await room.createRoom('Host', null)
+    room.intend({kind: 'setTeam', target: 'me', team: 'red'})
+    room.intend({kind: 'setSpymaster', target: 'me', spymaster: true})
+    seat('a', 'red', false)
+    seat('b', 'blue', true)
+    seat('c', 'blue', false)
+    room.intend({kind: 'startGame'})
+    flush()
+    expect(view().phase).toBe('clue')
+  })
+
+  it('is ignored from anyone but the host', () => {
+    deliver('intent', {kind: 'skipTurn'}, 'a')
+    flush()
+    expect(steps()).toHaveLength(1)
+  })
+
+  it('hands the turn over before a clue has been given', () => {
+    const turn = view().turn
+    room.intend({kind: 'skipTurn'})
+    flush()
+    expect(steps()).toHaveLength(2)
+    expect(steps()[1]).toMatchObject({t: 'endTurn', team: turn, reason: 'skipped', by: 'me'})
+    expect(view().turn).not.toBe(turn)
+    expect(view().phase).toBe('clue')
+  })
+
+  it('hands the turn over mid-guess, and the clue goes with it', () => {
+    const turn = view().turn
+    clueFromWhoeverIsUp()
+    expect(view().phase).toBe('guess')
+    room.intend({kind: 'skipTurn'})
+    flush()
+    expect(view().turn).not.toBe(turn)
+    expect(view().phase).toBe('clue')
+    expect(view().clue).toBeNull()
+    expect(steps().at(-1)).toMatchObject({t: 'endTurn', reason: 'skipped'})
+  })
+
+  it('is one step, so undo puts the turn back', () => {
+    const turn = view().turn
+    room.intend({kind: 'skipTurn'})
+    flush()
+    room.intend({kind: 'undo'})
+    flush()
+    expect(view().turn).toBe(turn)
+    expect(view().phase).toBe('clue')
+  })
+
+  it('tells everyone whose turn was skipped', () => {
+    const turn = view().turn
+    room.intend({kind: 'skipTurn'})
+    flush()
+    const said = sent.filter(s => s.kind === 'presence').map(s => s.body as {kind: string; team?: string})
+    expect(said).toContainEqual({kind: 'skipped', team: turn})
+  })
+
+  it('does nothing in the lobby', () => {
+    room.intend({kind: 'endGame'})
+    flush()
+    room.intend({kind: 'skipTurn'})
+    flush()
+    expect(steps()).toHaveLength(0)
+  })
+
+  it('starts the other side\x27s clock once the turn band has played', () => {
+    room.intend({kind: 'endGame'})
+    flush()
+    room.intend({kind: 'updateSettings', patch: {clueTimer: 60}})
+    flush()
+    room.intend({kind: 'startGame'})
+    flush()
+    const at = Date.now()
+    room.intend({kind: 'skipTurn'})
+    expect(room.getRoom().shared!.deadline).toBe(at + PACE.turn + 60_000)
+  })
+})

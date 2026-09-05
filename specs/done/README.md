@@ -15,6 +15,7 @@ the plan. Work still outstanding lives in [IMPROVEMENTS.MD](../IMPROVEMENTS.MD).
 | 07 | [Who is on your team, while you play](07-who-is-on-your-team.md) | measurement lifted to the play screen |
 | 08 | [A clue cannot be a word on the board](08-a-clue-is-not-a-board-word.md) | refusal line not yet seen in a browser |
 | 09 | [A message says which room it was said in](09-a-message-says-which-room.md) | grouping rule moved beside the messages |
+| 10 | [The host can skip a turn](10-the-host-can-skip-a-turn.md) | as specified |
 
 ## Standing decisions
 

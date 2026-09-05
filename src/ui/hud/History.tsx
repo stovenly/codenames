@@ -13,7 +13,9 @@ const why = (reason: string) =>
       ? 'wrong pick'
       : reason === 'timeout'
         ? 'ran out of time'
-        : 'out of guesses'
+        : reason === 'skipped'
+          ? 'skipped by the host'
+          : 'out of guesses'
 
 const tint = (team: string) => (team === 'red' ? 'text-red-lit' : 'text-blue-lit')
 

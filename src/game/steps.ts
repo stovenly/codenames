@@ -2,7 +2,7 @@ import type {PlayerId, Team} from './types'
 
 export type ClueCount = number | 'unlimited'
 
-export type EndTurnReason = 'pass' | 'wrong' | 'timeout' | 'exhausted'
+export type EndTurnReason = 'pass' | 'wrong' | 'timeout' | 'exhausted' | 'skipped'
 
 /**
  * When the host appended it, on the host's clock. The only clock any of them
@@ -20,6 +20,6 @@ export type Step =
   /** An empty word is a clue phase that ran out: the team guesses with nothing to go on. */
   | ({t: 'clue'; team: Team; by: PlayerId; word: string; count: ClueCount} & Stamped)
   | ({t: 'guess'; team: Team; by: PlayerId; card: number} & Stamped)
-  /** `by` only when somebody chose it: a turn that ran out has nobody to name. */
+  /** `by` only when somebody chose it: a turn that ran out has nobody to name. A skipped one names the host. */
   | ({t: 'endTurn'; team: Team; reason: EndTurnReason; by?: PlayerId} & Stamped)
   | ({t: 'end'; winner: Team; reason: 'cards' | 'assassin'} & Stamped)

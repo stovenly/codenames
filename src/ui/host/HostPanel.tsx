@@ -1,6 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog'
 import * as ToggleGroup from '@radix-ui/react-toggle-group'
-import {History, Redo2, Settings2, Undo2, UserMinus, X} from 'lucide-react'
+import {History, Redo2, Settings2, SkipForward, Undo2, UserMinus, X} from 'lucide-react'
 import {useMemo, useState} from 'react'
 import {derive} from '../../game/reducer'
 import {validate} from '../../game/settings'
@@ -149,6 +149,26 @@ export const HostPanel = () => {
                     {shared.cursor} / {shared.steps.length}
                   </Label>
                 </div>
+
+                {(view.phase === 'clue' || view.phase === 'guess') && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => intend({kind: 'skipTurn'})}
+                      className="flex shrink-0 items-center gap-1.5"
+                    >
+                      <SkipForward className="size-3.5" /> Skip {view.turn}'s turn
+                    </Button>
+                    <Label className="truncate">
+                      {view.phase === 'clue'
+                        ? `${view.turn} has not given a clue yet`
+                        : view.unlimited
+                          ? `${view.turn} is guessing`
+                          : `${view.turn} is guessing, ${view.guessesLeft} left`}
+                    </Label>
+                  </div>
+                )}
 
                 {erased && (
                   <Button

@@ -791,6 +791,7 @@ export type Intent =
   | {kind: 'redo'}
   | {kind: 'jump'; cursor: number}
   | {kind: 'restore'}
+  | {kind: 'skipTurn'}
 
 /** Named so a rewind can be announced as what was taken back, not as a number. */
 const describeStep = (state: Shared, index: number): string => {
@@ -987,6 +988,14 @@ const applyIntent = (from: PlayerId, intent: Intent) => {
     case 'restore':
       if (!fromHost) return
       if (!restore()) refuse(from, 'Nothing to restore')
+      return
+
+    case 'skipTurn':
+      if (!fromHost) return
+      if (view.phase !== 'clue' && view.phase !== 'guess') return
+      appendStep({t: 'endTurn', team: view.turn, reason: 'skipped', by: from})
+      send('presence', {kind: 'skipped', team: view.turn})
+      flash(`You skipped ${view.turn}'s turn`)
       return
   }
 }
@@ -1191,8 +1200,12 @@ export const start = () => {
   })
 
   on('presence', body => {
-    const msg = (body ?? {}) as {kind?: string; undone?: string; count?: number}
+    const msg = (body ?? {}) as {kind?: string; undone?: string; count?: number; team?: string}
     if (isHost()) return
+    if (msg.kind === 'skipped') {
+      flash(msg.team ? `The host skipped ${msg.team}'s turn` : 'The host skipped the turn')
+      return
+    }
     if (msg.kind === 'restored') {
       lost = null
       flash(`The host restored ${msg.count ?? ''} erased moves`.replace('  ', ' '))

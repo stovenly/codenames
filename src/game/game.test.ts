@@ -224,6 +224,13 @@ describe('derive', () => {
     expect(view.clue).toBeNull()
   })
 
+  it('hands the turn over when it is skipped before a clue', () => {
+    const view = run([start, {t: 'endTurn', team: 'red', reason: 'skipped', by: 'host'}])
+    expect(view.turn).toBe('blue')
+    expect(view.phase).toBe('clue')
+    expect(view.clue).toBeNull()
+  })
+
   it('ends the game on the assassin, and the guessing team loses', () => {
     const view = run([
       start,
@@ -469,6 +476,17 @@ describe('a clue nobody gave', () => {
     const entries = readLog(s, WORDS_80, steps, steps.length)
     expect(entries).toHaveLength(1)
     expect(entries[0]).toMatchObject({kind: 'clue', word: '', by: 'rs'})
+  })
+})
+
+describe('a turn the host skipped', () => {
+  it('is a turn line in the log, not a pass by anyone', () => {
+    const steps: Step[] = [
+      {t: 'start', seed: 'seed', startTeam: 'red'},
+      {t: 'endTurn', team: 'red', reason: 'skipped', by: 'host'}
+    ]
+    const entries = readLog(settings(), WORDS, steps, steps.length)
+    expect(entries).toEqual([{kind: 'turn', index: 1, team: 'red', reason: 'skipped'}])
   })
 })
 
